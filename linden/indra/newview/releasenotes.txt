@@ -1,3 +1,10 @@
+Release Notes for Second Life 1.20.16 September 25th, 2008
+=====================================
+
+Changes:
+* Discard messages sent over UDP that should not be trusted
+
+
 Release Notes for Second Life 1.20.15 July 23rd, 2008
 =====================================
 
