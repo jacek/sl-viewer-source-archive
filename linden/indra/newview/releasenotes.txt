@@ -1,3 +1,12 @@
+Release Notes for Second Life 1.20.17 October 3rd, 2008
+=====================================
+
+Security Fixes:
+* Discard file transfer message sent over UDP
+* Don't send file transfer messages to simulators over UDP
+* Block file transfer of paths containing ".."
+
+
 Release Notes for Second Life 1.20.16 September 25th, 2008
 =====================================
 
