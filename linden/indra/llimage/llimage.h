@@ -60,7 +60,6 @@ const S32 MAX_IMG_PACKET_SIZE = 1000;
 class LLImageFormatted;
 class LLImageRaw;
 class LLColor4U;
-class LLWorkerThread;
 
 typedef enum e_image_codec
 {
@@ -81,7 +80,7 @@ typedef enum e_image_codec
 class LLImage
 {
 public:
-	static void initClass(LLWorkerThread* workerthread);
+	static void initClass();
 	static void cleanupClass();
 
 	static const std::string& getLastError();
@@ -309,7 +308,7 @@ protected:
 protected:
 	S8 mCodec;
 	S8 mDecoding;
-	S8 mDecoded;
+	S8 mDecoded;  // unused, but changing LLImage layout requires recompiling static Mac/Linux libs. 2009-01-30 JC
 	S8 mDiscardLevel;
 	
 public:

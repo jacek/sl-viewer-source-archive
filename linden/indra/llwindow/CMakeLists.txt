@@ -132,6 +132,7 @@ if (SERVER AND NOT WINDOWS AND NOT DARWIN)
     ${llwindow_SOURCE_FILES}
     ${server_SOURCE_FILES}
     )
+  add_dependencies(llwindowheadless prepare)
 endif (SERVER AND NOT WINDOWS AND NOT DARWIN)
 
 if (llwindow_HEADER_FILES)
@@ -144,4 +145,5 @@ if (VIEWER)
     ${llwindow_SOURCE_FILES}
     ${viewer_SOURCE_FILES}
     )
+  add_dependencies(llwindow prepare)
 endif (VIEWER)

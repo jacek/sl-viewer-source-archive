@@ -201,6 +201,7 @@ set_source_files_properties(${llmessage_HEADER_FILES}
 list(APPEND llmessage_SOURCE_FILES ${llmessage_HEADER_FILES})
 
 add_library (llmessage ${llmessage_SOURCE_FILES})
+add_dependencies(llmessage prepare)
 target_link_libraries(
     llmessage
     ${CURL_LIBRARIES}

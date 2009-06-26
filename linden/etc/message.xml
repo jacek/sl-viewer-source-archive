@@ -600,7 +600,7 @@
 			<boolean>false</boolean>
 
 			<key>RequestTextureDownload</key>
-			<boolean>true</boolean>
+			<boolean>false</boolean>
 
 			<key>EventQueueGet</key>
 			<boolean>false</boolean>

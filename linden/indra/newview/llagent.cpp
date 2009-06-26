@@ -100,6 +100,7 @@
 #include "llstatusbar.h"
 #include "llstartup.h"
 #include "llimview.h"
+#include "lltexturestats.h"
 #include "lltool.h"
 #include "lltoolcomp.h"
 #include "lltoolfocus.h"
@@ -1316,14 +1317,19 @@ LLQuaternion LLAgent::getQuat() const
 //-----------------------------------------------------------------------------
 LLVector3 LLAgent::calcFocusOffset(LLViewerObject *object, LLVector3 original_focus_point, S32 x, S32 y)
 {
-	// calculate offset based on view direction
-	BOOL is_avatar = object->isAvatar();
-	// since the animation system allows the avatars facing and position to deviate from its nominal LLViewerObject/LLDrawable transform
-	// calculate the focus-specific orientation for avatars based off the pelvis joint
-	// NOTE: pelvis no longer good candidate, removed.  DEV-30589
 	LLMatrix4 obj_matrix = object->getRenderMatrix();
 	LLQuaternion obj_rot = object->getRenderRotation();
 	LLVector3 obj_pos = object->getRenderPosition();
+
+	BOOL is_avatar = object->isAvatar();
+	// if is avatar - don't do any funk heuristics to position the focal point
+	// see DEV-30589
+	if (is_avatar)
+	{
+		return original_focus_point - obj_pos;
+	}
+
+	
 	LLQuaternion inv_obj_rot = ~obj_rot; // get inverse of rotation
 	LLVector3 object_extents = object->getScale();
 	// make sure they object extents are non-zero
@@ -6025,6 +6031,11 @@ void LLAgent::teleportRequest(
 		msg->addVector3("LookAt", look_at);
 		sendReliableMessage();
 	}
+
+	if(regionp)
+	{
+		send_texture_stats_to_sim();
+	}
 }
 
 // Landmark ID = LLUUID::null means teleport home
@@ -6095,17 +6106,16 @@ void LLAgent::teleportCancel()
 void LLAgent::teleportViaLocation(const LLVector3d& pos_global)
 {
 	LLViewerRegion* regionp = getRegion();
-	LLSimInfo* info = LLWorldMap::getInstance()->simInfoFromPosGlobal(pos_global);
+	U64 handle = to_region_handle(pos_global);
+	LLSimInfo* info = LLWorldMap::getInstance()->simInfoFromHandle(handle);
 	if(regionp && info)
 	{
-		U32 x_pos;
-		U32 y_pos;
-		from_region_handle(info->mHandle, &x_pos, &y_pos);
+		LLVector3d region_origin = info->getGlobalOrigin();
 		LLVector3 pos_local(
-			(F32)(pos_global.mdV[VX] - x_pos),
-			(F32)(pos_global.mdV[VY] - y_pos),
+			(F32)(pos_global.mdV[VX] - region_origin.mdV[VX]),
+			(F32)(pos_global.mdV[VY] - region_origin.mdV[VY]),
 			(F32)(pos_global.mdV[VZ]));
-		teleportRequest(info->mHandle, pos_local);
+		teleportRequest(handle, pos_local);
 	}
 	else if(regionp && 
 		teleportCore(regionp->getHandle() == to_region_handle_global((F32)pos_global.mdV[VX], (F32)pos_global.mdV[VY])))
@@ -7784,3 +7794,4 @@ void LLAgent::parseTeleportMessages(const std::string& xml_filename)
 }
 
 // EOF
+

@@ -7,7 +7,7 @@
 		<menu_item_call label="Настройки..." name="Preferences..." />
 	</menu>
 	<menu label="Допомога" name="Help">
-		<menu_item_call label="Допомога Second Life" name="Second Life Help" />
-		<menu_item_call label="Про Second Life..." name="About Second Life..." />
+		<menu_item_call label="Допомога Snowglobe/Second Life" name="Second Life Help" />
+		<menu_item_call label="Про Snowglobe..." name="About Second Life..." />
 	</menu>
 </menu_bar>

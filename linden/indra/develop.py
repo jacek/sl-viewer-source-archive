@@ -79,6 +79,7 @@ class PlatformSetup(object):
     project_name = 'SecondLife'
     distcc = True
     cmake_opts = []
+    word_size = 32
 
     def __init__(self):
         self.script_dir = os.path.realpath(
@@ -120,6 +121,7 @@ class PlatformSetup(object):
             opts=quote(opts),
             standalone=self.standalone,
             unattended=self.unattended,
+            word_size=self.word_size,
             type=self.build_type.upper(),
             )
         #if simple:
@@ -127,6 +129,7 @@ class PlatformSetup(object):
         return ('cmake -DCMAKE_BUILD_TYPE:STRING=%(type)s '
                 '-DSTANDALONE:BOOL=%(standalone)s '
                 '-DUNATTENDED:BOOL=%(unattended)s '
+                '-DWORD_SIZE:STRING=%(word_size)s '
                 '-G %(generator)r %(opts)s %(dir)r' % args)
 
     def run_cmake(self, args=[]):
@@ -229,6 +232,8 @@ class UnixSetup(PlatformSetup):
             cpu = 'i686'
         elif cpu == 'Power Macintosh':
             cpu = 'ppc'
+        elif cpu == 'x86_64' and self.word_size == 32:
+            cpu = 'i686'
         return cpu
 
     def run(self, command, name=None):
@@ -263,8 +268,7 @@ class LinuxSetup(UnixSetup):
         return 'linux'
 
     def build_dirs(self):
-        # Only build the server code if (a) we have it and (b) we're
-        # on 32-bit x86.
+        # Only build the server code if we have it.
         platform_build = '%s-%s' % (self.platform(), self.build_type.lower())
 
         if self.arch() == 'i686' and self.is_internal_tree():
@@ -285,7 +289,8 @@ class LinuxSetup(UnixSetup):
             standalone=self.standalone,
             unattended=self.unattended,
             type=self.build_type.upper(),
-            project_name=self.project_name
+            project_name=self.project_name,
+            word_size=self.word_size,
             )
         if not self.is_internal_tree():
             args.update({'cxx':'g++', 'server':'OFF', 'viewer':'ON'})
@@ -311,6 +316,7 @@ class LinuxSetup(UnixSetup):
                 '-G %(generator)r -DSERVER:BOOL=%(server)s '
                 '-DVIEWER:BOOL=%(viewer)s -DSTANDALONE:BOOL=%(standalone)s '
                 '-DUNATTENDED:BOOL=%(unattended)s '
+                '-DWORD_SIZE:STRING=%(word_size)s '
                 '-DROOT_PROJECT_NAME:STRING=%(project_name)s '
                 '%(opts)s %(dir)r')
                % args)
@@ -364,22 +370,29 @@ class LinuxSetup(UnixSetup):
                 cpus += m and int(m.group(1)) or 1
             return hosts, cpus
 
-        def mk_distcc_hosts():
+        def mk_distcc_hosts(basename, range, num_cpus):
             '''Generate a list of LL-internal machines to build on.'''
             loc_entry, cpus = localhost()
             hosts = [loc_entry]
             dead = []
-            stations = [s for s in xrange(36) if s not in dead]
+            stations = [s for s in xrange(range) if s not in dead]
             random.shuffle(stations)
-            hosts += ['station%d.lindenlab.com/2,lzo' % s for s in stations]
+            hosts += ['%s%d.lindenlab.com/%d,lzo' % (basename, s, num_cpus) for s in stations]
             cpus += 2 * len(stations)
             return ' '.join(hosts), cpus
 
         if job_count is None:
             hosts, job_count = count_distcc_hosts()
-            if hosts == 1 and socket.gethostname().startswith('station'):
-                hosts, job_count = mk_distcc_hosts()
-                os.putenv('DISTCC_HOSTS', hosts)
+            if hosts == 1:
+                hostname = socket.gethostname()
+                if hostname.startswith('station'):
+                    hosts, job_count = mk_distcc_hosts('station', 36, 2)
+                    os.environ['DISTCC_HOSTS'] = hosts
+                if hostname.startswith('eniac'):
+                    hosts, job_count = mk_distcc_hosts('eniac', 71, 2)
+                    os.environ['DISTCC_HOSTS'] = hosts
+            if job_count > 4:
+                job_count = 4;
             opts.extend(['-j', str(job_count)])
 
         if targets:
@@ -413,10 +426,11 @@ class DarwinSetup(UnixSetup):
             generator=self.generator,
             opts=quote(opts),
             standalone=self.standalone,
+            word_size=self.word_size,
             unattended=self.unattended,
             project_name=self.project_name,
             universal='',
-            type=self.build_type.upper()
+            type=self.build_type.upper(),
             )
         if self.unattended == 'ON':
             args['universal'] = '-DCMAKE_OSX_ARCHITECTURES:STRING=\'i386;ppc\''
@@ -426,6 +440,7 @@ class DarwinSetup(UnixSetup):
                 '-DCMAKE_BUILD_TYPE:STRING=%(type)s '
                 '-DSTANDALONE:BOOL=%(standalone)s '
                 '-DUNATTENDED:BOOL=%(unattended)s '
+                '-DWORD_SIZE:STRING=%(word_size)s '
                 '-DROOT_PROJECT_NAME:STRING=%(project_name)s '
                 '%(universal)s '
                 '%(opts)s %(dir)r' % args)
@@ -436,8 +451,7 @@ class DarwinSetup(UnixSetup):
             targets = ' '.join(['-target ' + repr(t) for t in targets])
         else:
             targets = ''
-        cmd = ('xcodebuild -parallelizeTargets '
-               '-configuration %s %s %s' %
+        cmd = ('xcodebuild -configuration %s %s %s' %
                (self.build_type, ' '.join(opts), targets))
         for d in self.build_dirs():
             try:
@@ -505,37 +519,47 @@ class WindowsSetup(PlatformSetup):
             opts=quote(opts),
             standalone=self.standalone,
             unattended=self.unattended,
-            project_name=self.project_name
+            project_name=self.project_name,
+            word_size=self.word_size,
             )
         #if simple:
         #    return 'cmake %(opts)s "%(dir)s"' % args
         return ('cmake -G "%(generator)s" '
                 '-DSTANDALONE:BOOL=%(standalone)s '
                 '-DUNATTENDED:BOOL=%(unattended)s '
+                '-DWORD_SIZE:STRING=%(word_size)s '
                 '-DROOT_PROJECT_NAME:STRING=%(project_name)s '
                 '%(opts)s "%(dir)s"' % args)
 
+    def get_HKLM_registry_value(self, key_str, value_str):
+        import _winreg
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
+        key = _winreg.OpenKey(reg, key_str)
+        value = _winreg.QueryValueEx(key, value_str)[0]
+        print 'Found: %s' % value
+        return value
+        
     def find_visual_studio(self, gen=None):
         if gen is None:
             gen = self._generator
         gen = gen.lower()
+        value_str = (r'EnvironmentDirectory')
+        key_str = (r'SOFTWARE\Microsoft\VisualStudio\%s\Setup\VS' %
+                   self.gens[gen]['ver'])
+        print ('Reading VS environment from HKEY_LOCAL_MACHINE\%s\%s' %
+               (key_str, value_str))
         try:
-            import _winreg
-            key_str = (r'SOFTWARE\Microsoft\VisualStudio\%s\Setup\VS' %
-                       self.gens[gen]['ver'])
-            value_str = (r'EnvironmentDirectory')
-            print ('Reading VS environment from HKEY_LOCAL_MACHINE\%s\%s' %
-                   (key_str, value_str))
-            print key_str
-
-            reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
-            key = _winreg.OpenKey(reg, key_str)
-            value = _winreg.QueryValueEx(key, value_str)[0]
-            print 'Found: %s' % value
-            return value
+            return self.get_HKLM_registry_value(key_str, value_str)           
         except WindowsError, err:
+            key_str = (r'SOFTWARE\Wow6432Node\Microsoft\VisualStudio\%s\Setup\VS' %
+                       self.gens[gen]['ver'])
+
+        try:
+            return self.get_HKLM_registry_value(key_str, value_str)
+        except:
             print >> sys.stderr, "Didn't find ", self.gens[gen]['gen']
-            return ''
+            
+        return ''
 
     def get_build_cmd(self):
         if self.incredibuild:
@@ -620,13 +644,15 @@ class CygwinSetup(WindowsSetup):
             opts=quote(opts),
             standalone=self.standalone,
             unattended=self.unattended,
-            project_name=self.project_name
+            project_name=self.project_name,
+            word_size=self.word_size,
             )
         #if simple:
         #    return 'cmake %(opts)s "%(dir)s"' % args
         return ('cmake -G "%(generator)s" '
                 '-DUNATTENDED:BOOl=%(unattended)s '
                 '-DSTANDALONE:BOOL=%(standalone)s '
+                '-DWORD_SIZE:STRING=%(word_size)s '
                 '-DROOT_PROJECT_NAME:STRING=%(project_name)s '
                 '%(opts)s "%(dir)s"' % args)
 
@@ -647,6 +673,7 @@ Options:
        --unattended     build unattended, do not invoke any tools requiring
                         a human response
   -t | --type=NAME      build type ("Debug", "Release", or "RelWithDebInfo")
+  -m32 | -m64           build architecture (32-bit or 64-bit)
   -N | --no-distcc      disable use of distcc
   -G | --generator=NAME generator name
                         Windows: VC71 or VS2003 (default), VC80 (VS2005) or 
@@ -676,11 +703,20 @@ Examples:
 '''
 
 def main(arguments):
+    if os.getenv('DISTCC_DIR') is None:
+        distcc_dir = os.path.join(getcwd(), '.distcc')
+        if not os.path.exists(distcc_dir):
+            os.mkdir(distcc_dir)
+        print "setting DISTCC_DIR to %s" % distcc_dir
+        os.environ['DISTCC_DIR'] = distcc_dir
+    else:
+        print "DISTCC_DIR is set to %s" % os.getenv('DISTCC_DIR')
+ 
     setup = setup_platform[sys.platform]()
     try:
         opts, args = getopt.getopt(
             arguments,
-            '?hNt:p:G:',
+            '?hNt:p:G:m:',
             ['help', 'standalone', 'no-distcc', 'unattended', 'type=', 'incredibuild', 'generator=', 'project='])
     except getopt.GetoptError, err:
         print >> sys.stderr, 'Error:', err
@@ -698,6 +734,13 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
             setup.standalone = 'ON'
         elif o in ('--unattended',):
             setup.unattended = 'ON'
+        elif o in ('-m',):
+            if a in ('32', '64'):
+                setup.word_size = int(a)
+            else:
+                print >> sys.stderr, 'Error: unknown word size', repr(a)
+                print >> sys.stderr, 'Supported word sizes: 32, 64'
+                sys.exit(1)
         elif o in ('-t', '--type'):
             try:
                 setup.build_type = setup.build_types[a.lower()]

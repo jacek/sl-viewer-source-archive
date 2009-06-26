@@ -811,11 +811,11 @@ LLBumpImageList::~LLBumpImageList()
 // Note: Does nothing for entries in gStandardBumpmapList that are not actually standard bump images (e.g. none, brightness, and darkness)
 void LLBumpImageList::addTextureStats(U8 bump, const LLUUID& base_image_id, F32 virtual_size)
 {
-	bump &= TEM_BUMP_MASK;
-	LLViewerImage* bump_image = gStandardBumpmapList[bump].mImage;
-	if( bump_image )
+	//bump &= TEM_BUMP_MASK;
+	//LLViewerImage* bump_image = gStandardBumpmapList[bump].mImage;
+	//if( bump_image )
 	{
-		bump_image->addTextureStats(virtual_size);
+		//bump_image->addTextureStats(virtual_size);
 	}
 }
 
@@ -1221,7 +1221,7 @@ void LLDrawPoolBump::pushBatch(LLDrawInfo& params, U32 mask, BOOL texture)
 		if (params.mTexture.notNull())
 		{
 			gGL.getTexUnit(diffuse_channel)->bind(params.mTexture.get());
-			params.mTexture->addTextureStats(params.mVSize);
+			//params.mTexture->addTextureStats(params.mVSize);
 		}
 		else
 		{

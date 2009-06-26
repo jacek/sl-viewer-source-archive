@@ -205,6 +205,7 @@ if (MSVC80)
 endif (MSVC80)
 
 add_custom_target(copy_win_libs ALL DEPENDS ${all_targets})
+add_dependencies(copy_win_libs prepare)
 
 if(EXISTS ${internal_llkdu_path})
     add_dependencies(copy_win_libs llkdu)

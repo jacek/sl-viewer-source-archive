@@ -81,6 +81,7 @@ if (SERVER AND NOT WINDOWS AND NOT DARWIN)
     ${llrender_SOURCE_FILES}
     ${server_SOURCE_FILES}
     )
+  add_dependencies(llrenderheadless prepare)
 else (SERVER AND NOT WINDOWS AND NOT DARWIN)
   list(APPEND llrender_SOURCE_FILES
       llgl.cpp
@@ -89,3 +90,4 @@ else (SERVER AND NOT WINDOWS AND NOT DARWIN)
       )
 endif (SERVER AND NOT WINDOWS AND NOT DARWIN)
 add_library (llrender ${llrender_SOURCE_FILES})
+add_dependencies(llrender prepare)

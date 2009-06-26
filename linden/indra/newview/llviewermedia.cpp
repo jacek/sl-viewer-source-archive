@@ -298,7 +298,7 @@ void LLViewerMediaImpl::initializePlaceholderImage(LLViewerImage *placeholder_im
 										 media_source->getTextureFormatPrimary(),
 										 media_source->getTextureFormatType());
 
-	placeholder_image->createGLTexture(discard_level, raw);
+	placeholder_image->createGLTexture(discard_level, raw, 0, TRUE, LLViewerImageBoostLevel::MEDIA);
 
 	// placeholder_image->setExplicitFormat()
 	placeholder_image->setUseMipMaps(FALSE);

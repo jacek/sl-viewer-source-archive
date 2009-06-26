@@ -3,6 +3,7 @@
 project(llimage)
 
 include(00-Common)
+include(LLAddBuildTest)
 include(LLCommon)
 include(LLImage)
 include(LLMath)
@@ -50,9 +51,13 @@ set_source_files_properties(${llimage_HEADER_FILES}
 list(APPEND llimage_SOURCE_FILES ${llimage_HEADER_FILES})
 
 add_library (llimage ${llimage_SOURCE_FILES})
+add_dependencies(llimage prepare)
 target_link_libraries(
     llimage
     ${JPEG_LIBRARIES}
     ${PNG_LIBRARIES}
     ${ZLIB_LIBRARIES}
     )
+
+# Add tests
+ADD_BUILD_TEST(llimageworker llimage)

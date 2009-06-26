@@ -24,6 +24,10 @@
 	</text>
 	<button label="Choisir la touche" name="set_voice_hotkey_button"/>
 	<button label="Molette de la souris" name="set_voice_middlemouse_button"/>
+	<text name="lip_sync_heading">
+		Animation lèvres-parole
+	</text>
+	<check_box label="Activer l&apos;animation des lèvres" name="enable_lip_sync_check"/>
 	<text name="privacy_heading">
 		Options de confidentialité
 	</text>

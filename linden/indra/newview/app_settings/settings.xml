@@ -330,7 +330,18 @@
       <key>Value</key>
       <integer>0</integer>
     </map>
-    <key>AutoAcceptNewInventory</key>
+  <key>AuditTexture</key>
+  <map>
+    <key>Comment</key>
+    <string>Enable texture auditting.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
+  <key>AutoAcceptNewInventory</key>
     <map>
       <key>Comment</key>
       <string>Automatically accept new notecards/textures/landmarks</string>
@@ -4804,13 +4815,24 @@
     <key>IMInChatConsole</key>
     <map>
       <key>Comment</key>
-      <string>Copy IM into background chat console</string>
+      <string>Copy IM into chat console</string>
       <key>Persist</key>
       <integer>1</integer>
       <key>Type</key>
       <string>Boolean</string>
       <key>Value</key>
       <integer>1</integer>
+    </map>
+    <key>IMInChatHistory</key>
+    <map>
+      <key>Comment</key>
+      <string>Copy IM into chat history</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
     </map>
     <key>IMShowTimestamps</key>
     <map>
@@ -5344,7 +5366,7 @@
       <key>Type</key>
       <string>Boolean</string>
       <key>Value</key>
-      <integer>0</integer>
+      <integer>1</integer>
     </map>
     <key>LipSyncOoh</key>
     <map>
@@ -5690,7 +5712,7 @@
     <key>MiniMapScale</key>
     <map>
       <key>Comment</key>
-      <string>Miniature world map zoom levle (pixels per region)</string>
+      <string>Miniature world map zoom level (pixels per region)</string>
       <key>Persist</key>
       <integer>1</integer>
       <key>Type</key>
@@ -8777,7 +8799,7 @@
       <key>Comment</key>
       <string>Display XUI Names as Tooltips</string>
       <key>Persist</key>
-      <integer>1</integer>
+      <integer>0</integer>
       <key>Type</key>
       <string>Boolean</string>
       <key>Value</key>
@@ -11893,6 +11915,28 @@
     <map>
       <key>Comment</key>
       <string>Beacon / Highlight sound generators</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+    <key>LogTextureDownloadsToViewerLog</key>
+    <map>
+      <key>Comment</key>
+      <string>Send texture download details to the viewer log</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+    <key>LogTextureDownloadsToSimulator</key>
+    <map>
+      <key>Comment</key>
+      <string>Send a digest of texture info to the sim</string>
       <key>Persist</key>
       <integer>1</integer>
       <key>Type</key>

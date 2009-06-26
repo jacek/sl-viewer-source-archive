@@ -102,7 +102,7 @@ void LLDrawable::init()
 	mVObjp   = NULL;
 	// mFaces
 	mSpatialGroupp = NULL;
-	mVisible = 0;
+	mVisible = sCurVisible - 2;//invisible for the current frame and the last frame.
 	mRadius = 0.f;
 	
 	mGeneration = -1;
@@ -736,11 +736,7 @@ void LLDrawable::updateTexture()
 
 	if (getVOVolume())
 	{
-		if (!isActive())
-		{
-			//gPipeline.markMoved(this);
-		}
-		else
+		if (isActive())
 		{
 			if (isRoot())
 			{
@@ -953,7 +949,11 @@ LLSpatialPartition* LLDrawable::getSpatialPartition()
 	return retval;
 }
 
-
+BOOL LLDrawable::isRecentlyVisible() const
+{
+	//currently visible or visible in the previous frame.
+	return isVisible() || (mVisible == sCurVisible - 1)  ;
+}
 BOOL LLDrawable::isVisible() const
 {
 	if (mVisible == sCurVisible)

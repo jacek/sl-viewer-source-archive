@@ -33,3 +33,4 @@ set_source_files_properties(${llcrashlogger_HEADER_FILES}
 list(APPEND llcrashlogger_SOURCE_FILES ${llcrashlogger_HEADER_FILES})
 
 add_library(llcrashlogger ${llcrashlogger_SOURCE_FILES})
+add_dependencies(llcrashlogger prepare)

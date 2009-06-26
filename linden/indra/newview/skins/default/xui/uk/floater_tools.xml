@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="toolbox floater" title="">
+<floater name="toolbox floater" title="" short_title="Будувати">
 	<button label="" label_selected="" name="button focus" tool_tip="Фокус"/>
 	<button label="" label_selected="" name="button move" tool_tip="Рухати"/>
 	<button label="" label_selected="" name="button edit" tool_tip="Правка"/>
@@ -34,7 +34,7 @@
 	<check_box label="Витягнути текстури" name="checkbox stretch textures"/>
 	<check_box label="Вик. сітку" name="checkbox snap to grid"/>
 	<button label="Опції..." label_selected="Опції..." name="Options..."/>
-	<text name="text status">
+	<text name="text status" width="344">
 		Перетаскування мишкою, shift-тягнути для копіювання
 	</text>
 	<button label="" label_selected="" name="ToolCube" tool_tip="Куб"/>

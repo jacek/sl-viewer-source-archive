@@ -676,15 +676,18 @@ LLCurlRequest::LLCurlRequest() :
 	mActiveMulti(NULL),
 	mActiveRequestCount(0)
 {
+	mThreadID = LLThread::currentID();
 }
 
 LLCurlRequest::~LLCurlRequest()
 {
+	llassert_always(mThreadID == LLThread::currentID());
 	for_each(mMultiSet.begin(), mMultiSet.end(), DeletePointer());
 }
 
 void LLCurlRequest::addMulti()
 {
+	llassert_always(mThreadID == LLThread::currentID());
 	LLCurl::Multi* multi = new LLCurl::Multi();
 	mMultiSet.insert(multi);
 	mActiveMulti = multi;
@@ -763,6 +766,7 @@ bool LLCurlRequest::post(const std::string& url, const LLSD& data, LLCurl::Respo
 // Note: call once per frame
 S32 LLCurlRequest::process()
 {
+	llassert_always(mThreadID == LLThread::currentID());
 	S32 res = 0;
 	for (curlmulti_set_t::iterator iter = mMultiSet.begin();
 		 iter != mMultiSet.end(); )
@@ -782,6 +786,7 @@ S32 LLCurlRequest::process()
 
 S32 LLCurlRequest::getQueued()
 {
+	llassert_always(mThreadID == LLThread::currentID());
 	S32 queued = 0;
 	for (curlmulti_set_t::iterator iter = mMultiSet.begin();
 		 iter != mMultiSet.end(); )
@@ -1002,7 +1007,7 @@ void LLCurl::initClass()
 	S32 mutex_count = CRYPTO_num_locks();
 	for (S32 i=0; i<mutex_count; i++)
 	{
-		sSSLMutex.push_back(new LLMutex(gAPRPoolp));
+		sSSLMutex.push_back(new LLMutex(NULL));
 	}
 	CRYPTO_set_id_callback(&LLCurl::ssl_thread_id);
 	CRYPTO_set_locking_callback(&LLCurl::ssl_locking_callback);

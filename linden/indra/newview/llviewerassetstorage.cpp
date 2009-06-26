@@ -80,6 +80,7 @@ void LLViewerAssetStorage::storeAssetData(
 			LLVFile vfile(mVFS, asset_id, asset_type, LLVFile::READ);
 			S32 asset_size = vfile.getSize();
 
+
 			LLAssetRequest *req = new LLAssetRequest(asset_id, asset_type);
 			req->mUpCallback = callback;
 			req->mUserData = user_data;

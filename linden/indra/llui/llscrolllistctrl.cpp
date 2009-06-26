@@ -1846,8 +1846,17 @@ BOOL LLScrollListCtrl::handleToolTip(S32 x, S32 y, std::string& msg, LLRect* sti
 	BOOL handled = FALSE;
 	// show tooltip for full name of hovered item if it has been truncated
 	LLScrollListItem* hit_item = hitItem(x, y);
+	
 	if (hit_item)
 	{
+		// If the item has a specific tool tip set by XUI use that first
+		std::string tooltip=hit_item->getToolTip();
+		if(!tooltip.empty())
+		{
+			msg=tooltip;
+			return TRUE;
+		}
+	
 		LLScrollListCell* hit_cell = hit_item->getColumn(column_index);
 		if (!hit_cell) return FALSE;
 		//S32 cell_required_width = hit_cell->getContentWidth();

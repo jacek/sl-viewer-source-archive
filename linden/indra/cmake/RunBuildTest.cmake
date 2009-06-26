@@ -9,8 +9,6 @@
 # TEST_CMD: string list, command to run the unit test with, followed by its args.  
 set(ENV{LD_LIBRARY_PATH} ${LD_LIBRARY_PATH})
 #message("Running: ${TEST_CMD}")
-separate_arguments(TEST_CMD)
-#message("Running: ${TEST_CMD}")
 execute_process(
   COMMAND ${TEST_CMD}
   RESULT_VARIABLE RES

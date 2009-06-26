@@ -657,7 +657,7 @@
 		<menu_item_call bottom="-346" enabled="false" height="19" label="Buy Object" left="0"
 		     mouse_opaque="true" name="Menu Object Take" visible="false" width="250">
 			<on_click function="Tools.BuyOrTake" userdata="" />
-			<on_enable function="Tools.EnableBuyOrTake" userdata="Buy,Take" />
+			<on_enable function="Tools.EnableBuyOrTake" userdata="Buy,Take" name="EnableBuyOrTake"/>
 		</menu_item_call>
 		<menu_item_call bottom="-365" enabled="false" height="19" label="Take Copy" left="0"
 		     mouse_opaque="true" name="Take Copy" width="250">
@@ -715,7 +715,7 @@
 	<menu bottom="219" create_jump_keys="true" drop_shadow="true" enabled="true"
 	     height="317" label="Help" left="227" mouse_opaque="false" name="Help"
 	     opaque="true" tear_off="true" width="166">
-		<menu_item_call bottom="-29" enabled="true" height="19" label="Second Life Help" left="0"
+		<menu_item_call bottom="-29" enabled="true" height="19" label="Snowglobe/Second Life Help" left="0"
 		     mouse_opaque="true" name="Second Life Help" shortcut="F1" width="166">
 			<on_click function="ShowFloater" userdata="help f1" />
 		</menu_item_call>
@@ -791,7 +791,7 @@
 				     userdata="WebLaunchPublicIssue,http://jira.secondlife.com" />
 			</menu_item_call>
 		</menu>
-		<menu_item_call bottom="-313" enabled="true" height="19" label="About Second Life..." left="0"
+		<menu_item_call bottom="-313" enabled="true" height="19" label="About Snowglobe..." left="0"
 		     mouse_opaque="true" name="About Second Life..." width="166">
 			<on_click function="ShowFloater" userdata="about" />
 		</menu_item_call>

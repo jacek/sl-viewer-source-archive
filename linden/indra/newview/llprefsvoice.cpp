@@ -129,6 +129,7 @@ BOOL LLPrefsVoice::postBuild()
 	childSetValue("auto_disengage_mic_check", gSavedSettings.getBOOL("AutoDisengageMic"));
 	childSetValue("push_to_talk_toggle_check", gSavedSettings.getBOOL("PushToTalkToggle"));
 	childSetValue("ear_location", gSavedSettings.getS32("VoiceEarLocation"));
+	childSetValue("enable_lip_sync_check", gSavedSettings.getBOOL("LipSyncEnabled"));
 
 	return TRUE;
 }
@@ -142,6 +143,7 @@ void LLPrefsVoice::apply()
 	gSavedSettings.setBOOL("AutoDisengageMic", childGetValue("auto_disengage_mic_check"));
 	gSavedSettings.setBOOL("PushToTalkToggle", childGetValue("push_to_talk_toggle_check"));
 	gSavedSettings.setS32("VoiceEarLocation", childGetValue("ear_location"));
+	gSavedSettings.setBOOL("LipSyncEnabled", childGetValue("enable_lip_sync_check"));
 	
 	LLFloaterVoiceDeviceSettings* voice_device_settings = LLFloaterVoiceDeviceSettings::getInstance();
 	if(voice_device_settings)
@@ -179,6 +181,7 @@ void LLPrefsVoice::onCommitEnableVoiceChat(LLUICtrl* ctrl, void* user_data)
 	self->childSetEnabled("auto_disengage_mic_check", enable);
 	self->childSetEnabled("push_to_talk_toggle_check", enable);
 	self->childSetEnabled("ear_location", enable);
+	self->childSetEnabled("enable_lip_sync_check", enable);
 	self->childSetEnabled("set_voice_hotkey_button", enable);
 	self->childSetEnabled("set_voice_middlemouse_button", enable);
 	self->childSetEnabled("device_settings_btn", enable);

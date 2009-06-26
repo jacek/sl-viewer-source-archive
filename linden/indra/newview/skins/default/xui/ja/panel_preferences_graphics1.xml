@@ -4,7 +4,7 @@
 		表示解像度：
 	</text>
 	<button label="?" name="GraphicsPreferencesHelpButton" />
-	<check_box label="ウィンドウ内で Second Life を起動" name="windowed mode" />
+	<check_box label="ウィンドウ内で Snowglobe を起動" name="windowed mode" />
 	<text_editor name="voice_chat_description">
 		チェック無しの場合は、ログイン時にフルスクリーン表示
 	</text_editor>

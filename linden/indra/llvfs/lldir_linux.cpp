@@ -94,11 +94,7 @@ LLDir_Linux::LLDir_Linux()
 	mExecutablePathAndName = "";
 	mExecutableDir = tmp_str;
 	mWorkingDir = tmp_str;
-#ifdef APP_RO_DATA_DIR
-	mAppRODataDir = APP_RO_DATA_DIR;
-#else
 	mAppRODataDir = tmp_str;
-#endif
 	mOSUserDir = getCurrentUserHome(tmp_str);
 	mOSUserAppDir = "";
 	mLindenUserDir = tmp_str;
@@ -127,6 +123,31 @@ LLDir_Linux::LLDir_Linux()
 			mExecutableFilename = tmp_str;
 		}
 	}
+
+#ifdef APP_RO_DATA_DIR
+        const char* appRODataDir = APP_RO_DATA_DIR;
+        if(appRODataDir[0] == '/')
+          {
+          // We have a full path to the data directory.
+          mAppRODataDir = appRODataDir;
+          }
+        else if(appRODataDir[0] != '\0')
+          {
+          // We have a relative path to the data directory.  Search
+          // for it in each potential install prefix containing the
+          // executable.
+          for(std::string prefix = getDirName(mExecutableDir);
+              !prefix.empty(); prefix = getDirName(prefix))
+            {
+            std::string dir = prefix + "/" + appRODataDir;
+            if(fileExists(dir + "/app_settings"))
+              {
+              mAppRODataDir = dir;
+              break;
+              }
+            }
+          }
+#endif
 
 	// *TODO: don't use /tmp, use $HOME/.secondlife/tmp or something.
 	mTempDir = "/tmp";

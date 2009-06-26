@@ -467,7 +467,7 @@ void LLVOTree::setPixelAreaAndAngle(LLAgent &agent)
 #endif
 }
 
-void LLVOTree::updateTextures(LLAgent &agent)
+void LLVOTree::updateTextures()
 {
 	if (mTreeImagep)
 	{

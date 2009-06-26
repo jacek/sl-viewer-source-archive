@@ -38,6 +38,7 @@
 #include "llframetimer.h"
 #include "llviewerimage.h"
 
+class LLComboBox;
 class LLImageRaw;
 
 class LLPreviewTexture : public LLPreview
@@ -79,6 +80,8 @@ public:
 
 protected:
 	void				init();
+	bool				setAspectRatio(const F32 width, const F32 height);
+	static void			onAspectRatioCommit(LLUICtrl*,void* userdata);
 
 	virtual const char *getTitleName() const { return "Texture"; }
 	
@@ -98,6 +101,7 @@ private:
 
 	S32 mLastHeight;
 	S32 mLastWidth;
+	F32 mAspectRatio;	// 0 = Unconstrained
 };
 
 

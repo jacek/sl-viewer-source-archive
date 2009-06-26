@@ -31,7 +31,9 @@ if (STANDALONE)
     add_definitions(${${pkg}_CFLAGS_OTHERS})
   endforeach(pkg)
 else (STANDALONE)
-  use_prebuilt_binary(gtk-atk-pango-glib)
+  if (NOT DARWIN)
+    use_prebuilt_binary(gtk-atk-pango-glib)
+  endif (NOT DARWIN)
   if (LINUX)
     set(UI_LIBRARIES
         atk-1.0

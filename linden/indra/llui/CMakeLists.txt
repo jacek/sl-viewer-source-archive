@@ -141,3 +141,4 @@ set_source_files_properties(${llui_HEADER_FILES}
 list(APPEND llui_SOURCE_FILES ${llui_HEADER_FILES})
 
 add_library (llui ${llui_SOURCE_FILES})
+add_dependencies(llui prepare)

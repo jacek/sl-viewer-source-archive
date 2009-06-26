@@ -192,14 +192,17 @@ typedef LLAtomic32<S32> LLAtomicS32;
 //      1, a temperary pool passed to an APRFile function, which is used within this function and only once.
 //      2, a global pool.
 //
-class LLAPRFile
+
+class LLAPRFile : boost::noncopyable
 {
+	// make this non copyable since a copy closes the file
 private:
 	apr_file_t* mFile ;
 	LLVolatileAPRPool *mCurrentFilePoolp ; //currently in use apr_pool, could be one of them: sAPRFilePoolp, or a temp pool. 
 
 public:
 	LLAPRFile() ;
+	LLAPRFile(const std::string& filename, apr_int32_t flags, apr_pool_t* pool = NULL);
 	~LLAPRFile() ;
 
 	apr_status_t open(LLVolatileAPRPool* pool, const std::string& filename, apr_int32_t flags, S32* sizep = NULL);

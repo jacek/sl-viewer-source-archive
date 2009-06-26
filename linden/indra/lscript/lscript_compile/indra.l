@@ -9,6 +9,12 @@ FS			(f|F)
 %p 5000
 
 %{
+// We maintain a pre-generated lexer source file to simplify user builds.
+// Before committing changes to this file, manually run
+//
+//   flex -o indra_generated.l.cpp indra.l
+//
+// to update the pre-generated lexer.  Then commit all files simultaneously.
 #include "linden_common.h"
 // Deal with the fact that lex/yacc generates unreachable code
 #ifdef LL_WINDOWS

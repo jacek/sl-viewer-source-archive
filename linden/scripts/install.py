@@ -643,6 +643,12 @@ windows/i686/vs/2003 -- specify a windows visual studio 2003 package"""
             install_dir,
             cache_dir)
         scp_or_http.cleanup()
+
+        # Verify that requested packages are installed
+        for pkg in installables:
+            if pkg not in self._installed:
+                raise RuntimeError("No '%s' available for '%s'." %
+                                   (pkg, platform))
     
     def do_uninstall(self, installables, install_dir):
         # Do not bother to check license if we're uninstalling.
@@ -779,7 +785,7 @@ def _get_platform():
             # TODO -- someday when install.py accepts a platform of the form 
             # os/arch/compiler/compiler_version then we can replace the 
             # 'linux64' platform with 'linux/x86_64/gcc/4.1'
-            this_platform = 'linux64'
+            this_platform = 'linux'
     return this_platform
 
 def _getuser():

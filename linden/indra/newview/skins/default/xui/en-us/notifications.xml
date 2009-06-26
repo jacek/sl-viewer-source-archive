@@ -98,7 +98,7 @@
    name="MissingAlert"
    label="Unknown Alert Message"
    type="alertmodal">
-Your version of Second Life does not know how to display the alert message it just received.
+Your version of Snowglobe does not know how to display the alert message it just received.
 
 Error details: The alert called &apos;[_NAME]&apos; was not found in notifications.xml.
     <usetemplate
@@ -150,7 +150,7 @@ No tutorial is currently available.
    icon="alertmodal.tga"
    name="BadInstallation"
    type="alertmodal">
-An error occurred while updating Second Life. Please download the latest version from secondlife.com.
+An error occurred while updating Snowglobe. Please download the latest version from secondlife.com.
     <usetemplate
      name="okbutton"
      yestext="Ok"/>
@@ -994,7 +994,7 @@ Unable to write file [[FILE]]
    icon="alertmodal.tga"
    name="UnsupportedHardware"
    type="alertmodal">
-Warning: Your system does not meet Second Life&apos;s minimum system requirements. If you continue using Second Life, you may experience poor performance. Unfortunately, we cannot provide technical support for unsupported system configurations.
+Warning: Your system does not meet Snowglobe&apos;s minimum system requirements. If you continue using Snowglobe, you may experience poor performance. Unfortunately, we cannot provide technical support for unsupported system configurations.
 
 MINSPECS
 Do you wish to visit [_URL] for more information?
@@ -1014,7 +1014,7 @@ Do you wish to visit [_URL] for more information?
    name="UnknownGPU"
    type="alertmodal">
 Your system contains a graphics card that is unknown to us at this time.
-This is often the case with new hardware we haven&apos;t had a chance to test.  Second Life will most likely run properly, but you may need to adjust your graphics settings to something more appropriate.
+This is often the case with new hardware we haven&apos;t had a chance to test.  Snowglobe will most likely run properly, but you may need to adjust your graphics settings to something more appropriate.
 (Edit menu &gt; Preferences &gt; Graphics).
     <form name="form">
       <ignore name="ignore"
@@ -3860,7 +3860,7 @@ Default: off
    label="Voice Version Mismatch"
    name="VoiceVersionMismatch"
    type="alertmodal">
-This version of Second Life is not compatible with the Voice Chat feature in this region. In order for Voice Chat to function correctly you will need to update Second Life.
+This version of Snowglobe is not compatible with the Voice Chat feature in this region. In order for Voice Chat to function correctly you will need to update Snowglobe.
   </notification>
 
   <notification
@@ -4118,7 +4118,7 @@ Visit the Second Life Support Web site?
    type="alertmodal">
 Are you sure you want to quit?
     <usetemplate
-     ignoretext="When Quitting Second Life."
+     ignoretext="When Quitting Snowglobe."
      name="okcancelignore"
      notext="Continue"
      yestext="Quit"/>
@@ -5495,7 +5495,7 @@ You do not have proper payment status to enter this region.
 
   <notification
 	icon="notify.tga"
-	name="MustGetAgeRgion"
+	name="MustGetAgeRegion"
 	type="notify">
 You must be age-verified to enter this region.
   </notification>
@@ -5901,7 +5901,7 @@ Failed to find [TYPE] named [DESC] in database.
    icon="notify.tga"
    name="InvalidWearable"
    type="notify">
-    The item you are trying to wear uses a feature that your viewer can&apos;t read. Please upgrade your version of Second Life to wear this item.
+    The item you are trying to wear uses a feature that your viewer can&apos;t read. Please upgrade your version of Snowglobe to wear this item.
   </notification>
 
   <notification
@@ -6099,7 +6099,7 @@ Flexible objects may not be physical and must be phantom until the flexible chec
    name="FirstDebugMenus"
    type="notify">
 You have enabled the Advanced menu.
-This menu contains features useful for developers debugging Second Life.
+This menu contains features useful for developers debugging Snowglobe.
 To toggle this menu on Windows press Ctrl-Alt-D. On Mac press Cmd-Opt-Shift-D.
   </notification>
 
@@ -6388,7 +6388,7 @@ The URL you clicked cannot be opened from this web browser.
   </global>
 
   <global name="UnsupportedGLRequirements">
-You do not appear to have the proper hardware requirements for Second Life. Second Life requires an OpenGL graphics card that has multitexture support. If this is the case, you may want to make sure that you have the latest drivers for your graphics card, and service packs and patches for your operating system.
+You do not appear to have the proper hardware requirements for Snowglobe. Snowglobe requires an OpenGL graphics card that has multitexture support. If this is the case, you may want to make sure that you have the latest drivers for your graphics card, and service packs and patches for your operating system.
 
 If you continue to have problems, please visit: http://www.secondlife.com/support
   </global>

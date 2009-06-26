@@ -193,8 +193,15 @@ LLView* LLComboBox::fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *
 
 				std::string value = label;
 				child->getAttributeString("value", value);
-
-				combo_box->add(label, LLSD(value) );
+				
+				LLScrollListItem * item=combo_box->add(label, LLSD(value) );
+				
+				if(item && child->hasAttribute("tool_tip"))
+				{
+					std::string tool_tip = label;
+					child->getAttributeString("tool_tip", tool_tip);
+					item->setToolTip(tool_tip);
+				}
 			}
 		}
 	}

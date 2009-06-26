@@ -207,6 +207,7 @@ private:
 	curlmulti_set_t mMultiSet;
 	LLCurl::Multi* mActiveMulti;
 	S32 mActiveRequestCount;
+	U32 mThreadID; // debug
 };
 
 class LLCurlEasyRequest

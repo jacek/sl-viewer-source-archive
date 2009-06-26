@@ -735,6 +735,22 @@ void init_client_menu(LLMenuGL* menu)
 										debugview,
 									   	'4', MASK_CONTROL|MASK_SHIFT ) );
 
+		if(gAuditTexture)
+		{
+			sub->append(new LLMenuItemCheckGL("Texture Size Console", 
+										&toggle_visibility,
+										NULL,
+										&get_visibility,
+										(void*)gTextureSizeView,
+									   	'5', MASK_CONTROL|MASK_SHIFT ) );
+			sub->append(new LLMenuItemCheckGL("Texture Category Console", 
+										&toggle_visibility,
+										NULL,
+										&get_visibility,
+										(void*)gTextureCategoryView,
+									   	'6', MASK_CONTROL|MASK_SHIFT ) );
+		}
+
 		sub->append(new LLMenuItemCheckGL("Fast Timers", 
 										&toggle_visibility,
 										NULL,
@@ -1296,7 +1312,7 @@ void init_debug_rendering_menu(LLMenuGL* menu)
 	item = new LLMenuItemCheckGL("Disable Textures", menu_toggle_variable, NULL, menu_check_variable, (void*)&LLViewerImage::sDontLoadVolumeTextures);
 	menu->append(item);
 	
-#ifndef LL_RELEASE_FOR_DOWNLOAD
+#if 1 //ndef LL_RELEASE_FOR_DOWNLOAD
 	item = new LLMenuItemCheckGL("HTTP Get Textures", menu_toggle_control, NULL, menu_check_control, (void*)"ImagePipelineUseHTTP");
 	menu->append(item);
 #endif
@@ -1311,6 +1327,9 @@ void init_debug_rendering_menu(LLMenuGL* menu)
 	menu->append(item);
 
 	item = new LLMenuItemCheckGL("Attached Particles", menu_toggle_attached_particles, NULL, menu_check_control, (void*)"RenderAttachedParticles");
+	menu->append(item);
+
+	item = new LLMenuItemCheckGL("Audit Texture", menu_toggle_control, NULL, menu_check_control, (void*)"AuditTexture");
 	menu->append(item);
 
 #ifndef LL_RELEASE_FOR_DOWNLOAD
@@ -1357,7 +1376,6 @@ void init_debug_avatar_menu(LLMenuGL* menu)
 
 	menu->appendMenu(sub_menu);
 
-	menu->append(new LLMenuItemCheckGL("Enable Lip Sync (Beta)", menu_toggle_control, NULL, menu_check_control, (void*)"LipSyncEnabled"));
 	menu->append(new LLMenuItemToggleGL("Tap-Tap-Hold To Run", &gAllowTapTapHoldRun));
 	menu->append(new LLMenuItemCallGL("Force Params to Default", &LLAgent::clearVisualParams, NULL));
 	menu->append(new LLMenuItemCallGL("Reload Vertex Shader", &reload_vertex_shader, NULL));
@@ -2710,9 +2728,8 @@ void set_god_level(U8 god_level)
 	// Some classifieds change visibility on god mode
 	LLFloaterDirectory::requestClassifieds();
 
-	// God mode changes sim visibility
-	LLWorldMap::getInstance()->reset();
-	LLWorldMap::getInstance()->setCurrentLayer(0);
+	// God mode changes region visibility
+	LLWorldMap::getInstance()->reloadItems(true);
 
 	// inventory in items may change in god mode
 	gObjectList.dirtyAllObjectInventory();

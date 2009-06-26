@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <panel label="Grafika" name="Display panel">
 	<button label="?" name="GraphicsPreferencesHelpButton" />
-	<check_box label="Uruchom Second Life w oknie" name="windowed mode" />
+	<check_box label="Uruchom Snowglobe w oknie" name="windowed mode" />
 	<text_editor type="string" length="1" name="FullScreenInfo">
 		Wyłączone = klient uruchamiany w trybie pełnoekranowym.
 	</text_editor>

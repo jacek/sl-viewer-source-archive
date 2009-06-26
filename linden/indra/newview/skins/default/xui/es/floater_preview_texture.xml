@@ -3,6 +3,9 @@
 	<text length="1" name="desc txt" type="string">
 		Descripción:
 	</text>
+	<button label="Guardar" label_selected="Guardar" name="Keep"/>
+	<button label="Descartar" label_selected="Descartar" name="Discard"/>
+	<button label="Copiar al inventario" name="Copy To Inventory"/>
 	<text length="1" name="dimensions" type="string">
 		Tamaño: [WIDTH] x [HEIGHT]
 	</text>

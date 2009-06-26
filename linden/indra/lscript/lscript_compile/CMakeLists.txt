@@ -88,7 +88,8 @@ set_source_files_properties(${lscript_generated_SOURCE_FILES}
 
 list(APPEND lscript_compile_SOURCE_FILES ${lscript_generated_SOURCE_FILES} ${lscript_compile_HEADER_FILES})
 
-add_custom_command(
+if(FLEX)
+  add_custom_command(
     OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/indra.l.cpp
     COMMAND ${FLEX}
@@ -97,15 +98,26 @@ add_custom_command(
       ${CMAKE_CURRENT_SOURCE_DIR}/indra.l
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/indra.l
     )
+else(FLEX)
+  message(STATUS "FLEX not found, using pre-generated lexer")
+  add_custom_command(
+    COMMENT "Copying pre-generated indra.l.cpp"
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/indra.l.cpp
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/indra_generated.l.cpp
+                                     ${CMAKE_CURRENT_BINARY_DIR}/indra.l.cpp
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/indra_generated.l.cpp
+    )
+endif(FLEX)
 
 if (WINDOWS)
   set_source_files_properties(indra.l.cpp
                               PROPERTIES COMPILE_FLAGS /DYY_NO_UNISTD_H)
 endif (WINDOWS)
 
-if (WINDOWS)
-  get_filename_component(M4_PATH ${M4} PATH)
-  add_custom_command(
+if(BISON)
+  if (WINDOWS)
+    get_filename_component(M4_PATH ${M4} PATH)
+    add_custom_command(
       OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
@@ -117,9 +129,9 @@ if (WINDOWS)
         ${CMAKE_CURRENT_SOURCE_DIR}/bison.bat
         ${CMAKE_CURRENT_SOURCE_DIR}/indra.y
       )
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/windows)
-else (WINDOWS)
-  add_custom_command(
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/windows)
+  else (WINDOWS)
+    add_custom_command(
       OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
@@ -131,18 +143,32 @@ else (WINDOWS)
       DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/indra.y
       )
-endif (WINDOWS)
+  endif (WINDOWS)
 
-if (DARWIN)
-  # Mac OS X 10.4 compatibility
+  if (DARWIN)
+    # Mac OS X 10.4 compatibility
+    add_custom_command(
+      OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
+      COMMAND
+        mv
+        ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp.h
+        ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
+      )
+  endif (DARWIN)
+else(BISON)
+  message(STATUS "BISON not found, using pre-generated parser")
   add_custom_command(
-    OUTPUT
-      ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
-    COMMAND
-      mv
-      ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp.h
-      ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
+    COMMENT "Copying pre-generated indra.y.cpp, indra.y.hpp"
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp
+           ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/indra_generated.y.cpp
+                                     ${CMAKE_CURRENT_BINARY_DIR}/indra.y.cpp
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/indra_generated.y.hpp
+                                     ${CMAKE_CURRENT_BINARY_DIR}/indra.y.hpp
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/indra_generated.l.cpp
     )
-endif (DARWIN)
+endif(BISON)
 
 add_library (lscript_compile ${lscript_compile_SOURCE_FILES})
+add_dependencies(lscript_compile prepare)

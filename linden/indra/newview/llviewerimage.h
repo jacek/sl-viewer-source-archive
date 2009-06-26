@@ -41,6 +41,7 @@
 #include <map>
 #include <list>
 
+class LLFace;
 class LLViewerImage;
 
 typedef	void	(*loaded_callback_func)( BOOL success, LLViewerImage *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, BOOL final, void* userdata );
@@ -72,6 +73,43 @@ public:
 
 class LLTextureBar;
 
+//=====================================
+struct LLViewerImageBoostLevel
+{
+	enum
+	{
+		BOOST_NONE 			= 0,
+		BOOST_AVATAR_BAKED	= 1,
+		BOOST_AVATAR		= 2,
+		BOOST_CLOUDS		= 3,
+		BOOST_SCULPTED      = 4,
+		
+		BOOST_HIGH 			= 5,
+		BOOST_TERRAIN		, // has to be high priority for minimap / low detail
+		BOOST_SELECTED		,
+		BOOST_HUD			,
+		BOOST_AVATAR_BAKED_SELF	,
+		BOOST_UI			,
+		BOOST_PREVIEW		,
+		BOOST_MAP			,
+		BOOST_MAP_VISIBLE	,
+		BOOST_AVATAR_SELF	,// needed for baking avatar
+		BOOST_MAX_LEVEL,
+
+		//LLImageGLCategory
+		TEXLAYER_BUMP = BOOST_MAX_LEVEL,
+		AVATAR_SCRATCH_TEX,
+		FONT,
+		BUMP_IMAGE,
+		DYNAMIC_TEX,
+		TEXLAYER_CACHE,
+		MEDIA,
+		ATLAS,
+		OTHER,
+		MAX_GL_IMAGE_CATEGORY
+	};
+};
+//=====================================
 class LLViewerImage : public LLImageGL
 {
         LOG_CLASS(LLViewerImage);
@@ -172,8 +210,8 @@ protected:
 	/*virtual*/ ~LLViewerImage();
 	
 public:
-	LLViewerImage(const std::string& filename, const LLUUID& id, BOOL usemipmaps = TRUE);
-	LLViewerImage(const LLUUID& id, BOOL usemipmaps = TRUE);
+	LLViewerImage(const std::string& url, const LLUUID& id, BOOL usemipmaps = TRUE);
+	LLViewerImage(const LLUUID& id, const LLHost& host = LLHost::invalid, BOOL usemipmaps = TRUE);
 	LLViewerImage(const U32 width, const U32 height, const U8 components, BOOL usemipmaps);
 	LLViewerImage(const LLImageRaw* raw, BOOL usemipmaps);
 
@@ -190,7 +228,12 @@ public:
 	// New methods for determining image quality/priority
 	// texel_area_ratio is ("scaled" texel area)/(original texel area), approximately.
 	void addTextureStats(F32 virtual_size) const;
-	void resetTextureStats(BOOL zero = FALSE);
+	void resetTextureStats();
+	void setAdditionalDecodePriority(F32 priority) ;
+	F32  maxAdditionalDecodePriority() ;
+
+	BOOL isLargeImage() ;
+	BOOL isUpdateFrozen() ;
 
 	// Process image stats to determine priority/quality requirements.
 	void processTextureStats();
@@ -204,6 +247,7 @@ public:
 	 // ONLY call from LLViewerImageList
 	BOOL createTexture(S32 usename = 0);
 	void destroyTexture() ;
+	void addToCreateTexture();
 
 	BOOL needsAux() const							{ return mNeedsAux; }
 
@@ -214,32 +258,12 @@ public:
 	void setMinDiscardLevel(S32 discard) 	{ mMinDesiredDiscardLevel = llmin(mMinDesiredDiscardLevel,(S8)discard); }
 	
 	// Host we think might have this image, used for baked av textures.
-	void setTargetHost(LLHost host)			{ mTargetHost = host; }
 	LLHost getTargetHost() const			{ return mTargetHost; }
 
-	enum
-	{
-		BOOST_NONE 			= 0,
-		BOOST_AVATAR_BAKED	= 1,
-		BOOST_AVATAR		= 2,
-		BOOST_CLOUDS		= 3,
-		BOOST_SCULPTED      = 4,
-		
-		BOOST_HIGH 			= 10,
-		BOOST_TERRAIN		= 11, // has to be high priority for minimap / low detail
-		BOOST_SELECTED		= 12,
-		BOOST_HUD			= 13,
-		BOOST_AVATAR_BAKED_SELF	= 14,
-		BOOST_UI			= 15,
-		BOOST_PREVIEW		= 16,
-		BOOST_MAP			= 17,
-		BOOST_MAP_LAYER		= 18,
-		BOOST_AVATAR_SELF	= 19, // needed for baking avatar
-		BOOST_MAX_LEVEL
-	};
 	void setBoostLevel(S32 level);
 	S32  getBoostLevel() { return mBoostLevel; }
 	
+	void updateVirtualSize() ;
 	F32 getDecodePriority() const { return mDecodePriority; };
 	F32 calcDecodePriority();
 	static F32 maxDecodePriority();
@@ -268,6 +292,21 @@ public:
 	S32 getOriginalWidth() { return mOrigWidth; }
 	S32 getOriginalHeight() { return mOrigHeight; }
 
+	BOOL isForSculptOnly() {return mForSculpt && mFaceList.empty() ;}
+	void setForSculpt();
+	
+	void        checkCachedRawSculptImage() ;
+	LLImageRaw* getRawImage()const { return mRawImage ;}
+	S32         getRawImageLevel() const {return mRawDiscardLevel;}
+	LLImageRaw* getCachedRawImage() const { return mCachedRawImage ;}
+	S32         getCachedRawImageLevel() const {return mCachedRawDiscardLevel;}
+	BOOL        isCachedRawImageReady() const {return mCachedRawImageReady ;}
+	BOOL        isRawImageValid()const { return mIsRawImageValid ; }
+	
+	BOOL        isSameTexture(const LLViewerImage* tex) const ;
+
+	void        addFace(LLFace* facep) ;
+	void        removeFace(LLFace* facep) ;
 private:
 	/*virtual*/ void cleanup(); // Cleanup the LLViewerImage (so we can reinitialize it)
 
@@ -276,14 +315,16 @@ private:
 	// Used to be in LLImageGL
 	LLImageRaw* readBackRawImage(S8 discard_level = 0);
 	void destroyRawImage();
-	
+
+	void scaleDown() ;	
+	void setCachedRawImage() ;
 public:
 	S32 mFullWidth;
 	S32 mFullHeight;
 
 	S32 mOrigWidth;
 	S32 mOrigHeight;
-	std::string mLocalFileName;
+	std::string mUrl;
 
 	// Data used for calculating required image priority/quality level/decimation
 	mutable F32 mMaxVirtualSize;	// The largest virtual size of the image, in pixels - how much data to we need?
@@ -329,6 +370,7 @@ private:
 	S32	mKnownDrawHeight;
 
 	F32 mDecodePriority;			// The priority for decoding this image.
+	mutable F32 mAdditionalDecodePriority;  // priority add to mDecodePriority.
 	S32 mBoostLevel;				// enum describing priority level
 	
 	typedef std::list<LLLoadedCallbackEntry*> callback_list_t;
@@ -343,8 +385,19 @@ private:
 	// doing if you use it for anything else! - djs
 	LLPointer<LLImageRaw> mAuxRawImage;
 
+	//a small version of the copy of the raw image (<= 64 * 64)
+	LLPointer<LLImageRaw> mCachedRawImage;
+	S32 mCachedRawDiscardLevel;
+	BOOL mCachedRawImageReady; //the rez of the mCachedRawImage reaches the upper limit.
+	
 	LLHost mTargetHost;	// if LLHost::invalid, just request from agent's simulator
 	
+	BOOL   mForSculpt ; //a flag if the texture is used for a sculpt data.
+	mutable BOOL    mNeedsResetMaxVirtualSize ;
+
+	typedef std::list<LLFace*> ll_face_list_t ;
+	ll_face_list_t mFaceList ; //reverse pointer pointing to the faces using this image as texture
+
 public:
 	static const U32 sCurrentFileVersion;
 	// Default textures
@@ -358,6 +411,7 @@ public:
 	static S32 sRawCount;
 	static S32 sAuxCount;
 	static LLTimer sEvaluationTimer;
+	static S8  sCameraMovingDiscardBias;
 	static F32 sDesiredDiscardBias;
 	static F32 sDesiredDiscardScale;
 	static S32 sBoundTextureMemory;
@@ -366,6 +420,12 @@ public:
 	static S32 sMaxTotalTextureMem;
 	static S32 sMaxDesiredTextureMem ;
 	static BOOL sDontLoadVolumeTextures;
+
+	static S32 sMaxSculptRez ;
+	static S32 sMinLargeImageSize ;
+	static S32 sMaxSmallImageSize ;
+	static BOOL sFreezeImageScalingDown ;//do not scale down image res if set.
+	static S32 sLLViewerImageCount ;
 };
 
 #endif

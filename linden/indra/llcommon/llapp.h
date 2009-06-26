@@ -37,6 +37,7 @@
 #include "llapr.h"
 #include "llrun.h"
 #include "llsd.h"
+#include "lloptioninterface.h"
 
 // Forward declarations
 class LLErrorThread;
@@ -62,7 +63,7 @@ public:
 };
 #endif
 
-class LLApp
+class LLApp : public LLOptionInterface
 {
 	friend class LLErrorThread;
 public:
@@ -111,7 +112,7 @@ public:
 	 * @param name The name of the option.
 	 * @return Returns the option data.
 	 */
-	LLSD getOption(const std::string& name) const;
+	virtual LLSD getOption(const std::string& name) const;
 
 	/** 
 	 * @brief Parse command line options and insert them into

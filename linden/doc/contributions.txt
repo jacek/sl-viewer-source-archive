@@ -28,13 +28,16 @@ Aimee Trescothick
 	VWR-6550
 	VWR-6583
 	VWR-6482
-  VWR-7109
+	VWR-7109
 	VWR-7383
+	VWR-8008
 	VWR-8341
 	VWR-8430
 	VWR-8482
 	VWR-9255
 	VWR-11844
+	VWR-12748
+	VWR-12696
 Alejandro Rosenthal
 	VWR-1184
 Aleric Inglewood
@@ -142,6 +145,8 @@ Catherine Pfeffer
 Celierra Darling
 	VWR-1274
 	VWR-6975
+Cron Stardust
+	VWR-10579
 Dale Glass
 	VWR-120
 	VWR-560
@@ -188,6 +193,7 @@ Feep Larsson
 	VWR-4444
 Flemming Congrejo
 	CT-193
+	CT-318
 Fluf Fredriksson
 	VWR-3450
 Fremont Cunningham
@@ -335,6 +341,9 @@ Michelle2 Zenovka
 Mm Alder
 	VWR-3777
 	VWR-4794
+	VWR-13578
+	VWR-10311
+	VWR-13260
 Mr Greggan
 	VWR-445
 Nicholaz Beresford
@@ -459,6 +468,8 @@ Ringo Tuxing
 Robin Cornelius
 	VWR-2488
 	VWR-9557
+	VWR-12758
+	VWR-12686
 Ryozu Kojima
 	VWR-53
 	VWR-287
@@ -529,6 +540,8 @@ Strife Onizuka
 	VWR-183
 	VWR-2265
 	VWR-4111
+Tayra Dagostino
+	VWR-13947
 TBBle Kurosawa
 	VWR-938
 	VWR-941
@@ -545,6 +558,7 @@ Tharax Ferraris
 	VWR-605
 Thickbrick Sleaford
 	VWR-7109
+	SNOW-8
 Thraxis Epsilon
 	SVC-371
 	VWR-383

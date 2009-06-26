@@ -4,7 +4,6 @@ project(viewer)
 
 include(00-Common)
 include(Boost)
-include(BuildVersion)
 include(DBusGlib)
 include(DirectX)
 include(ELFIO)
@@ -34,9 +33,9 @@ include(NDOF)
 include(GooglePerfTools)
 include(TemplateCheck)
 include(UI)
-include(UnixInstall)
 include(LLKDU)
 include(ViewerMiscLibs)
+include(ViewerArtwork.cmake)
 
 if (WINDOWS)
     include(CopyWinLibs)
@@ -239,7 +238,6 @@ set(viewer_SOURCE_FILES
     llmaniprotate.cpp
     llmanipscale.cpp
     llmaniptranslate.cpp
-    llmapresponders.cpp
     llmediaremotectrl.cpp
     llmemoryview.cpp
     llmenucommands.cpp
@@ -333,6 +331,9 @@ set(viewer_SOURCE_FILES
     lltexturecache.cpp
     lltexturectrl.cpp
     lltexturefetch.cpp
+    lltextureinfo.cpp
+    lltextureinfodetails.cpp
+    lltexturestats.cpp
     lltextureview.cpp
     lltoolbar.cpp
     lltoolbrush.cpp
@@ -440,12 +441,15 @@ set(viewer_SOURCE_FILES
     llwlparamset.cpp
     llworld.cpp
     llworldmap.cpp
+    llworldmapmessage.cpp
+    llworldmipmap.cpp
     llworldmapview.cpp
     llxmlrpctransaction.cpp
     noise.cpp
     pipeline.cpp
     )
 
+# This gets renamed in the packaging step
 set(VIEWER_BINARY_NAME "secondlife-bin" CACHE STRING
     "The name of the viewer executable to create.")
 
@@ -643,7 +647,6 @@ set(viewer_HEADER_FILES
     llmaniprotate.h
     llmanipscale.h
     llmaniptranslate.h
-    llmapresponders.h
     llmediaremotectrl.h
     llmemoryview.h
     llmenucommands.h
@@ -740,6 +743,9 @@ set(viewer_HEADER_FILES
     lltexturecache.h
     lltexturectrl.h
     lltexturefetch.h
+    lltextureinfo.h
+    lltextureinfodetails.h
+    lltexturestats.h
     lltextureview.h
     lltool.h
     lltoolbar.h
@@ -849,6 +855,8 @@ set(viewer_HEADER_FILES
     llwlparamset.h
     llworld.h
     llworldmap.h
+    llworldmapmessage.h
+    llworldmipmap.h
     llworldmapview.h
     llxmlrpctransaction.h
     macmain.h
@@ -877,10 +885,10 @@ if (DARWIN)
 
   # Add resource files to the project.
   set(viewer_RESOURCE_FILES
-    secondlife.icns
+    ${VIEWER_BRANDING_ID}.icns
     macview.r
     gpu_table.txt
-    Info-SecondLife.plist
+    Info-${VIEWER_BRANDING_NAME_CAMELCASE}.plist
     SecondLife.nib/
     # CMake doesn't seem to support Xcode language variants well just yet
     English.lproj/InfoPlist.strings
@@ -942,48 +950,54 @@ if (WINDOWS)
     # viewerRes.rc is the only buildable file, but
     # the rest are all dependencies of it.
     set(viewer_RESOURCE_FILES
-        res/arrow.cur
-        res/arrowcop.cur
-        res/arrowcopmulti.cur
-        res/arrowdrag.cur
-        res/circleandline.cur
-        res/icon1.ico
-        res/llarrow.cur
-        res/llarrowdrag.cur
-        res/llarrowdragmulti.cur
-        res/llarrowlocked.cur
-        res/llgrablocked.cur
-        res/llno.cur
-        res/llnolocked.cur
-        res/lltoolcamera.cur
-        res/lltoolcreate.cur
-        res/lltoolfocus.cur
-        res/lltoolgrab.cur
-        res/lltoolland.cur
-        res/lltoolpan.cur
-        res/lltoolpipette.cur
-        res/lltoolrotate.cur
-        res/lltoolscale.cur
-        res/lltooltranslate.cur
-        res/lltoolzoomin.cur
-        res/lltoolzoomout.cur
-        res/ll_icon.BMP
-        res/ll_icon.ico
-        res/resource.h
-        res/toolbuy.cur
-        res/toolopen.cur
-        res/toolpay.cur
-        res/toolpickobject.cur
-        res/toolpickobject2.cur
-        res/toolpickobject3.cur
-        res/toolpipette.cur
-        res/toolsit.cur
+        ${ARTWORK_DIR}/res/arrow.cur
+        ${ARTWORK_DIR}/res/arrowcop.cur
+        ${ARTWORK_DIR}/res/arrowcopmulti.cur
+        ${ARTWORK_DIR}/res/arrowdrag.cur
+        ${ARTWORK_DIR}/res/circleandline.cur
+        ${ARTWORK_DIR}/res/icon1.ico
+        ${ARTWORK_DIR}/res/llarrow.cur
+        ${ARTWORK_DIR}/res/llarrowdrag.cur
+        ${ARTWORK_DIR}/res/llarrowdragmulti.cur
+        ${ARTWORK_DIR}/res/llarrowlocked.cur
+        ${ARTWORK_DIR}/res/llgrablocked.cur
+        ${ARTWORK_DIR}/res/llno.cur
+        ${ARTWORK_DIR}/res/llnolocked.cur
+        ${ARTWORK_DIR}/res/lltoolcamera.cur
+        ${ARTWORK_DIR}/res/lltoolcreate.cur
+        ${ARTWORK_DIR}/res/lltoolfocus.cur
+        ${ARTWORK_DIR}/res/lltoolgrab.cur
+        ${ARTWORK_DIR}/res/lltoolland.cur
+        ${ARTWORK_DIR}/res/lltoolpan.cur
+        ${ARTWORK_DIR}/res/lltoolpipette.cur
+        ${ARTWORK_DIR}/res/lltoolrotate.cur
+        ${ARTWORK_DIR}/res/lltoolscale.cur
+        ${ARTWORK_DIR}/res/lltooltranslate.cur
+        ${ARTWORK_DIR}/res/lltoolzoomin.cur
+        ${ARTWORK_DIR}/res/lltoolzoomout.cur
+        ${ARTWORK_DIR}/res/snowglobe_icon.BMP
+        ${ARTWORK_DIR}/res/snowglobe_icon.ico
+        ${ARTWORK_DIR}/res/resource.h
+        ${ARTWORK_DIR}/res/toolbuy.cur
+        ${ARTWORK_DIR}/res/toolopen.cur
+        ${ARTWORK_DIR}/res/toolpay.cur
+        ${ARTWORK_DIR}/res/toolpickobject.cur
+        ${ARTWORK_DIR}/res/toolpickobject2.cur
+        ${ARTWORK_DIR}/res/toolpickobject3.cur
+        ${ARTWORK_DIR}/res/toolpipette.cur
+        ${ARTWORK_DIR}/res/toolsit.cur
         )
 
     set_source_files_properties(${viewer_RESOURCE_FILES}
                                 PROPERTIES HEADER_FILE_ONLY TRUE)
 
+    if(NOT ARTWORK_IN_SOURCE)
+      # The resource compiler needs to find resources here.
+      include_directories(${ARTWORK_DIR}/res)
+    endif(NOT ARTWORK_IN_SOURCE)
+
     set(viewer_RESOURCE_FILES 
+        res/resource.h
         res/viewerRes.rc 
         ${viewer_RESOURCE_FILES}
         )
@@ -1108,14 +1122,12 @@ set(viewer_XUI_FILES
     skins/default/xui/en-us/floater_preferences.xml
     skins/default/xui/en-us/floater_preview_animation.xml
     skins/default/xui/en-us/floater_preview_classified.xml
-    skins/default/xui/en-us/floater_preview_embedded_texture.xml
     skins/default/xui/en-us/floater_preview_event.xml
     skins/default/xui/en-us/floater_preview_existing_landmark.xml
     skins/default/xui/en-us/floater_preview_gesture.xml
     skins/default/xui/en-us/floater_preview_notecard_keep_discard.xml
     skins/default/xui/en-us/floater_preview_notecard.xml
     skins/default/xui/en-us/floater_preview_sound.xml
-    skins/default/xui/en-us/floater_preview_texture_keep_discard.xml
     skins/default/xui/en-us/floater_preview_texture.xml
     skins/default/xui/en-us/floater_preview_url.xml
     skins/default/xui/en-us/floater_price_for_listing.xml
@@ -1262,20 +1274,22 @@ set_source_files_properties(${viewer_APPSETTINGS_FILES}
 
 list(APPEND viewer_SOURCE_FILES ${viewer_APPSETTINGS_FILES})
 
-set(viewer_CHARACTER_FILES
-    character/attentions.xml
-    character/attentionsN.xml
-    character/avatar_lad.xml
-    character/avatar_skeleton.xml
-    character/genepool.xml
+if(ARTWORK_EXISTS)
+  set(viewer_CHARACTER_FILES
+    ${ARTWORK_DIR}/character/attentions.xml
+    ${ARTWORK_DIR}/character/attentionsN.xml
+    ${ARTWORK_DIR}/character/avatar_lad.xml
+    ${ARTWORK_DIR}/character/avatar_skeleton.xml
+    ${ARTWORK_DIR}/character/genepool.xml
     )
 
-source_group("Character File" FILES ${viewer_CHARACTER_FILES})
+  source_group("Character File" FILES ${viewer_CHARACTER_FILES})
 
-set_source_files_properties(${viewer_CHARACTER_FILES}
-                            PROPERTIES HEADER_FILE_ONLY TRUE)
+  set_source_files_properties(${viewer_CHARACTER_FILES}
+                              PROPERTIES HEADER_FILE_ONLY TRUE)
 
-list(APPEND viewer_SOURCE_FILES ${viewer_CHARACTER_FILES})
+  list(APPEND viewer_SOURCE_FILES ${viewer_CHARACTER_FILES})
+endif(ARTWORK_EXISTS)
 
 if (WINDOWS)
   file(GLOB viewer_INSTALLER_FILES installers/windows/*.nsi)
@@ -1306,7 +1320,7 @@ if (FMOD)
         PROPERTIES
         BUILD_WITH_INSTALL_RPATH 1
         INSTALL_NAME_DIR "@executable_path/../Resources"
-        LINK_FLAGS "-unexported_symbols_list ${CMAKE_CURRENT_SOURCE_DIR}/fmod_hidden_symbols.exp"
+        LINK_FLAGS "-unexported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/fmod_hidden_symbols.exp\""
         )
     endif (DARWIN)
     set(FMODWRAPPER_LIBRARY fmodwrapper)
@@ -1332,7 +1346,13 @@ if (LLKDU_LIBRARY)
   add_dependencies(${VIEWER_BINARY_NAME} ${LLKDU_LIBRARY})
 endif (LLKDU_LIBRARY)
 
-set(PACKAGE OFF CACHE BOOL
+# We package by default on Linux so we can run from newview/packaged.
+if (LINUX)
+  set(PACKAGE_DEFAULT ON)
+else (LINUX)
+  set(PACKAGE_DEFAULT OFF)
+endif (LINUX)
+set(PACKAGE ${PACKAGE_DEFAULT} CACHE BOOL
     "Add a package target that builds an installer package.")
 
 if (WINDOWS)
@@ -1400,6 +1420,7 @@ if (WINDOWS)
           --configuration=${CMAKE_CFG_INTDIR}
           --channel=${VIEWER_CHANNEL}
           --login_channel=${VIEWER_LOGIN_CHANNEL}
+          --branding_id=${VIEWER_BRANDING_ID}
           --grid=${GRID}
           --source=${CMAKE_CURRENT_SOURCE_DIR}
               --artwork=${ARTWORK_DIR}
@@ -1450,12 +1471,6 @@ target_link_libraries(${VIEWER_BINARY_NAME}
     ${ELFIO_LIBRARIES}
     )
 
-build_version(viewer)
-
-set(ARTWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH
-    "Path to artwork files.")
-
-
 if (LINUX)
   add_custom_command(
       OUTPUT secondlife-stripped
@@ -1464,7 +1479,7 @@ if (LINUX)
       DEPENDS ${VIEWER_BINARY_NAME}
       )
 
-  set(product SecondLife-${ARCH}-${viewer_VERSION})
+  set(product ${VIEWER_BRANDING_NAME_CAMELCASE}-${ARCH}-${viewer_VERSION})
 
   add_custom_command(
       OUTPUT ${product}.tar.bz2
@@ -1474,6 +1489,7 @@ if (LINUX)
         --grid=${GRID}
         --channel=${VIEWER_CHANNEL}
         --login_channel=${VIEWER_LOGIN_CHANNEL}
+        --branding_id=${VIEWER_BRANDING_ID}
         --installer_name=${product}
         --arch=${ARCH}
         --source=${CMAKE_CURRENT_SOURCE_DIR}
@@ -1484,23 +1500,23 @@ if (LINUX)
       DEPENDS secondlife-stripped ${CMAKE_CURRENT_SOURCE_DIR}/viewer_manifest.py
       )
 
-  if (NOT INSTALL)
+  if (PACKAGE)
     add_custom_target(package ALL DEPENDS ${product}.tar.bz2)
     add_dependencies(package linux-crash-logger-strip-target)
-  endif (NOT INSTALL)
+  endif (PACKAGE)
 endif (LINUX)
 
 if (DARWIN)
-  set(product "Second Life")
+  set(product ${VIEWER_BRANDING_NAME})
   set_target_properties(
     ${VIEWER_BINARY_NAME}
     PROPERTIES
     OUTPUT_NAME "${product}"
     MACOSX_BUNDLE_INFO_STRING "info string - localize me"
-    MACOSX_BUNDLE_ICON_FILE "secondlife.icns"
-    MACOSX_BUNDLE_GUI_IDENTIFIER "Second Life"
+    MACOSX_BUNDLE_ICON_FILE "${VIEWER_BRANDING_ID}.icns"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${VIEWER_BRANDING_NAME}"
     MACOSX_BUNDLE_LONG_VERSION_STRING "ververver"
-    MACOSX_BUNDLE_BUNDLE_NAME "Second Life"
+    MACOSX_BUNDLE_BUNDLE_NAME "${VIEWER_BRANDING_NAME}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "asdf"
     MACOSX_BUNDLE_BUNDLE_VERSION "asdf"
     MACOSX_BUNDLE_COPYRIGHT "copyright linden lab 2007 - localize me and run me through a legal wringer"
@@ -1516,6 +1532,7 @@ if (DARWIN)
       --configuration=${CMAKE_CFG_INTDIR}
       --source=${CMAKE_CURRENT_SOURCE_DIR}
       --artwork=${ARTWORK_DIR}
+      --branding_id=${VIEWER_BRANDING_ID}
       --build=${CMAKE_CURRENT_BINARY_DIR}
       --dest=${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${product}.app
     DEPENDS ${VIEWER_BINARY_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/viewer_manifest.py
@@ -1534,6 +1551,7 @@ if (DARWIN)
           --configuration=${CMAKE_CFG_INTDIR}
           --channel=${VIEWER_CHANNEL}
           --login_channel=${VIEWER_LOGIN_CHANNEL}
+          --branding_id=${VIEWER_BRANDING_ID}
           --source=${CMAKE_CURRENT_SOURCE_DIR}
           --artwork=${ARTWORK_DIR}
           --build=${CMAKE_CURRENT_BINARY_DIR}
@@ -1553,6 +1571,7 @@ if (DARWIN)
           --configuration=${CMAKE_CFG_INTDIR}
           --channel=${VIEWER_CHANNEL}
           --login_channel=${VIEWER_LOGIN_CHANNEL}
+          --branding_id=${VIEWER_BRANDING_ID}
           --source=${CMAKE_CURRENT_SOURCE_DIR}
           --artwork=${ARTWORK_DIR}
           --build=${CMAKE_CURRENT_BINARY_DIR}
@@ -1569,4 +1588,10 @@ if (INSTALL)
   include(${CMAKE_CURRENT_SOURCE_DIR}/ViewerInstall.cmake)
 endif (INSTALL)
 
+# Add tests
 ADD_VIEWER_BUILD_TEST(llagentaccess viewer)
+ADD_VIEWER_BUILD_TEST(llworldmap viewer)
+ADD_VIEWER_BUILD_TEST(llworldmipmap viewer)
+ADD_VIEWER_BUILD_TEST(lltextureinfo viewer)
+ADD_VIEWER_BUILD_TEST(lltextureinfodetails viewer)
+

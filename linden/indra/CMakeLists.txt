@@ -4,13 +4,18 @@
 # other commands to guarantee full compatibility
 # with the version specified
 
-# The "cmake -E touch" command was released with 2.4.8.
-cmake_minimum_required(VERSION 2.4.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.6.2 FATAL_ERROR)
 
-# This makes cmake 2.6 not complain about version 2.4 compatibility.
-if (COMMAND cmake_policy)
-  cmake_policy(SET CMP0003 OLD)
-endif (COMMAND cmake_policy)
+# Eventually the third-party support modules (cmake/*.cmake) should
+# know the full path to all libraries.  Until that happens we need
+# per-configuration link directory "libraries/<arch>/lib/debug" for
+# Debug and "libraries/<arch>/lib/release" for Release,
+# RelWithDebInfo, and MinSizeRel.  CMake 2.6 does not directly support
+# per-configuration link directory specification.  However, we can set
+# CMP0003 to OLD and link to one library (apr) on a per-configuration
+# basis to convince CMake to add the proper link directory.  This line
+# can be removed when we use full paths for all libraries.
+cmake_policy(SET CMP0003 OLD)
 
 set(ROOT_PROJECT_NAME "SecondLife" CACHE STRING
     "The root project/makefile/solution name. Defaults to SecondLife.")
@@ -20,21 +25,25 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(Variables)
 
-if (DARWIN)
-  cmake_minimum_required(VERSION 2.6.2 FATAL_ERROR)
-endif (DARWIN)
+# Load versions now.  Install locations need them.
+include(Versions)
 
-if (NOT CMAKE_BUILD_TYPE)
+include(UnixInstall)
+
+if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
       "Build type.  One of: Debug Release RelWithDebInfo" FORCE)
-endif (NOT CMAKE_BUILD_TYPE)
+endif (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 
-# For the library installation process;
-# see cmake/Prebuild.cmake for the counterpart code.
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/temp)
-file(WRITE ${CMAKE_BINARY_DIR}/temp/sentinel_installed "0")
+# Create a 'prepare' target in which to perform setup actions.  This
+# must be the first target created so other targets can depend on it.
+if(NOT STANDALONE)
+  # We prepare prebuilt binaries when not building standalone.
+  set(prepare_depends ${CMAKE_BINARY_DIR}/prepare/prebuilt)
+endif(NOT STANDALONE)
+add_custom_target(prepare DEPENDS ${prepare_depends})
+
 add_subdirectory(cmake)
-
 add_subdirectory(${LIBS_OPEN_PREFIX}llaudio)
 add_subdirectory(${LIBS_OPEN_PREFIX}llcharacter)
 add_subdirectory(${LIBS_OPEN_PREFIX}llcommon)
@@ -110,3 +119,30 @@ if (SERVER)
     add_subdirectory(${SERVER_PREFIX}tools)
   endif (WINDOWS)
 endif (SERVER)
+
+# Configure prebuilt binary download.  This must be done last so that
+# all subdirectories have a chance to list the packages they need.
+if(NOT STANDALONE)
+  # We need scp for proprietary downloads.
+  if(INSTALL_PROPRIETARY)
+    include(FindSCP)
+  endif(INSTALL_PROPRIETARY)
+
+  # The use_prebuilt_binary macro in cmake/Prebuilt.cmake records
+  # packages in the PREBUILT property of the 'prepare' target.
+  get_property(PREBUILT_PACKAGES TARGET prepare PROPERTY PREBUILT)
+
+  # Create a script to download the needed binaries.
+  configure_file(${CMAKE_SOURCE_DIR}/cmake/DownloadPrebuilt.cmake.in
+                 ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake @ONLY)
+
+  # Drive the download script at build time.  Depend on 'install.xml'
+  # to aqcuire new binaries when needed.
+  add_custom_command(
+    COMMENT "Obtaining prebuilt binaries..."
+    OUTPUT ${CMAKE_BINARY_DIR}/prepare/prebuilt
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake
+    DEPENDS ${CMAKE_SOURCE_DIR}/../install.xml
+            ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake
+    )
+endif(NOT STANDALONE)

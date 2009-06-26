@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="groups">
-	<text name="groupdesc">
+	<text name="groupdesc" width="268">
 		Seu grupo ativo atual es&apos;ta mostrado em negrito.
 	</text>
-	<text name="groupcount">
+	<text name="groupcount" width="268">
 		Você pertence a [COUNT] grupos (de no máximo [MAX]).
 aximo
 	</text>

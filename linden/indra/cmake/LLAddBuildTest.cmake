@@ -2,6 +2,7 @@
 
 INCLUDE(APR)
 INCLUDE(LLMath)
+INCLUDE(Tut)
 
 MACRO(ADD_BUILD_TEST_NO_COMMON name parent)
 #   MESSAGE("${CMAKE_CURRENT_SOURCE_DIR}/tests/${name}_test.cpp")
@@ -95,19 +96,16 @@ MACRO(ADD_BUILD_TEST_INTERNAL name parent libraries source_files)
     ENDIF ("${wrapper}" STREQUAL "")
 
     #MESSAGE(STATUS "ADD_BUILD_TEST_INTERNAL ${name} test_cmd  = ${TEST_CMD}")
-    SET(TEST_SCRIPT_CMD 
-      ${CMAKE_COMMAND} 
-      -DLD_LIBRARY_PATH=${ARCH_PREBUILT_DIRS}:/usr/lib
-      -DTEST_CMD:STRING="${TEST_CMD}" 
-      -P ${CMAKE_SOURCE_DIR}/cmake/RunBuildTest.cmake
-      )
-
-    #MESSAGE(STATUS "ADD_BUILD_TEST_INTERNAL ${name} test_script  = ${TEST_SCRIPT_CMD}")
     ADD_CUSTOM_COMMAND(
         OUTPUT ${TEST_OUTPUT}
-        COMMAND ${TEST_SCRIPT_CMD}
+        COMMAND
+          ${CMAKE_COMMAND}
+            "-DLD_LIBRARY_PATH=${ARCH_PREBUILT_DIRS}:/usr/lib"
+            "-DTEST_CMD:STRING=${TEST_CMD}"
+            -P ${CMAKE_SOURCE_DIR}/cmake/RunBuildTest.cmake
         DEPENDS ${name}_test
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        VERBATIM
         )
 
     ADD_CUSTOM_TARGET(${name}_test_ok ALL DEPENDS ${TEST_OUTPUT})

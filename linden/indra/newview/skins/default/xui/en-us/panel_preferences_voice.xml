@@ -60,6 +60,16 @@
 	     name="set_voice_middlemouse_button" width="160" />
 	<text allow_html="false" bg_readonly_color="0 0 0 0" bottom_delta="-25"
 	     embedded_items="false" enabled="true" follows="left|top" height="16"
+	     left="28" name="lip_sync_heading" width="445">
+		Lip Sync Mouth Animation
+	</text>
+	<check_box bottom_delta="-20" enabled="true"
+	     follows="left|top" font="SansSerifSmall" height="16" initial_value="false"
+	     label="Enable lip sync animation"
+	     left_delta="20" mouse_opaque="true" name="enable_lip_sync_check"
+	     radio_style="false" width="200" />
+	<text allow_html="false" bg_readonly_color="0 0 0 0" bottom_delta="-25"
+	     embedded_items="false" enabled="true" follows="left|top" height="16"
 	     left="28" name="privacy_heading" width="445">
 		Privacy Options
 	</text>

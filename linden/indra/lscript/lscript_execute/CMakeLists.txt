@@ -38,3 +38,4 @@ set_source_files_properties(${lscript_execute_HEADER_FILES}
 list(APPEND lscript_execute_SOURCE_FILES ${lscript_execute_HEADER_FILES})
 
 add_library (lscript_execute ${lscript_execute_SOURCE_FILES})
+add_dependencies(lscript_execute prepare)

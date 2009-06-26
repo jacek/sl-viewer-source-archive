@@ -91,7 +91,7 @@ Jeżeli posiadasz odpowiednie prawa, możesz stworzyć nową propozycję, głoso
 		Głos: [VOTE]
 	</string>
 	<string name="empty_proposal_txt">
-		The proposal you are trying to create is empty.  Please fill out the proposal before creating it.
+		Niestety, Twoja propozycja nie może zostać stworzona ze względu na brak treści w opisie. Proszę wypełnić wszystkie pola zanim zdecydujesz się stworzyć propozycję.
 	</string>
 	<string name="proposals_submit_yes_txt">
 		Zatwierdź Tak dla propozycji...

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="preview_texture">
-	<button label="Copiar al inventario" name="Copy To Inventory"/>
-	<text length="1" name="dimensions" type="string">
-		Tamaño: [WIDTH] x [HEIGHT]
-	</text>
-</floater>

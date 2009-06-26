@@ -62,7 +62,7 @@
 	<text length="1" name="text2" type="string">
 		Options d&apos;affichage :
 	</text>
-	<check_box label="Lancer Second Life en mode fenêtré" name="windowed mode"/>
+	<check_box label="Lancer Snowglobe en mode fenêtré" name="windowed mode"/>
 	<check_box label="Auto-détection du ratio" left="350" name="aspect_auto_detect"/>
 	<check_box label="Utiliser échelle de résolution indépendante" name="ui_auto_scale"/>
 	<check_box label="Montrer l&apos;avatar en vue subjective" name="avfp"/>

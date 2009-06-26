@@ -6,7 +6,7 @@
 	     left="470" name="GraphicsPreferencesHelpButton" width="22" />
 	<check_box bottom="-23" enabled="true" follows="left|top" font="SansSerifSmall"
 	     height="16" initial_value="false"
-	     label="Run Second Life in a window" left="10" mouse_opaque="true"
+	     label="Run Snowglobe in a window" left="10" mouse_opaque="true"
 	     name="windowed mode" radio_style="false" width="100" />
 	<text_editor type="string" length="1" allow_html="false" bg_readonly_color="0 0 0 0" bottom="-43"
 	     embedded_items="false" enabled="false" follows="left|top"

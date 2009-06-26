@@ -119,6 +119,9 @@ ARGUMENTS=[
         On Linux this would try to use Linux_i686Manifest.""",
          default=""),
     dict(name='build', description='Build directory.', default=DEFAULT_SRCTREE),
+    dict(name='branding_id', description="""Identifier for the branding set to 
+        use.  Currently, 'secondlife' or 'snowglobe')""", 
+         default='secondlife'),
     dict(name='configuration',
          description="""The build configuration used. Only used on OS X for
         now, but it could be used for other platforms as well.""",
@@ -615,31 +618,31 @@ class LLManifest(object):
         if dst == None:
             dst = src
         dst = os.path.join(self.get_dst_prefix(), dst)
+        count = 0
+        is_glob = False
 
-        def try_path(src):
-            # expand globs
-            count = 0
-            if self.wildcard_pattern.search(src):
-                for s,d in self.expand_globs(src, dst):
+        # look under each prefix for matching paths
+        paths = [os.path.join(self.get_src_prefix(), src),
+                 os.path.join(self.get_artwork_prefix(), src),
+                 os.path.join(self.get_build_prefix(), src)]
+        for path in paths:
+            if self.wildcard_pattern.search(path):
+                is_glob = True
+                for s,d in self.expand_globs(path, dst):
                     assert(s != d)
                     count += self.process_file(s, d)
             else:
-                # if we're specifying a single path (not a glob),
-                # we should error out if it doesn't exist
-                self.check_file_exists(src)
                 # if it's a directory, recurse through it
-                if os.path.isdir(src):
-                    count += self.process_directory(src, dst)
-                else:
-                    count += self.process_file(src, dst)
-            return count
-        try:
-            count = try_path(os.path.join(self.get_src_prefix(), src))
-        except RuntimeError:
-            try:
-                count = try_path(os.path.join(self.get_artwork_prefix(), src))
-            except RuntimeError:
-                count = try_path(os.path.join(self.get_build_prefix(), src))
+                if os.path.isdir(path):
+                    count += self.process_directory(path, dst)
+                elif os.path.exists(path):
+                    count += self.process_file(path, dst)
+
+        # if we're specifying a single path (not a glob),
+        # we should error out if it doesn't exist
+        if count == 0 and not is_glob:
+            raise RuntimeError("No files match %s\n" % str(paths))
+
         print "%d files" % count
 
     def do(self, *actions):

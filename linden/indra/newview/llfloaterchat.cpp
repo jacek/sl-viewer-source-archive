@@ -76,16 +76,6 @@
 #include "llweb.h"
 #include "llstylemap.h"
 
-// Used for LCD display
-extern void AddNewIMToLCD(const std::string &newLine);
-extern void AddNewChatToLCD(const std::string &newLine);
-//
-// Constants
-//
-const F32 INSTANT_MSG_SIZE = 8.0f;
-const F32 CHAT_MSG_SIZE = 8.0f;
-const LLColor4 MUTED_MSG_COLOR(0.5f, 0.5f, 0.5f, 1.f);
-const S32 MAX_CHATTER_COUNT = 16;
 
 //
 // Global statics
@@ -387,7 +377,6 @@ void LLFloaterChat::addChat(const LLChat& chat,
 		&& gConsole 
 		&& !local_agent)
 	{
-		F32 size = CHAT_MSG_SIZE;
 		if (chat.mSourceType == CHAT_SOURCE_SYSTEM)
 		{
 			text_color = gSavedSettings.getColor("SystemChatColor");
@@ -395,17 +384,19 @@ void LLFloaterChat::addChat(const LLChat& chat,
 		else if(from_instant_message)
 		{
 			text_color = gSavedSettings.getColor("IMChatColor");
-			size = INSTANT_MSG_SIZE;
 		}
 		// We display anything if it's not an IM. If it's an IM, check pref...
 		if	( !from_instant_message || gSavedSettings.getBOOL("IMInChatConsole") ) 
 		{
-			gConsole->addLine(chat.mText, size, text_color);
+			gConsole->addConsoleLine(chat.mText, text_color);
 		}
 	}
 
 	if(from_instant_message && gSavedPerAccountSettings.getBOOL("LogChatIM"))
 		log_chat_text(chat);
+	
+	if(from_instant_message && gSavedSettings.getBOOL("IMInChatHistory")) 	 
+		addChatHistory(chat,false);
 
 	LLTextParser* highlight = LLTextParser::getInstance();
 	highlight->triggerAlerts(gAgent.getID(), gAgent.getPositionGlobal(), chat.mText, gViewerWindow->getWindow());

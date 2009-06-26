@@ -30,27 +30,23 @@
  * $/LicenseInfo$
  */
 
-// Global map of the world.
+// View of the global map of the world
+
+// The data (model) for the global map (a singleton, unique to the application instance) is 
+// in LLWorldMap and is typically accessed using LLWorldMap::getInstance()
 
 #ifndef LL_LLWORLDMAPVIEW_H
 #define LL_LLWORLDMAPVIEW_H
 
 #include "llpanel.h"
-#include "v3math.h"
-#include "v3dmath.h"
-#include "v4color.h"
-#include "llviewerimage.h"
-#include "llmapimagetype.h"
 #include "llworldmap.h"
-
-class LLItemInfo;
+#include "v4color.h"
 
 const S32 DEFAULT_TRACKING_ARROW_SIZE = 16;
 
-class LLColor4;
-class LLColor4U;
-class LLCoordGL;
-class LLViewerImage;
+class LLUUID;
+class LLVector3d;
+class LLVector3;
 class LLTextBox;
 
 
@@ -75,22 +71,26 @@ public:
 	bool			checkItemHit(S32 x, S32 y, LLItemInfo& item, LLUUID* id, bool track);
 	void			handleClick(S32 x, S32 y, MASK mask, S32* hit_type, LLUUID* id);
 
-	// Scale and pan are shared across all instances.
+	// Scale and pan are shared across all instances! (i.e. Terrain and Objects maps are always registered)
 	static void		setScale( F32 scale );
 	static void		translatePan( S32 delta_x, S32 delta_y );
 	static void		setPan( S32 x, S32 y, BOOL snap = TRUE );
+	// Return true if the current scale level is above the threshold for accessing region info
+	static bool		showRegionInfo();
 
 	LLVector3		globalPosToView(const LLVector3d& global_pos);
 	LLVector3d		viewPosToGlobal(S32 x,S32 y);
 
 	virtual void	draw();
-	void			drawGenericItems(const LLWorldMap::item_info_list_t& items, LLUIImagePtr image);
+	void			drawGenericItems(const LLSimInfo::item_info_list_t& items, LLUIImagePtr image);
 	void			drawGenericItem(const LLItemInfo& item, LLUIImagePtr image);
 	void			drawImage(const LLVector3d& global_pos, LLUIImagePtr image, const LLColor4& color = LLColor4::white);
 	void			drawImageStack(const LLVector3d& global_pos, LLUIImagePtr image, U32 count, F32 offset, const LLColor4& color);
 	void			drawAgents();
-	void			drawEvents();
+	void			drawItems();
 	void			drawFrustum();
+	void			drawMipmap(S32 width, S32 height);
+	bool			drawMipmapLevel(S32 width, S32 height, S32 level, bool load = true);
 
 	static void		cleanupTextures();
 
@@ -127,9 +127,7 @@ public:
 	static void		clearLastClick() { sHandledLastClick = FALSE; }
 
 	// if the view changes, download additional sim info as needed
-	// return value is number of blocks newly requested.
-	U32				updateBlock(S32 block_x, S32 block_y);
-	U32				updateVisibleBlocks();
+	void			updateVisibleBlocks();
 
 protected:
 	void			setDirectionPos( LLTextBox* text_box, F32 rotation );
@@ -138,11 +136,13 @@ protected:
 public:
 	LLColor4		mBackgroundColor;
 
-	static LLUIImagePtr	sAvatarYouSmallImage;
 	static LLUIImagePtr	sAvatarSmallImage;
-	static LLUIImagePtr	sAvatarLargeImage;
+	static LLUIImagePtr	sAvatarYouImage;
+	static LLUIImagePtr	sAvatarYouLargeImage;
+	static LLUIImagePtr	sAvatarLevelImage;
 	static LLUIImagePtr	sAvatarAboveImage;
 	static LLUIImagePtr	sAvatarBelowImage;
+
 	static LLUIImagePtr	sTelehubImage;
 	static LLUIImagePtr	sInfohubImage;
 	static LLUIImagePtr	sHomeImage;
@@ -155,9 +155,7 @@ public:
 	static LLUIImagePtr	sForSaleImage;
 	static LLUIImagePtr	sForSaleAdultImage;
 
-	static F32		sThresholdA;
-	static F32		sThresholdB;
-	static F32		sPixelsPerMeter;		// world meters to map pixels
+	static F32		sMapScale;				// scale = size of a region in pixels
 
 	BOOL			mItemPicked;
 
@@ -167,6 +165,7 @@ public:
 	static F32		sTargetPanY;		// in pixels
 	static S32		sTrackingArrowX;
 	static S32		sTrackingArrowY;
+	static bool		sVisibleTilesLoaded;
 
 	// Are we mid-pan from a user drag?
 	BOOL			mPanning;
@@ -189,10 +188,14 @@ public:
 	static BOOL		sHandledLastClick;
 	S32				mSelectIDStart;
 
+	// Keep the list of regions that are displayed on screen. Avoids iterating through the whole region map after draw().
 	typedef std::vector<U64> handle_list_t;
 	handle_list_t mVisibleRegions; // set every frame
 
 	static std::map<std::string,std::string> sStringsMap;
+
+private:
+	void drawTileOutline(S32 level, F32 top, F32 left, F32 bottom, F32 right);
 };
 
 #endif

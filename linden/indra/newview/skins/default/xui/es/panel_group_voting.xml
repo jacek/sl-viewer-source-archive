@@ -12,13 +12,14 @@ las antiguas.
 		Abrir las propuestas de grupo
 	</text>
 	<text name="proposal_instructions">
-		Pulse dos veces la propuesta en la que quiere votar, o pulse Hacer una propuesta para crear una nueva
+		Pulse dos veces la propuesta en la que quiere votar, o pulse
+Hacer una propuesta para crear una nueva.
 	</text>
 	<text name="proposal_lbl">
 		Descripción de la propuesta
 	</text>
 	<text name="proposal_voting_lbl">
-		Propuesta                                                         La votación acaba                    ¿Votada?
+		Propuesta                                                     La votación acaba              ¿Votada?
 	</text>
 	<button label="Hacer una propuesta" label_selected="Hacer una propuesta" name="btn_proposal"/>
 	<button label="Ver la propuesta" label_selected="Ver la propuesta" name="btn_view_proposal_item"/>
@@ -28,7 +29,7 @@ las antiguas.
 	</text>
 	<spinner name="quorum" tool_tip="# de votos, del total de miembros, necesarios para que los resultados de la elección sean vinculantes."/>
 	<text name="quorum_text">
-		deben votar, al menos, de los [MEMBERS] miembros del grupo
+		deben votar, al menos, del total [MEMBERS] del grupo.
 	</text>
 	<text name="duration_lbl">
 		Duración:
@@ -39,25 +40,26 @@ las antiguas.
 	</text>
 	<radio_group name="majority" tool_tip="Mayoría de los votos totales necesaria para ganar.">
 		Mayoría simple
-		Mayoría de 2/3
-		Unanimidad
+Mayoría de 2/3
+Unanimidad
 	</radio_group>
 	<text name="start_lbl">
-		La votación empieza:
+		empieza:
 	</text>
 	<text name="end_lbl">
-		La votación acaba:
+		acaba:
 	</text>
 	<button label="Enviar la propuesta" label_selected="Enviar la propuesta" name="btn_submit"/>
 	<button label="Cancelar" label_selected="Cancelar" name="btn_cancel"/>
-	<button label="Sí" label_selected="Sí" name="btn_yes"/>
-	<button label="No" label_selected="No" name="btn_no"/>
-	<button label="Abstención" label_selected="Abstención" name="btn_abstain"/>
+	<button label="Sí" label_selected="Sí" name="btn_yes" width="53"/>
+	<button label="No" label_selected="No" name="btn_no" width="53" left_delta="60"/>
+	<button label="Abstención" label_selected="Abstención" name="btn_abstain" width="83" left_delta="60"/>
 	<text name="txt">
 		Historia de las votaciones del grupo
 	</text>
 	<text name="instructions">
-		Pulse dos veces en una votación previa o selecciónela, y pulse Ver ítem para ver los resultados.
+		Pulse dos veces en una votación previa o selecciónela, y pulse Ver ítem
+para ver los resultados.
 	</text>
 	<text name="history_list_lbl">
 		Votación previa                                                          Votación acabada

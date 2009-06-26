@@ -57,6 +57,7 @@
 #include "llares.h" 
 #include "llcurl.h"
 #include "llfloatersnapshot.h"
+#include "lltexturestats.h"
 #include "llviewerwindow.h"
 #include "llviewerdisplay.h"
 #include "llviewermedia.h"
@@ -240,8 +241,7 @@ LLUUID gInventoryLibraryRoot;
 
 BOOL				gDisconnected = FALSE;
 
-// Map scale in pixels per region
-F32 				gMapScale = 128.f;
+// Minimap scale in pixels per region
 
 // used to restore texture state after a mode switch
 LLFrameTimer	gRestoreGLTimer;
@@ -397,7 +397,7 @@ static void settings_to_globals()
 	gAllowIdleAFK = gSavedSettings.getBOOL("AllowIdleAFK");
 	gAllowTapTapHoldRun = gSavedSettings.getBOOL("AllowTapTapHoldRun");
 	gShowObjectUpdates = gSavedSettings.getBOOL("ShowObjectUpdates");
-	gMapScale = gSavedSettings.getF32("MapScale");
+	LLWorldMapView::sMapScale = gSavedSettings.getF32("MapScale");
 	LLHoverView::sShowHoverTips = gSavedSettings.getBOOL("ShowHoverTips");
 
 	LLCubeMap::sUseCubeMaps = LLFeatureManager::getInstance()->isFeatureAvailable("RenderCubeMap");
@@ -411,7 +411,7 @@ static void settings_modify()
 	LLVOSurfacePatch::sLODFactor *= LLVOSurfacePatch::sLODFactor; //square lod factor to get exponential range of [1,4]
 	gDebugGL = gSavedSettings.getBOOL("RenderDebugGL");
 	gDebugPipeline = gSavedSettings.getBOOL("RenderDebugPipeline");
-	
+	gAuditTexture = gSavedSettings.getBOOL("AuditTexture");
 #if LL_VECTORIZE
 	if (gSysCPU.hasAltivec())
 	{
@@ -502,7 +502,7 @@ const std::string LLAppViewer::sPerAccountSettingsName = "PerAccount";
 const std::string LLAppViewer::sCrashSettingsName = "CrashSettings"; 
 
 LLTextureCache* LLAppViewer::sTextureCache = NULL; 
-LLWorkerThread* LLAppViewer::sImageDecodeThread = NULL; 
+LLImageDecodeThread* LLAppViewer::sImageDecodeThread = NULL; 
 LLTextureFetch* LLAppViewer::sTextureFetch = NULL; 
 
 LLAppViewer::LLAppViewer() : 
@@ -582,6 +582,9 @@ bool LLAppViewer::init()
 	//////////////////////////////////////////////////////////////////////////////
 	// *FIX: The following code isn't grouped into functions yet.
 
+	// Statistics / debug timer initialization
+	init_statistics();
+	
 	//
 	// Various introspection concerning the libs we're using - particularly
         // the libs involved in getting to a full login screen.
@@ -1303,10 +1306,6 @@ bool LLAppViewer::cleanup()
 	// save all settings, even if equals defaults
 	gCrashSettings.saveToFile(crash_settings_filename, FALSE);
 
-	gSavedSettings.cleanup();
-	gColors.cleanup();
-	gCrashSettings.cleanup();
-
 	// Save URL history file
 	LLURLHistory::saveFile("url_history.xml");
 
@@ -1382,6 +1381,11 @@ bool LLAppViewer::cleanup()
 	delete gVFS;
 	gVFS = NULL;
 
+	// Cleanup settings last in case other clases reference them
+	gSavedSettings.cleanup();
+	gColors.cleanup();
+	gCrashSettings.cleanup();
+	
 	LLWatchdog::getInstance()->cleanup();
 
 	end_messaging_system();
@@ -1449,14 +1453,14 @@ bool LLAppViewer::initThreads()
 		LLWatchdog::getInstance()->init(watchdog_killer_callback);
 	}
 
-	LLVFSThread::initClass(enable_threads && true);
-	LLLFSThread::initClass(enable_threads && true);
+	LLVFSThread::initClass(enable_threads && false);
+	LLLFSThread::initClass(enable_threads && false);
 
 	// Image decoding
-	LLAppViewer::sImageDecodeThread = new LLWorkerThread("ImageDecode", enable_threads && true);
+	LLAppViewer::sImageDecodeThread = new LLImageDecodeThread(enable_threads && true);
 	LLAppViewer::sTextureCache = new LLTextureCache(enable_threads && true);
-	LLAppViewer::sTextureFetch = new LLTextureFetch(LLAppViewer::getTextureCache(), enable_threads && false);
-	LLImage::initClass(LLAppViewer::getImageDecodeThread());
+	LLAppViewer::sTextureFetch = new LLTextureFetch(LLAppViewer::getTextureCache(), sImageDecodeThread, enable_threads && true);
+	LLImage::initClass();
 
 	// *FIX: no error handling here!
 	return true;
@@ -1888,7 +1892,7 @@ bool LLAppViewer::initConfiguration()
     mYieldTime = gSavedSettings.getS32("YieldTime");
              
 	// XUI:translate
-	gSecondLife = "Second Life";
+	gSecondLife = "Snowglobe";
 
 	// Read skin/branding settings if specified.
 	//if (! gDirUtilp->getSkinDir().empty() )
@@ -2042,7 +2046,7 @@ bool LLAppViewer::initConfiguration()
 void LLAppViewer::checkForCrash(void)
 {
     
-#if 1 //*REMOVE:Mani LL_SEND_CRASH_REPORTS
+#if LL_SEND_CRASH_REPORTS
 	//*NOTE:Mani The current state of the crash handler has the MacOSX
 	// sending all crash reports as freezes, in order to let 
 	// the MacOSX CrashRepoter generate stacks before spawning the 
@@ -2052,23 +2056,36 @@ void LLAppViewer::checkForCrash(void)
 #if LL_DARWIN
 	if(gLastExecEvent != LAST_EXEC_NORMAL)
 #else		
-	if (gLastExecEvent == LAST_EXEC_FROZE || gLastExecEvent == LAST_EXEC_OTHER_CRASH)
+	if (gLastExecEvent == LAST_EXEC_FROZE)
 #endif
     {
         llinfos << "Last execution froze, requesting to send crash report." << llendl;
         //
         // Pop up a freeze or crash warning dialog
         //
-        std::ostringstream msg;
-        msg << gSecondLife
-        << " appears to have frozen or crashed on the previous run.\n"
-        << "Would you like to send a crash report?";
-        std::string alert;
-        alert = gSecondLife;
-        alert += " Alert";
-        S32 choice = OSMessageBox(msg.str(),
+        S32 choice;
+        if(gCrashSettings.getS32(CRASH_BEHAVIOR_SETTING) == CRASH_BEHAVIOR_ASK)
+        {
+            std::ostringstream msg;
+            msg << gSecondLife
+            << " appears to have frozen or crashed on the previous run.\n"
+            << "Would you like to send a crash report?";
+            std::string alert;
+            alert = gSecondLife;
+            alert += " Alert";
+            choice = OSMessageBox(msg.str(),
                                   alert,
                                   OSMB_YESNO);
+        } 
+        else if(gCrashSettings.getS32(CRASH_BEHAVIOR_SETTING) == CRASH_BEHAVIOR_NEVER_SEND)
+        {
+            choice = OSBTN_NO;
+        }
+        else
+        {
+            choice = OSBTN_YES;
+        }
+
         if (OSBTN_YES == choice)
         {
             llinfos << "Sending crash report." << llendl;
@@ -2207,7 +2224,7 @@ void LLAppViewer::cleanupSavedSettings()
 		}
 	}
 
-	gSavedSettings.setF32("MapScale", gMapScale );
+	gSavedSettings.setF32("MapScale", LLWorldMapView::sMapScale );
 	gSavedSettings.setBOOL("ShowHoverTips", LLHoverView::sShowHoverTips);
 
 	// Some things are cached in LLAgent.
@@ -2343,6 +2360,8 @@ void LLAppViewer::handleViewerCrash()
 	gDebugInfo["SessionLength"] = F32(LLFrameTimer::getElapsedSeconds());
 	gDebugInfo["StartupState"] = LLStartUp::getStartupStateString();
 	gDebugInfo["RAMInfo"]["Allocated"] = (LLSD::Integer) getCurrentRSS() >> 10;
+	gDebugInfo["FirstLogin"] = (LLSD::Boolean) gAgent.isFirstLogin();
+	gDebugInfo["FirstRunThisInstall"] = gSavedSettings.getBOOL("FirstRunThisInstall");
 
 	if(gLogoutInProgress)
 	{
@@ -2600,6 +2619,7 @@ void LLAppViewer::requestQuit()
 		gFloaterView->closeAllChildren(true);
 	}
 
+	capture_texture_stats_snapshot(LLTimer::getTotalTime());
 	send_stats();
 
 	gLogoutTimer.reset();
@@ -3224,6 +3244,15 @@ void LLAppViewer::idle()
 			llinfos << "Transmitting sessions stats" << llendl;
 			send_stats();
 			viewer_stats_timer.reset();
+		}
+
+		static LLFrameStatsTimer texture_downloads_stats_timer(CAPTURE_TEXTURE_STATS_PERIOD);
+		if (texture_downloads_stats_timer.getElapsedTimeF32() >= CAPTURE_TEXTURE_STATS_PERIOD && !gDisconnected)
+		{
+			// TODO first time: take a blank snapshot
+			llinfos << "Taking texture download stats snapshot" << llendl;
+			capture_texture_stats_snapshot(LLTimer::getTotalTime());
+			texture_downloads_stats_timer.reset();
 		}
 
 		// Print the object debugging stats
@@ -3942,3 +3971,4 @@ void LLAppViewer::handleLoginComplete()
 	}
 	writeDebugInfo();
 }
+

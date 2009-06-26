@@ -7,15 +7,17 @@
 #
 # On Unixoids we try, in order of decreasing priority:
 # - $BROWSER if set (preferred)
-# - Default GNOME browser
-# - Default KDE browser
+# - kfmclient openURL
 # - x-www-browser
-# - The first browser in $BROWSER_COMMANDS that is found.
+# - opera
+# - firefox
+# - mozilla
+# - netscape
 
 URL="$1"
 
 if [ -z "$URL" ]; then
-    echo "Usage: $(basename "$0") URL"
+    echo "Usage: $0 URL"
     exit
 fi
 
@@ -45,15 +47,17 @@ if [ ! -z "$XBROWSER" ]; then
     echo "$0: Trying some others..."
 fi
 
-# Launcher the default GNOME browser.
-if [ ! -z "$GNOME_DESKTOP_SESSION_ID" ] && which gnome-open >/dev/null; then
-    gnome-open "$URL" &
+# else kfmclient
+# (embodies KDE concept of 'preferred browser')
+if which kfmclient >/dev/null; then
+    kfmclient openURL "$URL" &
     exit
 fi
 
-# Launch the default KDE browser.
-if [ ! -z "$KDE_FULL_SESSION" ] && which kfmclient >/dev/null; then
-    kfmclient openURL "$URL" &
+# else x-www-browser
+# (Debianesque idea of a working X browser)
+if which x-www-browser >/dev/null; then
+    x-www-browser "$URL" &
     exit
 fi
 
@@ -82,5 +86,24 @@ for browser_cmd in $BROWSER_COMMANDS; do
    fi
 done
 
+# else firefox
+if which firefox >/dev/null; then
+    firefox "$URL" &
+    exit
+fi
+
+# else mozilla
+if which mozilla >/dev/null; then
+    mozilla "$URL" &
+    exit
+fi
+
+# else netscape
+if which netscape >/dev/null; then
+    netscape "$URL" &
+    exit
+fi
+
 echo '$0: Failed to find a known browser.  Please consider setting the $BROWSER environment variable.'
-exit 1
+
+# end.

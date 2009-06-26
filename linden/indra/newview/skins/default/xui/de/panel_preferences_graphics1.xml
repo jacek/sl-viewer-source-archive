@@ -4,7 +4,7 @@
 		Anzeigeauflösung:
 	</text>
 	<button label=" ?" name="GraphicsPreferencesHelpButton" />
-	<check_box label="Second Life in einem Fenster ausführen" name="windowed mode" />
+	<check_box label="Snowglobe in einem Fenster ausführen" name="windowed mode" />
 	<text_editor name="voice_chat_description">
 		Wenn deaktiviert Anzeige bei Anmeldung in Vollbild.
 	</text_editor>

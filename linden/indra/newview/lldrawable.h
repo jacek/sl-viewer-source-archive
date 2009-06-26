@@ -80,7 +80,8 @@ public:
 
 	BOOL isLight() const;
 
-	BOOL isVisible() const;		
+	BOOL isVisible() const;	
+	BOOL isRecentlyVisible() const;	
 	virtual void setVisible(LLCamera& camera_in, std::vector<LLDrawable*>* results = NULL, BOOL for_select = FALSE);
 
 

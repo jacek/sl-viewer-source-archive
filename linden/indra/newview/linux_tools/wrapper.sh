@@ -50,7 +50,7 @@
 ##   to try anyway.
 if [ "`uname -m`" = "x86_64" ]; then
     export LL_DISABLE_GSTREAMER=x
-    echo '64-bit Linux detected: Disabling GStreamer (streaming video and music) by default; edit ./secondlife to re-enable.'
+    echo '64-bit Linux detected: Disabling GStreamer (streaming video and music) by default; edit ./snowglobe to re-enable.'
 fi
 
 ## Everything below this line is just for advanced troubleshooters.
@@ -94,9 +94,7 @@ cd "${RUN_PATH}"
 ./register_secondlifeprotocol.sh
 ## Before we mess with LD_LIBRARY_PATH, save the old one to restore for
 ##  subprocesses that care.
-if [ "${LD_LIBRARY_PATH+isset}" = "isset" ]; then
-    export SAVED_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
-fi
+export SAVED_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
 
 if [ -n "$LL_TCMALLOC" ]; then
     tcmalloc_libs='/usr/lib/libtcmalloc.so.0 /usr/lib/libstacktrace.so.0 /lib/libpthread.so.0'
@@ -116,8 +114,9 @@ if [ -n "$LL_TCMALLOC" ]; then
     fi
 fi
 
+export VIEWER_BINARY='snowglobe-do-not-run-directly'
 export SL_ENV='LD_LIBRARY_PATH="`pwd`"/lib:"`pwd`"/app_settings/mozilla-runtime-linux-i686:"${LD_LIBRARY_PATH}"'
-export SL_CMD='$LL_WRAPPER bin/do-not-directly-run-secondlife-bin'
+export SL_CMD='$LL_WRAPPER bin/$VIEWER_BINARY'
 export SL_OPT="`cat gridargs.dat` $@"
 
 # Run the program
@@ -134,7 +133,7 @@ if [ -n "$LL_RUN_ERR" ]; then
 			cat << EOFMARKER
 You are running the Second Life Viewer on a x86_64 platform.  The
 most common problems when launching the Viewer (particularly
-'bin/do-not-directly-run-secondlife-bin: not found' and 'error while
+'bin/$VIEWER_BINARY: not found' and 'error while
 loading shared libraries') may be solved by installing your Linux
 distribution's 32-bit compatibility packages.
 For example, on Ubuntu and other Debian-based Linuxes you might run:

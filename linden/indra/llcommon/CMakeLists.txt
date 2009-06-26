@@ -41,6 +41,7 @@ set(llcommon_SOURCE_FILES
     llmemorystream.cpp
     llmetrics.cpp
     llmortician.cpp
+    lloptioninterface.cpp
     llprocessor.cpp
     llqueuedthread.cpp
     llrand.cpp
@@ -134,6 +135,7 @@ set(llcommon_HEADER_FILES
     llmetrics.h
     llmortician.h
     llnametable.h
+    lloptioninterface.h
     llpreprocessor.h
     llpriqueuemap.h
     llprocessor.h
@@ -189,6 +191,7 @@ set_source_files_properties(${llcommon_HEADER_FILES}
 list(APPEND llcommon_SOURCE_FILES ${llcommon_HEADER_FILES})
 
 add_library (llcommon ${llcommon_SOURCE_FILES})
+add_dependencies(llcommon prepare)
 target_link_libraries(
     llcommon
     ${APRUTIL_LIBRARIES}

@@ -177,7 +177,7 @@ void LLTexUnit::disable(void)
 	}
 }
 
-bool LLTexUnit::bind(LLImageGL* texture, bool forceBind)
+bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 {
 	stop_glerror();
 	if (mIndex < 0) return false;
@@ -195,7 +195,17 @@ bool LLTexUnit::bind(LLImageGL* texture, bool forceBind)
 		//if deleted, will re-generate it immediately
 		texture->forceImmediateUpdate() ;
 
+		texture->forceUpdateBindStats() ;
 		return texture->bindDefaultImage(mIndex);
+	}
+
+	if(gAuditTexture && for_rendering && LLImageGL::sCurTexPickSize > 0)
+	{
+		if(texture->getWidth() * texture->getHeight() == LLImageGL::sCurTexPickSize)
+		{
+			texture->updateBindStats();
+			return bind(LLImageGL::sDefaultTexturep.get());
+		}
 	}
 
 	if ((mCurrTexture != texture->getTexName()) || forceBind)
@@ -214,6 +224,7 @@ bool LLTexUnit::bind(LLImageGL* texture, bool forceBind)
 			setTextureFilteringOption(texture->mFilterOption);
 		}
 	}
+
 	return true;
 }
 

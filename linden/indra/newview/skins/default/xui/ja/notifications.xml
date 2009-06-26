@@ -71,7 +71,7 @@
     </form>
   </template>
 	<notification functor="GenericAcknowledge" label="不明な警告メッセージ" name="MissingAlert">
-		あなたの Second Life のバージョンでは、
+		あなたの Snowglobe のバージョンでは、
 今受け取った警告メッセージを表示することができません。
 
 エラー詳細： 「[_NAME]」という警告は notifications.xml にありませんでした。
@@ -2869,7 +2869,7 @@ Second Life のウェブサイトにアクセスして、設定しますか？
 	<notification name="ImproperPaymentStatus">
 		この地域（リージョン）に入るために適した支払いステータスがありません。
 	</notification>
-	<notification name="MustGetAgeRgion">
+	<notification name="MustGetAgeRegion">
 		この地域（リージョン）に入るには年齢確認済みである必要があります。
 	</notification>
 	<notification name="MustGetAgeParcel">
