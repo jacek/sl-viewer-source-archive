@@ -385,6 +385,7 @@ static void settings_to_globals()
 	LLFolderView::sAutoOpenTime			= llmax(0.25f, gSavedSettings.getF32("FolderAutoOpenDelay"));
 	LLToolBar::sInventoryAutoOpenTime	= gSavedSettings.getF32("InventoryAutoOpenDelay");
 	LLSelectMgr::sRectSelectInclusive	= gSavedSettings.getBOOL("RectangleSelectInclusive");
+	LLSelectMgr::sRenderSelectionHighlights = gSavedSettings.getBOOL("RenderHighlightSelections");
 	LLSelectMgr::sRenderHiddenSelections = gSavedSettings.getBOOL("RenderHiddenSelections");
 	LLSelectMgr::sRenderLightRadius = gSavedSettings.getBOOL("RenderLightRadius");
 
@@ -2403,7 +2404,7 @@ void LLAppViewer::handleViewerCrash()
 		llinfos << "Creating crash marker file " << crash_file_name << llendl;
 		
 		LLAPRFile crash_file ;
-		crash_file.open(crash_file_name, LL_APR_W);
+		crash_file.open(crash_file_name, LL_APR_W, LLAPRFile::global);
 		if (crash_file.getFileHandle())
 		{
 			LL_INFOS("MarkerFile") << "Created crash marker file " << crash_file_name << LL_ENDL;
@@ -2471,11 +2472,11 @@ bool LLAppViewer::anotherInstanceRunning()
 	LL_DEBUGS("MarkerFile") << "Checking marker file for lock..." << LL_ENDL;
 
 	//Freeze case checks
-	if (LLAPRFile::isExist(marker_file, NULL, LL_APR_RB))
+	if (LLAPRFile::isExist(marker_file, LL_APR_RB))
 	{
 		// File exists, try opening with write permissions
 		LLAPRFile outfile ;
-		outfile.open(marker_file, LL_APR_WB);
+		outfile.open(marker_file, LL_APR_WB, LLAPRFile::global);
 		apr_file_t* fMarker = outfile.getFileHandle() ; 
 		if (!fMarker)
 		{
@@ -2515,24 +2516,24 @@ void LLAppViewer::initMarkerFile()
 	std::string error_marker_file = gDirUtilp->getExpandedFilename(LL_PATH_LOGS, ERROR_MARKER_FILE_NAME);
 
 	
-	if (LLAPRFile::isExist(mMarkerFileName, NULL, LL_APR_RB) && !anotherInstanceRunning())
+	if (LLAPRFile::isExist(mMarkerFileName, LL_APR_RB) && !anotherInstanceRunning())
 	{
 		gLastExecEvent = LAST_EXEC_FROZE;
 		LL_INFOS("MarkerFile") << "Exec marker found: program froze on previous execution" << LL_ENDL;
 	}    
     
-	if(LLAPRFile::isExist(logout_marker_file, NULL, LL_APR_RB))
+	if(LLAPRFile::isExist(logout_marker_file, LL_APR_RB))
 	{
 		LL_INFOS("MarkerFile") << "Last exec LLError crashed, setting LastExecEvent to " << LAST_EXEC_LLERROR_CRASH << LL_ENDL;
 		gLastExecEvent = LAST_EXEC_LOGOUT_FROZE;
 	}
-	if(LLAPRFile::isExist(llerror_marker_file, NULL, LL_APR_RB))
+	if(LLAPRFile::isExist(llerror_marker_file, LL_APR_RB))
 	{
 		llinfos << "Last exec LLError crashed, setting LastExecEvent to " << LAST_EXEC_LLERROR_CRASH << llendl;
 		if(gLastExecEvent == LAST_EXEC_LOGOUT_FROZE) gLastExecEvent = LAST_EXEC_LOGOUT_CRASH;
 		else gLastExecEvent = LAST_EXEC_LLERROR_CRASH;
 	}
-	if(LLAPRFile::isExist(error_marker_file, NULL, LL_APR_RB))
+	if(LLAPRFile::isExist(error_marker_file, LL_APR_RB))
 	{
 		LL_INFOS("MarkerFile") << "Last exec crashed, setting LastExecEvent to " << LAST_EXEC_OTHER_CRASH << LL_ENDL;
 		if(gLastExecEvent == LAST_EXEC_LOGOUT_FROZE) gLastExecEvent = LAST_EXEC_LOGOUT_CRASH;
@@ -2551,7 +2552,7 @@ void LLAppViewer::initMarkerFile()
 	
 	// Create the marker file for this execution & lock it
 	apr_status_t s;
-	s = mMarkerFile.open(mMarkerFileName, LL_APR_W, gAPRPoolp);	
+	s = mMarkerFile.open(mMarkerFileName, LL_APR_W, LLAPRFile::global);
 
 	if (s == APR_SUCCESS && mMarkerFile.getFileHandle())
 	{
@@ -2619,7 +2620,6 @@ void LLAppViewer::requestQuit()
 		gFloaterView->closeAllChildren(true);
 	}
 
-	capture_texture_stats_snapshot(LLTimer::getTotalTime());
 	send_stats();
 
 	gLogoutTimer.reset();
@@ -3246,15 +3246,6 @@ void LLAppViewer::idle()
 			viewer_stats_timer.reset();
 		}
 
-		static LLFrameStatsTimer texture_downloads_stats_timer(CAPTURE_TEXTURE_STATS_PERIOD);
-		if (texture_downloads_stats_timer.getElapsedTimeF32() >= CAPTURE_TEXTURE_STATS_PERIOD && !gDisconnected)
-		{
-			// TODO first time: take a blank snapshot
-			llinfos << "Taking texture download stats snapshot" << llendl;
-			capture_texture_stats_snapshot(LLTimer::getTotalTime());
-			texture_downloads_stats_timer.reset();
-		}
-
 		// Print the object debugging stats
 		static LLFrameTimer object_debug_timer;
 		if (object_debug_timer.getElapsedTimeF32() > 5.f)
@@ -3602,7 +3593,7 @@ void LLAppViewer::sendLogoutRequest()
 		mLogoutMarkerFileName = gDirUtilp->getExpandedFilename(LL_PATH_LOGS,LOGOUT_MARKER_FILE_NAME);
 		
 		LLAPRFile outfile ;
-		outfile.open(mLogoutMarkerFileName, LL_APR_W);
+		outfile.open(mLogoutMarkerFileName, LL_APR_W, LLAPRFile::global);
 		mLogoutMarkerFile =  outfile.getFileHandle() ;
 		if (mLogoutMarkerFile)
 		{

@@ -2622,7 +2622,6 @@ void process_teleport_finish(LLMessageSystem* msg, void**)
 {
 	LL_DEBUGS("Messaging") << "Got teleport location message" << LL_ENDL;
 	LLUUID agent_id;
-	reset_texture_stats();
 	msg->getUUIDFast(_PREHASH_Info, _PREHASH_AgentID, agent_id);
 	if (agent_id != gAgent.getID())
 	{

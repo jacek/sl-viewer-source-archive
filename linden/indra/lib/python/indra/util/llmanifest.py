@@ -99,6 +99,7 @@ def get_channel(srctree):
 
 DEFAULT_SRCTREE = os.path.dirname(sys.argv[0])
 DEFAULT_CHANNEL = 'Second Life Release'
+DEFAULT_CHANNEL_SNOWGLOBE = 'Snowglobe Release'
 
 ARGUMENTS=[
     dict(name='actions',
@@ -278,6 +279,13 @@ class LLManifest(object):
         return self.args.get('grid', None) == ''
     def default_channel(self):
         return self.args.get('channel', None) == DEFAULT_CHANNEL
+    
+    def default_channel_for_brand(self):
+        if self.viewer_branding_id()=='secondlife':
+            return self.args.get('channel', None) == DEFAULT_CHANNEL
+        elif self.viewer_branding_id()=="snowglobe":
+            return self.args.get('channel', None) == DEFAULT_CHANNEL_SNOWGLOBE
+        raise ValueError, "Invalid branding id: " + self.viewer_branding_id()
 
     def construct(self):
         """ Meant to be overriden by LLManifest implementors with code that

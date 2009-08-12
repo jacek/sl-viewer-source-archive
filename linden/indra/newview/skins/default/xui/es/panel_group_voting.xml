@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Propuestas" name="voting_tab">
 	<string name="help_text">
-		Las propuestas de grupo pueden utilizarse para
-saber qué quiere hacer un grupo, o cómo piensa acerca
-de algo. Si tiene los permisos precisos, puede cear
-propuestas, votar en las que estén abiertas, y ver
-las antiguas.
+		Las propuestas de grupo pueden utilizarse para saber qué quiere hacer un grupo, o cómo piensa acerca de algo. Si tiene los permisos precisos, puede cear propuestas, votar en las que estén abiertas, y ver las antiguas.
 	</string>
 	<button label="?" name="help_button"/>
 	<text name="proposal_header">
@@ -73,14 +69,15 @@ para ver los resultados.
 		Abrir las propuestas de grupo
 	</string>
 	<string name="proposals_header_view_inst">
-		Pulse dos veces la propuesta en la que quiere votar, o pulse Hacer una propuesta
-para crear una nueva
+		Pulse dos veces la propuesta en la que quiere votar, o pulse Hacer una
+propuesta para crear una nueva.
 	</string>
 	<string name="proposals_header_create_txt">
 		Hacer una propuesta
 	</string>
 	<string name="proposals_header_create_inst">
-		Escriba la descripción de esta propuesta nueva. Puede cambiar el quórum, la duración y la mayoría que se necesita para aprobar la propuesta.
+		Escriba la descripción de esta propuesta nueva. Puede cambiar el quórum,
+la duración y la mayoría que se necesita para aprobar la propuesta.
 	</string>
 	<string name="proposals_header_vote_txt">
 		Votar la propuesta

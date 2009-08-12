@@ -343,7 +343,7 @@ BOOL LLImageJ2C::encode(const LLImageRaw *raw_imagep, const char* comment_text, 
 //static
 S32 LLImageJ2C::calcHeaderSizeJ2C()
 {
-	return 600; //2048; // ??? hack... just needs to be >= actual header size...
+	return FIRST_PACKET_SIZE; // Hack. just needs to be >= actual header size...
 }
 
 //static
@@ -421,7 +421,7 @@ BOOL LLImageJ2C::loadAndValidate(const std::string &filename)
 
 	S32 file_size = 0;
 	LLAPRFile infile ;
-	infile.open(filename, LL_APR_RB, NULL, &file_size);
+	infile.open(filename, LL_APR_RB, LLAPRFile::global, &file_size);
 	apr_file_t* apr_file = infile.getFileHandle() ;
 	if (!apr_file)
 	{

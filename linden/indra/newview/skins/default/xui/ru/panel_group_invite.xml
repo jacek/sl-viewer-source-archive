@@ -7,9 +7,9 @@
 Резидентов&apos;, чтобы начать.
 	</text>
 	<button bottom_delta="-10" label="Открыть Выбор Резидентов" name="add_button" tool_tip=""/>
-	<name_list left="12" height="156" bottom_delta="-160" name="invitee_list"
+	<name_list height="156" bottom_delta="-160" name="invitee_list"
 	     tool_tip="Чтобы выбрать нескольких резидентов, щелкайте по ним, удерживая клавишу Ctrl" />
-	<button left_delta="-7" width="214" label="Удалить выбранных из списка"
+	<button label="Удалить выбранных из списка"
 	     name="remove_button"
 	     tool_tip="Удалить выбранных резидентов из списка приглашений." />
 	<text name="role_text" width="214">

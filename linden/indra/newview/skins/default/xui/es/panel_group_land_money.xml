@@ -13,7 +13,7 @@
 	<string name="loading_txt">
 		Cargando...
 	</string>
-	<text name="group_land_heading">
+	<text name="group_land_heading" width="250">
 		Terreno propiedad del grupo
 	</text>
 	<scroll_list name="group_parcel_list">

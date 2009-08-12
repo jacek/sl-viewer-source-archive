@@ -42,6 +42,9 @@
 #include <list>
 
 class LLFace;
+#define MIN_VIDEO_RAM_IN_MEGA_BYTES    32
+#define MAX_VIDEO_RAM_IN_MEGA_BYTES    512 // 512MB max for performance reasons.
+
 class LLViewerImage;
 
 typedef	void	(*loaded_callback_func)( BOOL success, LLViewerImage *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, BOOL final, void* userdata );
@@ -218,7 +221,7 @@ public:
 	/*virtual*/ void dump();	// debug info to llinfos
 
 	/*virtual*/ bool bindError(const S32 stage = 0) const;
-	/*virtual*/ bool bindDefaultImage(const S32 stage = 0) const;
+	/*virtual*/ bool bindDefaultImage(const S32 stage = 0) ;
 	/*virtual*/ void forceImmediateUpdate() ;
 	
 	void reinit(BOOL usemipmaps = TRUE);
@@ -227,7 +230,7 @@ public:
 
 	// New methods for determining image quality/priority
 	// texel_area_ratio is ("scaled" texel area)/(original texel area), approximately.
-	void addTextureStats(F32 virtual_size) const;
+	void addTextureStats(F32 virtual_size, BOOL needs_gltexture = TRUE) const;
 	void resetTextureStats();
 	void setAdditionalDecodePriority(F32 priority) ;
 	F32  maxAdditionalDecodePriority() ;
@@ -292,7 +295,7 @@ public:
 	S32 getOriginalWidth() { return mOrigWidth; }
 	S32 getOriginalHeight() { return mOrigHeight; }
 
-	BOOL isForSculptOnly() {return mForSculpt && mFaceList.empty() ;}
+	BOOL isForSculptOnly() const ;
 	void setForSculpt();
 	
 	void        checkCachedRawSculptImage() ;
@@ -303,6 +306,9 @@ public:
 	BOOL        isCachedRawImageReady() const {return mCachedRawImageReady ;}
 	BOOL        isRawImageValid()const { return mIsRawImageValid ; }
 	
+	void        forceToSaveRawImage(S32 desired_discard = 0) ;
+	void        destroySavedRawImage() ;
+
 	BOOL        isSameTexture(const LLViewerImage* tex) const ;
 
 	void        addFace(LLFace* facep) ;
@@ -315,8 +321,11 @@ private:
 	// Used to be in LLImageGL
 	LLImageRaw* readBackRawImage(S8 discard_level = 0);
 	void destroyRawImage();
+	void saveRawImage() ;
+	BOOL forceFetch() ;
 
 	void scaleDown() ;	
+	void switchToCachedImage();
 	void setCachedRawImage() ;
 public:
 	S32 mFullWidth;
@@ -356,6 +365,7 @@ private:
 	S8  mDesiredDiscardLevel;			// The discard level we'd LIKE to have - if we have it and there's space
 	S8  mMinDesiredDiscardLevel;		// The minimum discard level we'd like to have
 	S8  mNeedsCreateTexture;	
+	mutable S8  mNeedsGLTexture;
 	S8  mNeedsAux;					// We need to decode the auxiliary channels
 	S8  mDecodingAux;				// Are we decoding high components
 	S8  mIsRawImageValid;
@@ -381,6 +391,13 @@ private:
 	S32	mMinDiscardLevel;
 	F32 mCalculatedDiscardLevel; // Last calculated discard level
 	
+	//keep a copy of mRawImage for some special purposes
+	//when mForceToSaveRawImage is set.
+	BOOL mForceToSaveRawImage ;
+	LLPointer<LLImageRaw> mSavedRawImage;
+	S32 mSavedRawDiscardLevel;
+	S32 mDesiredSavedRawDiscardLevel;
+
 	// Used ONLY for cloth meshes right now.  Make SURE you know what you're 
 	// doing if you use it for anything else! - djs
 	LLPointer<LLImageRaw> mAuxRawImage;
@@ -414,11 +431,11 @@ public:
 	static S8  sCameraMovingDiscardBias;
 	static F32 sDesiredDiscardBias;
 	static F32 sDesiredDiscardScale;
-	static S32 sBoundTextureMemory;
-	static S32 sTotalTextureMemory;
-	static S32 sMaxBoundTextureMem;
-	static S32 sMaxTotalTextureMem;
-	static S32 sMaxDesiredTextureMem ;
+	static S32 sBoundTextureMemoryInBytes;
+	static S32 sTotalTextureMemoryInBytes;
+	static S32 sMaxBoundTextureMemInMegaBytes;
+	static S32 sMaxTotalTextureMemInMegaBytes;
+	static S32 sMaxDesiredTextureMemInBytes ;
 	static BOOL sDontLoadVolumeTextures;
 
 	static S32 sMaxSculptRez ;

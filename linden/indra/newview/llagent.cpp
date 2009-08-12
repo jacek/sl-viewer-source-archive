@@ -6031,11 +6031,6 @@ void LLAgent::teleportRequest(
 		msg->addVector3("LookAt", look_at);
 		sendReliableMessage();
 	}
-
-	if(regionp)
-	{
-		send_texture_stats_to_sim();
-	}
 }
 
 // Landmark ID = LLUUID::null means teleport home

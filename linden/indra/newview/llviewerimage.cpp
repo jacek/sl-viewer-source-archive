@@ -79,11 +79,11 @@ F32 LLViewerImage::sDesiredDiscardBias = 0.f;
 static F32 sDesiredDiscardBiasMin = -2.0f; // -max number of levels to improve image quality by
 static F32 sDesiredDiscardBiasMax = 1.5f; // max number of levels to reduce image quality by
 F32 LLViewerImage::sDesiredDiscardScale = 1.1f;
-S32 LLViewerImage::sBoundTextureMemory = 0;
-S32 LLViewerImage::sTotalTextureMemory = 0;
-S32 LLViewerImage::sMaxBoundTextureMem = 0;
-S32 LLViewerImage::sMaxTotalTextureMem = 0;
-S32 LLViewerImage::sMaxDesiredTextureMem = 0 ;
+S32 LLViewerImage::sBoundTextureMemoryInBytes = 0;
+S32 LLViewerImage::sTotalTextureMemoryInBytes = 0;
+S32 LLViewerImage::sMaxBoundTextureMemInMegaBytes = 0;
+S32 LLViewerImage::sMaxTotalTextureMemInMegaBytes = 0;
+S32 LLViewerImage::sMaxDesiredTextureMemInBytes = 0 ;
 BOOL LLViewerImage::sDontLoadVolumeTextures = FALSE;
 
 S32 LLViewerImage::sMaxSculptRez = 128 ; //max sculpt image size
@@ -197,17 +197,17 @@ F32 texmem_middle_bound_scale = 0.925f;
 void LLViewerImage::updateClass(const F32 velocity, const F32 angular_velocity)
 {
 	llpushcallstacks ;
-	sBoundTextureMemory = LLImageGL::sBoundTextureMemory;//in bytes
-	sTotalTextureMemory = LLImageGL::sGlobalTextureMemory;//in bytes
-	sMaxBoundTextureMem = gImageList.getMaxResidentTexMem();//in MB	
-	sMaxTotalTextureMem = gImageList.getMaxTotalTextureMem() ;//in MB
-	sMaxDesiredTextureMem = sMaxTotalTextureMem << 20 ; //in Bytes, by default and when total used texture memory is small.
+	sBoundTextureMemoryInBytes = LLImageGL::sBoundTextureMemoryInBytes;//in bytes
+	sTotalTextureMemoryInBytes = LLImageGL::sGlobalTextureMemoryInBytes;//in bytes
+	sMaxBoundTextureMemInMegaBytes = gImageList.getMaxResidentTexMem();//in MB	
+	sMaxTotalTextureMemInMegaBytes = gImageList.getMaxTotalTextureMem() ;//in MB
+	sMaxDesiredTextureMemInBytes = MEGA_BYTES_TO_BYTES(sMaxTotalTextureMemInMegaBytes) ; //in Bytes, by default and when total used texture memory is small.
 
-	if ((sBoundTextureMemory >> 20) >= sMaxBoundTextureMem ||
-		(sTotalTextureMemory >> 20) >= sMaxTotalTextureMem)
+	if (BYTES_TO_MEGA_BYTES(sBoundTextureMemoryInBytes) >= sMaxBoundTextureMemInMegaBytes ||
+		BYTES_TO_MEGA_BYTES(sTotalTextureMemoryInBytes) >= sMaxTotalTextureMemInMegaBytes)
 	{
 		//when texture memory overflows, lower down the threashold to release the textures more aggressively.
-		sMaxDesiredTextureMem = llmin((S32)(sMaxDesiredTextureMem * 0.75f) , 0x20000000) ;//512 MB
+		sMaxDesiredTextureMemInBytes = llmin((S32)(sMaxDesiredTextureMemInBytes * 0.75f) , MEGA_BYTES_TO_BYTES(MAX_VIDEO_RAM_IN_MEGA_BYTES)) ;//512 MB
 	
 		// If we are using more texture memory than we should,
 		// scale up the desired discard level
@@ -218,8 +218,8 @@ void LLViewerImage::updateClass(const F32 velocity, const F32 angular_velocity)
 		}
 	}
 	else if (sDesiredDiscardBias > 0.0f &&
-			 (sBoundTextureMemory >> 20) < sMaxBoundTextureMem*texmem_lower_bound_scale &&
-			 (sTotalTextureMemory >> 20) < sMaxTotalTextureMem*texmem_lower_bound_scale)
+			 BYTES_TO_MEGA_BYTES(sBoundTextureMemoryInBytes) < sMaxBoundTextureMemInMegaBytes * texmem_lower_bound_scale &&
+			 BYTES_TO_MEGA_BYTES(sTotalTextureMemoryInBytes) < sMaxTotalTextureMemInMegaBytes * texmem_lower_bound_scale)
 	{
 		// If we are using less texture memory than we should,
 		// scale down the desired discard level
@@ -235,8 +235,8 @@ void LLViewerImage::updateClass(const F32 velocity, const F32 angular_velocity)
 	F32 camera_angular_speed = LLViewerCamera::getInstance()->getAverageAngularSpeed();
 	sCameraMovingDiscardBias = (S8)llmax(0.2f * camera_moving_speed, 2.0f * camera_angular_speed - 1) ;
 
-	LLViewerImage::sFreezeImageScalingDown = ((sBoundTextureMemory >> 20) < 0.75f * sMaxBoundTextureMem * texmem_middle_bound_scale) &&
-				((sTotalTextureMemory >> 20) < 0.75f * sMaxTotalTextureMem * texmem_middle_bound_scale) ;
+	LLViewerImage::sFreezeImageScalingDown = (BYTES_TO_MEGA_BYTES(sBoundTextureMemoryInBytes) < 0.75f * sMaxBoundTextureMemInMegaBytes * texmem_middle_bound_scale) &&
+				(BYTES_TO_MEGA_BYTES(sTotalTextureMemoryInBytes) < 0.75f * sMaxTotalTextureMemInMegaBytes * texmem_middle_bound_scale) ;
 }
 
 // static
@@ -342,6 +342,10 @@ void LLViewerImage::init(bool firstinit)
 	mCachedRawDiscardLevel = -1 ;
 	mCachedRawImageReady = FALSE ;
 	mNeedsResetMaxVirtualSize = FALSE ;
+
+	mForceToSaveRawImage  = FALSE ;
+	mSavedRawDiscardLevel = -1 ;
+	mDesiredSavedRawDiscardLevel = -1 ;
 }
 
 // virtual
@@ -411,7 +415,7 @@ void LLViewerImage::reinit(BOOL usemipmaps /* = TRUE */)
 // ONLY called from LLViewerImageList
 void LLViewerImage::destroyTexture() 
 {
-	if(sGlobalTextureMemory < sMaxDesiredTextureMem)//not ready to release unused memory.
+	if(sGlobalTextureMemoryInBytes < sMaxDesiredTextureMemInBytes)//not ready to release unused memory.
 	{
 		return ;
 	}
@@ -425,9 +429,6 @@ void LLViewerImage::destroyTexture()
 
 void LLViewerImage::addToCreateTexture()
 {
-	/* VWR-13742 : Merov : Storing cache for sculpties in gl textures as the rest (temporary)
-	Right now, the viewer assumes the existence of such textures in the UI
-
 	if(isForSculptOnly())
 	{
 		//just update some variables, not to create a real GL texture.
@@ -436,7 +437,6 @@ void LLViewerImage::addToCreateTexture()
 		destroyRawImage();
 	}
 	else
-	*/
 	{	
 #if 1
 		//
@@ -576,14 +576,20 @@ BOOL LLViewerImage::createTexture(S32 usename/*= 0*/)
 
 //============================================================================
 
-void LLViewerImage::addTextureStats(F32 virtual_size) const // = 1.0
+void LLViewerImage::addTextureStats(F32 virtual_size, BOOL needs_gltexture) const
 {
+	if(needs_gltexture)
+	{
+		mNeedsGLTexture = TRUE ;
+	}
+
 	if(mNeedsResetMaxVirtualSize)
 	{
 		//flag to reset the values because the old values are used.
 		mNeedsResetMaxVirtualSize = FALSE ;
 		mMaxVirtualSize = virtual_size;		
 		mAdditionalDecodePriority = 0.f ;	
+		mNeedsGLTexture = needs_gltexture ;
 	}
 	else if (virtual_size > mMaxVirtualSize)
 	{
@@ -714,13 +720,13 @@ void LLViewerImage::processTextureStats()
 			(current_discard >= 0 && mDesiredDiscardLevel >= current_discard))
 		{
 			// Limit the amount of GL memory bound each frame
-			if ( (sBoundTextureMemory >> 20) > sMaxBoundTextureMem*texmem_middle_bound_scale &&
+			if ( (BYTES_TO_MEGA_BYTES(sBoundTextureMemoryInBytes) > sMaxBoundTextureMemInMegaBytes * texmem_middle_bound_scale) &&
 				(!getBoundRecently() || mDesiredDiscardLevel >= mCachedRawDiscardLevel))
 			{
 				scaleDown() ;
 			}
 			// Only allow GL to have 2x the video card memory
-			else if ( (sTotalTextureMemory >> 20) > sMaxTotalTextureMem*texmem_middle_bound_scale &&
+			else if ( (BYTES_TO_MEGA_BYTES(sTotalTextureMemoryInBytes) > sMaxTotalTextureMemInMegaBytes*texmem_middle_bound_scale) &&
 				(!getBoundRecently() || mDesiredDiscardLevel >= mCachedRawDiscardLevel))
 			{
 				scaleDown() ;
@@ -733,7 +739,7 @@ void LLViewerImage::updateVirtualSize()
 #if 1
 	if(mNeedsResetMaxVirtualSize)
 	{
-		addTextureStats(0.f) ;//reset
+		addTextureStats(0.f, FALSE) ;//reset
 	}
 	if(mFaceList.size() > 0) 
 	{				
@@ -754,6 +760,15 @@ void LLViewerImage::scaleDown()
 {
 	if(getHasGLTexture() && mCachedRawDiscardLevel > getDiscardLevel())
 	{		
+		switchToCachedImage() ;	
+	}
+}
+
+//use the mCachedRawImage to (re)generate the gl texture.
+void LLViewerImage::switchToCachedImage()
+{
+	if(mCachedRawImage.notNull())
+	{
 		mRawImage = mCachedRawImage ;
 
 		if (getComponents() != mRawImage->getComponents())
@@ -767,7 +782,7 @@ void LLViewerImage::scaleDown()
 		mIsRawImageValid = TRUE;
 		mRawDiscardLevel = mCachedRawDiscardLevel ;
 		gImageList.mCreateTextureList.insert(this);
-		mNeedsCreateTexture = TRUE;				
+		mNeedsCreateTexture = TRUE;		
 	}
 }
 //============================================================================
@@ -785,7 +800,11 @@ F32 LLViewerImage::calcDecodePriority()
 	{
 		return mDecodePriority; // no change while waiting to create
 	}
-	
+	if(mForceToSaveRawImage)
+	{
+		return maxDecodePriority() ;
+	}
+
 	S32 cur_discard = getDiscardLevel();
 	
 	//no need to update if the texture reaches its highest res and the memory is sufficient.
@@ -1001,6 +1020,14 @@ bool LLViewerImage::updateFetch()
 	{
 		// Sets mRawDiscardLevel, mRawImage, mAuxRawImage
 		S32 fetch_discard = current_discard;
+		if(mForceToSaveRawImage)
+		{
+			if(fetch_discard >= 0)
+			{
+				fetch_discard = llmax(fetch_discard, mSavedRawDiscardLevel) ;
+			}
+		}
+
 		if (mRawImage.notNull()) sRawCount--;
 		if (mAuxRawImage.notNull()) sAuxCount--;
 		bool finished = LLAppViewer::getTextureFetch()->getRequestFinished(getID(), fetch_discard, mRawImage, mAuxRawImage);
@@ -1180,6 +1207,68 @@ bool LLViewerImage::updateFetch()
 	
 	llassert_always(mRawImage.notNull() || (!mNeedsCreateTexture && !mIsRawImageValid));
 	
+	return mIsFetching ? true : false;
+}
+
+//
+//force to fetch a new raw image for this texture
+//this function is to replace readBackRaw().
+//
+BOOL LLViewerImage::forceFetch()
+{
+	if(!mForceToSaveRawImage)
+	{
+		return false ;
+	}
+	if (mIsMediaTexture)
+	{
+		mForceToSaveRawImage = false ;
+		llassert_always(!mHasFetcher);
+		return false; // skip
+	}
+	if (mIsMissingAsset)
+	{
+		mForceToSaveRawImage = false ;
+		llassert_always(!mHasFetcher);
+		return false; // skip
+	}
+	if (!mLoadedCallbackList.empty() && mRawImage.notNull())
+	{
+		return false; // process any raw image data in callbacks before replacing
+	}
+	if(mRawImage.notNull() && mRawDiscardLevel <= mDesiredSavedRawDiscardLevel)
+	{
+		return false ; // mRawImage is enough
+	}
+	if(mIsFetching)
+	{
+		return false ;
+	}
+
+	S32 desired_discard = mDesiredSavedRawDiscardLevel ;
+	S32 current_discard = getDiscardLevel();
+	
+	bool fetch_request_created = false;
+	S32 w=0, h=0, c=0;
+	if (current_discard >= 0)
+	{
+		w = getWidth(0);
+		h = getHeight(0);
+		c = getComponents();
+	}
+	fetch_request_created = LLAppViewer::getTextureFetch()->createRequest(mUrl, getID(),getTargetHost(), maxDecodePriority(),
+																		  w, h, c, desired_discard, needsAux());
+
+	if (fetch_request_created)
+	{				
+		mHasFetcher = TRUE;
+		mIsFetching = TRUE;
+		mRequestedDiscardLevel = desired_discard ;
+
+		mFetchState = LLAppViewer::getTextureFetch()->getFetchState(mID, mDownloadProgress, mRequestedDownloadPriority,
+																	mFetchPriority, mFetchDeltaTime, mRequestDeltaTime);
+	}	
+
 	return mIsFetching ? true : false;
 }
 
@@ -1480,7 +1569,7 @@ bool LLViewerImage::bindError(S32 stage) const
 	return res;
 }
 
-bool LLViewerImage::bindDefaultImage(S32 stage) const
+bool LLViewerImage::bindDefaultImage(S32 stage)
 {
 	if (stage < 0) return false;
 
@@ -1499,6 +1588,10 @@ bool LLViewerImage::bindDefaultImage(S32 stage) const
 		llwarns << "LLViewerImage::bindError failed." << llendl;
 	}
 	stop_glerror();
+
+	//check if there is cached raw image and switch to it if possible
+	switchToCachedImage() ;
+
 	return res;
 }
 
@@ -1530,26 +1623,59 @@ LLImageRaw* LLViewerImage::readBackRawImage(S8 discard_level)
 		llerrs << "called with existing mRawImage" << llendl;
 		mRawImage = NULL;
 	}
-	/* VWR-13505 : Merov : Porting 1.23 code back (temporary) 
-	We can't use the new http-texture mCachedRawImage here because that cache is not of the same res as the
-	gl cache but the calling doLoadedCallbacks() is assuming it is.
-	As we need the raw gl cache here (so we don't refetch the image) and that we know the gl
-	cache is present (tested in the calling function), it looks like we should be able to use
-	it safely instead of the mCachedRawImage. Eventually though, we need to sort out when that new 
-	cache should be used and change the API so that caching is working without assumed state consistency.
+	
+	if(mSavedRawDiscardLevel >= 0 && mSavedRawDiscardLevel <= discard_level)
+	{
+		mRawImage = new LLImageRaw(getWidth(discard_level), getHeight(discard_level), getComponents()) ;
+		mRawImage->copy(mSavedRawImage) ;
+		mRawDiscardLevel = discard_level ;
+	}
+	else
+	{
+		mRawImage = mCachedRawImage ;
+		mRawDiscardLevel = mCachedRawDiscardLevel;
+	}
 
-	mRawImage = mCachedRawImage ;
-	mRawDiscardLevel = mCachedRawDiscardLevel;
-	*/
-	mRawImage = new LLImageRaw(getWidth(discard_level), getHeight(discard_level), mComponents);
-	mRawDiscardLevel = discard_level;
-	readBackRaw(mRawDiscardLevel, mRawImage, false);
-	// VWR-13505 - end
-
-	sRawCount++;
+	sRawCount++;	
 	mIsRawImageValid = TRUE;
 
 	return mRawImage;
+}
+
+void LLViewerImage::saveRawImage() 
+{
+	if(mRawImage.isNull() || mRawDiscardLevel > mDesiredSavedRawDiscardLevel)
+	{
+		forceFetch() ;
+	}
+
+	if(mRawImage.isNull() || mSavedRawDiscardLevel == mRawDiscardLevel)
+	{
+		return ;
+	}
+
+	mSavedRawDiscardLevel = mRawDiscardLevel ;
+	mSavedRawImage = new LLImageRaw(mRawImage->getData(), mRawImage->getWidth(), mRawImage->getHeight(), mRawImage->getComponents()) ;
+
+	if(mSavedRawDiscardLevel <= mDesiredSavedRawDiscardLevel)
+	{
+		mForceToSaveRawImage = FALSE ;
+	}
+}
+
+void LLViewerImage::forceToSaveRawImage(S32 desired_discard) 
+{ 
+	mForceToSaveRawImage = TRUE ;
+	mDesiredSavedRawDiscardLevel = desired_discard ;
+	
+	forceFetch() ;
+}
+void LLViewerImage::destroySavedRawImage()
+{
+	mSavedRawImage = NULL ;
+	mForceToSaveRawImage  = FALSE ;
+	mSavedRawDiscardLevel = -1 ;
+	mDesiredSavedRawDiscardLevel = -1 ;
 }
 
 void LLViewerImage::destroyRawImage()
@@ -1557,6 +1683,11 @@ void LLViewerImage::destroyRawImage()
 	if (mRawImage.notNull()) sRawCount--;
 	if (mAuxRawImage.notNull()) sAuxCount--;
 
+	if(mForceToSaveRawImage)
+	{
+		saveRawImage() ;
+	}
+	
 	setCachedRawImage() ;
 
 	mRawImage = NULL;
@@ -1631,14 +1762,17 @@ void LLViewerImage::checkCachedRawSculptImage()
 	}
 }
 
+BOOL LLViewerImage::isForSculptOnly() const
+{
+	return mForSculpt && !mNeedsGLTexture ;
+}
+
 void LLViewerImage::setForSculpt()   
 {
 	mForSculpt = TRUE ;
-	if(isForSculptOnly())
+	if(isForSculptOnly() && !getBoundRecently())
 	{
-		/* VWR-13742 : Merov : we need the gl texture for the UI (temporary) 
 		destroyGLTexture() ; //sculpt image does not need gl texture.
-		*/
 	}
 	checkCachedRawSculptImage() ;
 }

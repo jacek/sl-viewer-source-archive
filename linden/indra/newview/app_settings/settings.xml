@@ -5698,6 +5698,17 @@
       <key>Value</key>
       <integer>1</integer>
     </map>
+    <key>MiniMapPrimMaxRadius</key>
+    <map>
+      <key>Comment</key>
+      <string>Radius of the largest prim to show on the MiniMap. Increasing beyond 256 may cause client lag.</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>F32</string>
+      <key>Value</key>
+      <real>256.0</real>
+    </map>
     <key>MiniMapRotate</key>
     <map>
       <key>Comment</key>
@@ -7415,6 +7426,17 @@
       <string>Boolean</string>
       <key>Value</key>
       <integer>0</integer>
+    </map>
+    <key>RenderHighlightSelections</key>
+    <map>
+      <key>Comment</key>
+      <string>Show selection outlines on objects</string>
+      <key>Persist</key>
+      <integer>0</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>1</integer>
     </map>
     <key>RenderHiddenSelections</key>
     <map>
@@ -11944,5 +11966,16 @@
       <key>Value</key>
       <integer>0</integer>
     </map>
-  </map>
+    <key>TextureLoggingThreshold</key>
+    <map>
+      <key>Comment</key>
+      <string>Specifies the byte threshold at which texture download data should be sent to the sim.</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>U32</string>
+      <key>Value</key>
+      <integer>1</integer>
+    </map>
+</map>
 </llsd>

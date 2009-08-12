@@ -316,9 +316,12 @@ class LLFolderView;
 
 class LLFolderViewItem : public LLUICtrl
 {
-protected:
 	friend class LLFolderViewEventListener;
 
+private:
+	BOOL					mIsSelected;
+
+protected:
 	static const LLFontGL*		sFont;
 	static const LLFontGL*		sSmallFont;
 	static LLColor4				sFgColor;
@@ -338,7 +341,6 @@ protected:
 	U32							mCreationDate;
 	LLFolderViewFolder*			mParentFolder;
 	LLFolderViewEventListener*	mListener;
-	BOOL						mIsSelected;
 	BOOL						mIsCurSelection;
 	BOOL						mSelectPending;
 	LLFontGL::StyleFlags		mLabelStyle;
@@ -347,7 +349,6 @@ protected:
 	std::string					mStatusText;
 	BOOL						mHasVisibleChildren;
 	S32							mIndentation;
-	S32							mNumDescendantsSelected;
 	BOOL						mFiltered;
 	S32							mLastFilterGeneration;
 	std::string::size_type		mStringMatchOffset;
@@ -408,22 +409,23 @@ public:
 
 	virtual void	dirtyFilter();
 
-	// If the selection is 'this' then note that otherwise
-	// ignore. Returns TRUE if this object was affected. If open is
-	// TRUE, then folders are opened up along the way to the
-	// selection.
-	virtual BOOL setSelection(LLFolderViewItem* selection, BOOL openitem,
-		BOOL take_keyboard_focus);
+	// If 'selection' is 'this' then note that otherwise ignore.
+	// Returns TRUE if this item ends up being selected.
+	virtual BOOL setSelection(LLFolderViewItem* selection, BOOL openitem, BOOL take_keyboard_focus);
 
-	// This method is used to toggle the selection of an item. If
-	// selection is 'this', then note selection, and return TRUE.
+	// This method is used to set the selection state of an item.
+	// If 'selection' is 'this' then note selection.
+	// Returns TRUE if the selection state of this item was changed.
 	virtual BOOL changeSelection(LLFolderViewItem* selection, BOOL selected);
 
 	// this method is used to group select items
-	virtual S32 extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items){ return FALSE; }
+	virtual void extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items) { }
 
-	// this method is used to group select items
-	virtual void recursiveDeselect(BOOL deselect_self);
+	// this method is used to deselect this element
+	void deselectItem();
+
+	// this method is used to select this element
+	void selectItem();
 
 	// gets multiple-element selection
 	virtual BOOL getSelectionList(std::set<LLUUID> &selection){return TRUE;}
@@ -437,9 +439,7 @@ public:
 	// destroys this item recursively
 	virtual void destroyView();
 
-	S32 getNumSelectedDescendants() { return mNumDescendantsSelected; }
-
-	BOOL isSelected() { return mIsSelected; }
+	BOOL isSelected() const { return mIsSelected; }
 
 	void setIsCurSelection(BOOL select) { mIsCurSelection = select; }
 
@@ -547,6 +547,13 @@ public:
 		UNKNOWN, TRASH, NOT_TRASH
 	} ETrash;
 
+private:
+	S32		mNumDescendantsSelected;
+
+public:	// Accessed needed by LLFolderViewItem
+	void recursiveIncrementNumDescendantsSelected(S32 increment);
+	S32 numSelected(void) const { return mNumDescendantsSelected + (isSelected() ? 1 : 0); }
+
 protected:
 	typedef std::list<LLFolderViewItem*> items_t;
 	typedef std::list<LLFolderViewFolder*> folders_t;
@@ -608,20 +615,22 @@ public:
 	virtual void dirtyFilter();
 
 	// Passes selection information on to children and record
-	// selection information if necessary. Returns TRUE if this object
-	// (or a child) was affected.
-	virtual BOOL setSelection(LLFolderViewItem* selection, BOOL openitem,
-							  BOOL take_keyboard_focus);
+	// selection information if necessary.
+	// Returns TRUE if this object (or a child) ends up being selected.
+	// If 'openitem' is TRUE then folders are opened up along the way to the selection.
+	virtual BOOL setSelection(LLFolderViewItem* selection, BOOL openitem, BOOL take_keyboard_focus);
 
-	// This method is used to change the selection of an item. If
-	// selection is 'this', then note selection as true. Returns TRUE
-	// if this or a child is now selected.
+	// This method is used to change the selection of an item.
+	// Recursively traverse all children; if 'selection' is 'this' then change
+	// the select status if necessary.
+	// Returns TRUE if the selection state of this folder, or of a child, was changed.
 	virtual BOOL changeSelection(LLFolderViewItem* selection, BOOL selected);
 
 	// this method is used to group select items
-	virtual S32 extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items);
+	virtual void extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items);
 
-	virtual void recursiveDeselect(BOOL deselect_self);
+	// Deselect this folder and all folder/items it contains recursively.
+	void recursiveDeselect(BOOL deselect_self);
 
 	// Returns true is this object and all of its children can be removed.
 	virtual BOOL isRemovable();
@@ -708,6 +717,7 @@ public:
 
 	time_t getCreationDate() const;
 	bool isTrash() const;
+	S32 getNumSelectedDescendants(void) const { return mNumDescendantsSelected; }
 };
 
 
@@ -780,7 +790,7 @@ public:
 	// children, and keeps track of selected objects.
 	virtual BOOL changeSelection(LLFolderViewItem* selection, BOOL selected);
 
-	virtual S32 extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items);
+	virtual void extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& items);
 
 	virtual BOOL getSelectionList(std::set<LLUUID> &selection);
 

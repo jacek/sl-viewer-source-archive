@@ -512,7 +512,7 @@ void LLVOVolume::updateTextureVirtualSize()
 				S32 lod = llmin(mLOD, 3);
 				F32 lodf = ((F32)(lod + 1.0f)/4.f);
 				F32 tex_size = lodf * LLViewerImage::sMaxSculptRez ;
-				mSculptTexture->addTextureStats(2.f * tex_size * tex_size);
+				mSculptTexture->addTextureStats(2.f * tex_size * tex_size, FALSE);
 			
 				//if the sculpty very close to the view point, load first
 				{				
@@ -633,7 +633,8 @@ LLDrawable *LLVOVolume::createDrawable(LLPipeline *pipeline)
 	}
 	
 	updateRadius();
-	mDrawable->updateDistance(*LLViewerCamera::getInstance());
+	bool force_update = true; // avoid non-alpha mDistance update being optimized away
+	mDrawable->updateDistance(*LLViewerCamera::getInstance(), force_update);
 
 	return mDrawable;
 }
@@ -1267,6 +1268,17 @@ S32 LLVOVolume::setTEBumpmap(const U8 te, const U8 bumpmap)
 S32 LLVOVolume::setTETexGen(const U8 te, const U8 texgen)
 {
 	S32 res = LLViewerObject::setTETexGen(te, texgen);
+	if (res)
+	{
+		gPipeline.markTextured(mDrawable);
+		mFaceMappingChanged = TRUE;
+	}
+	return  res;
+}
+
+S32 LLVOVolume::setTEMediaTexGen(const U8 te, const U8 media)
+{
+	S32 res = LLViewerObject::setTEMediaTexGen(te, media);
 	if (res)
 	{
 		gPipeline.markTextured(mDrawable);

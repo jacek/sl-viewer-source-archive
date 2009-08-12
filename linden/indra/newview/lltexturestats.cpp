@@ -36,39 +36,12 @@
 #include "llagent.h"
 #include "lltexturefetch.h" 
 #include "lltexturestats.h"
+#include "lltexturestatsuploader.h"
 #include "llviewerregion.h"
 
-
-static LLSD averagesList;
-void reset_texture_stats()
+void send_texture_stats_to_sim(const LLSD &texture_stats)
 {
-	llinfos << "Resetting texture download stats data" << llendl;
-	averagesList.clear();
-}
-
-void capture_texture_stats_snapshot(U64 currentTime)
-{
-	static U32 monotonic_counter = 0;
-	llinfos << "Taking texture snapshot" << llendl;
-	if ( LLAppViewer::getTextureFetch() && LLAppViewer::getTextureFetch()->getTextureInfo())
-	{
-		std::stringstream time_string;
-		time_string << currentTime;
-
-		LLSD snapshot;
-		snapshot["time"] = time_string.str();
-		snapshot["texture_data"] = LLAppViewer::getTextureFetch()->getTextureInfo()->getAverages();
-
-		std::stringstream message_number;
-		message_number << "snapshot_" << ++monotonic_counter;
-		averagesList[message_number.str()] = snapshot;
-		llinfos << "Recorded snapshot " << monotonic_counter << llendl;
-	}
-}
-
-void send_texture_stats_to_sim()
-{
-	LLSD texture_stats;
+	LLSD texture_stats_report;
 	// Only send stats if the agent is connected to a region.
 	if (!gAgent.getRegion() || gNoRender)
 	{
@@ -76,14 +49,13 @@ void send_texture_stats_to_sim()
 	}
 
 	LLUUID agent_id = gAgent.getID();
-	texture_stats["agent_id"] = agent_id;
-	texture_stats["texture_details"] = averagesList;
+	texture_stats_report["agent_id"] = agent_id;
+	texture_stats_report["region_id"] = gAgent.getRegion()->getRegionID();
+	texture_stats_report["stats_data"] = texture_stats;
 
 	std::string texture_cap_url = gAgent.getRegion()->getCapability("TextureStats");
-	if ( texture_cap_url != "" )
-	{
-		llinfos << "Sending texture stats to simulator" << llendl;
-		LLHTTPClient::post(texture_cap_url, texture_stats, NULL);
-	}
+	LLTextureStatsUploader tsu;
+	llinfos << "uploading texture stats data to simulator" << llendl;
+	tsu.uploadStatsToSimulator(texture_cap_url, texture_stats);
 }
 

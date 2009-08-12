@@ -220,7 +220,7 @@ public:
 	U32 report(CURLcode);
 	void getTransferInfo(LLCurl::TransferInfo* info);
 
-	void prepRequest(const std::string& url, ResponderPtr, bool post = false);
+	void prepRequest(const std::string& url, const std::vector<std::string>& headers, ResponderPtr, bool post = false);
 	
 	const char* getErrorBuffer();
 
@@ -432,7 +432,9 @@ size_t curlHeaderCallback(void* data, size_t size, size_t nmemb, void* user_data
 	return n;
 }
 
-void LLCurl::Easy::prepRequest(const std::string& url, ResponderPtr responder, bool post)
+void LLCurl::Easy::prepRequest(const std::string& url,
+							   const std::vector<std::string>& headers,
+							   ResponderPtr responder, bool post)
 {
 	resetState();
 	
@@ -465,8 +467,13 @@ void LLCurl::Easy::prepRequest(const std::string& url, ResponderPtr responder, b
 	{
 		slist_append("Connection: keep-alive");
 		slist_append("Keep-alive: 300");
+		// Accept and other headers
+		for (std::vector<std::string>::const_iterator iter = headers.begin();
+			 iter != headers.end(); ++iter)
+		{
+			slist_append((*iter).c_str());
+		}
 	}
-	// *FIX: should have ACCEPT headers
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -717,17 +724,20 @@ bool LLCurlRequest::addEasy(LLCurl::Easy* easy)
 
 void LLCurlRequest::get(const std::string& url, LLCurl::ResponderPtr responder)
 {
-	getByteRange(url, 0, -1, responder);
+	getByteRange(url, headers_t(), 0, -1, responder);
 }
 	
-bool LLCurlRequest::getByteRange(const std::string& url, S32 offset, S32 length, LLCurl::ResponderPtr responder)
+bool LLCurlRequest::getByteRange(const std::string& url,
+								 const headers_t& headers,
+								 S32 offset, S32 length,
+								 LLCurl::ResponderPtr responder)
 {
 	LLCurl::Easy* easy = allocEasy();
 	if (!easy)
 	{
 		return false;
 	}
-	easy->prepRequest(url, responder);
+	easy->prepRequest(url, headers, responder);
 	easy->setopt(CURLOPT_HTTPGET, 1);
 	if (length > 0)
 	{
@@ -739,14 +749,17 @@ bool LLCurlRequest::getByteRange(const std::string& url, S32 offset, S32 length,
 	return res;
 }
 
-bool LLCurlRequest::post(const std::string& url, const LLSD& data, LLCurl::ResponderPtr responder)
+bool LLCurlRequest::post(const std::string& url,
+						 const headers_t& headers,
+						 const LLSD& data,
+						 LLCurl::ResponderPtr responder)
 {
 	LLCurl::Easy* easy = allocEasy();
 	if (!easy)
 	{
 		return false;
 	}
-	easy->prepRequest(url, responder);
+	easy->prepRequest(url, headers, responder);
 
 	LLSDSerialize::toXML(data, easy->getInput());
 	S32 bytes = easy->getInput().str().length();

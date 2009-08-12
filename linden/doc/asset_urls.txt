@@ -1,5 +1,5 @@
-SLASSET_MD5=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/md5sums-oss-viewer-1.23.2.121778.txt
-SLASSET_ART=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-artwork-oss-viewer-1.23.2.121778.zip
-SLASSET_LIBS_DARWIN=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-darwin-libs-oss-viewer-1.23.2.121778.tar.gz
-SLASSET_LIBS_LINUXI386=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-linux-libs-oss-viewer-1.23.2.121778.tar.gz
-SLASSET_LIBS_WIN32=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-win32-libs-oss-viewer-1.23.2.121778.zip
+SLASSET_LIBS_WIN32=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-win32-libs-oss-viewer-1.23.4.126183.zip
+SLASSET_LIBS_DARWIN=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-darwin-libs-oss-viewer-1.23.4.126183.tar.gz
+SLASSET_ART=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-artwork-oss-viewer-1.23.4.126183.zip
+SLASSET_LIBS_LINUXI386=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/slviewer-linux-libs-oss-viewer-1.23.4.126183.tar.gz
+SLASSET_MD5=http://automated-builds-secondlife-com.s3.amazonaws.com/oss-viewer/md5sums-oss-viewer-1.23.4.126183.txt

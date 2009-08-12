@@ -334,6 +334,7 @@ set(viewer_SOURCE_FILES
     lltextureinfo.cpp
     lltextureinfodetails.cpp
     lltexturestats.cpp
+    lltexturestatsuploader.cpp
     lltextureview.cpp
     lltoolbar.cpp
     lltoolbrush.cpp
@@ -746,6 +747,7 @@ set(viewer_HEADER_FILES
     lltextureinfo.h
     lltextureinfodetails.h
     lltexturestats.h
+    lltexturestatsuploader.h
     lltextureview.h
     lltool.h
     lltoolbar.h
@@ -910,7 +912,7 @@ endif (DARWIN)
 if (LINUX)
     LIST(APPEND viewer_SOURCE_FILES llappviewerlinux.cpp)
     LIST(APPEND viewer_SOURCE_FILES llappviewerlinux_api_dbus.cpp)
-    LIST(APPEND CMAKE_EXE_LINKER_FLAGS -Wl,--as-needed)
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
 
     set(viewer_LIBRARIES
         Xinerama
@@ -1594,4 +1596,4 @@ ADD_VIEWER_BUILD_TEST(llworldmap viewer)
 ADD_VIEWER_BUILD_TEST(llworldmipmap viewer)
 ADD_VIEWER_BUILD_TEST(lltextureinfo viewer)
 ADD_VIEWER_BUILD_TEST(lltextureinfodetails viewer)
-
+ADD_VIEWER_BUILD_TEST(lltexturestatsuploader viewer)

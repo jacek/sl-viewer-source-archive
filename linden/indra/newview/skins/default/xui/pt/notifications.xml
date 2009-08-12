@@ -954,7 +954,7 @@ Se o problema persistir, por favor clicar sobre &apos;Ferramentas &gt; Bug Repor
 		Você foi deslogado do [SECOND_LIFE]:
             [MESSAGE]
 Você ainda pode olhar o bate-papo e as mensagens instantâneas existentes, clicando em &apos;Exibir IM &amp; bate-papo&apos;. Caso contrário, clique em &apos;Sair&apos; para sair do [SECOND_LIFE] imediatamente.
-		<usetemplate name="okcancelbuttons" notext="Sair" yestext="Ver Mensagem Instantânea &amp; Bate- Papo"/>
+		<usetemplate name="okcancelbuttons" notext="Sair" yestext="Exibir IM &amp; bate-papo"/>
 	</notification>
 	<notification name="OnlyOfficerCanBuyLand">
 		Não é possível comprar o terreno para o grupo:
@@ -1100,7 +1100,7 @@ Transferir propriedade destes [AREA] m² de terreno para o grupo &apos;[GROUP_NA
 		Configurações de display foram ajustadas para níveis de segurança porque você especificou -- opção de segurança.
 	</notification>
 	<notification name="DisplaySetToRecommended">
-		Configurações de display foram ajustadas para nível recomendado basedo na configuração do seu sistema.
+		Configurações de display foram ajustadas para nível recomendado baseado na configuração do seu sistema.
 	</notification>
 	<notification name="ErrorMessage">
 		[ERROR_MESSAGE]

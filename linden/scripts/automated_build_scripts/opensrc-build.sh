@@ -425,7 +425,7 @@ then
   then
     ( cd .. && svn log --verbose --stop-on-copy --limit 50 ) >>message
   else
-    ( cd .. && svn log --verbose -r"$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER":"$PARABUILD_CHANGE_LIST_NUMBER" ) >>message
+    ( cd .. && svn log --verbose -r`expr 1 + "$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER"`:"$PARABUILD_CHANGE_LIST_NUMBER" ) >>message
   fi
   # $PUBLIC_EMAIL can be a list, so no quotes
   python "$mail" "$subject" $PUBLIC_EMAIL <message

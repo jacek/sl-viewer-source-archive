@@ -8,8 +8,8 @@
 		Abrir propostas ao grupo
 	</text>
 	<text name="proposal_instructions">
-		Clique duas vezes sobre a proposta que desejar votar ou pressione
-Criar Proposta para criar uma proposta nova
+		Clique duas vezes sobre a proposta que desejar votar ou 
+pressione Criar Proposta para criar uma proposta nova.
 	</text>
 	<text name="proposal_lbl">
 		Descrição da Proposta
@@ -69,21 +69,22 @@ os resultados.
 		Abrir propostas do grupo
 	</string>
 	<string name="proposals_header_view_inst">
-		Dê um duplo click na proposta a qual você gostaria de votar ou pressione Criar Proposta para criar uma nova proposta.
+		Dê um duplo click na proposta a qual você gostaria de votar ou 
+pressione Criar Proposta para criar uma nova proposta.
 	</string>
 	<string name="proposals_header_create_txt">
 		Criar proposta
 	</string>
 	<string name="proposals_header_create_inst">
-		Digite a descrição de proposta para a nova proposta. Você pode alterar o 
-quórum, duração e maioria necessária para passar a proposta.
+		Digite a descrição de proposta para a nova proposta. Você pode alterar 
+o quórum, duração e maioria necessária para passar a proposta.
 	</string>
 	<string name="proposals_header_vote_txt">
 		Votar na proposta
 	</string>
 	<string name="proposals_header_vote_inst">
 		Pressione o botão Sim ou Não para votar na proposta,
-Ou escolha abster-se nesta proposta.
+ou escolha abster-se nesta proposta.
 	</string>
 	<string name="proposals_header_voted_inst">
 		Você já votou: [VOTE]

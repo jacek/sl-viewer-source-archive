@@ -142,14 +142,14 @@ class ViewerManifest(LLManifest):
             channel_flags = '--channel "%s"' % self.channel()
 
         # Deal with settings 
-        setting_flags = ''
-        if not self.default_channel() or not self.default_grid():
-            if self.default_grid():
-                setting_flags = '--settings settings_%s.xml'\
-                                % self.channel_lowerword()
-            else:
-                setting_flags = '--settings settings_%s_%s.xml'\
-                                % (self.grid(), self.channel_lowerword())
+        if self.default_channel() and self.default_grid():
+            setting_flags = ''
+        elif self.default_grid():
+            setting_flags = '--settings settings_%s.xml'\
+                            % self.channel_lowerword()
+        else:
+            setting_flags = '--settings settings_%s_%s.xml'\
+                            % (self.grid(), self.channel_lowerword())
                                                 
         return " ".join((channel_flags, grid_flags, setting_flags)).strip()
 
@@ -466,6 +466,18 @@ class DarwinManifest(ViewerManifest):
                 self.path("German.lproj")
                 self.path("Japanese.lproj")
                 self.path("Korean.lproj")
+                self.path("da.lproj")
+                self.path("es.lproj")
+                self.path("fr.lproj")
+                self.path("hu.lproj")
+                self.path("it.lproj")
+                self.path("nl.lproj")
+                self.path("pl.lproj")
+                self.path("pt.lproj")
+                self.path("ru.lproj")
+                self.path("tr.lproj")
+                self.path("uk.lproj")
+                self.path("zh-Hans.lproj")
 
                 # SLVoice and vivox lols
                 self.path("vivox-runtime/universal-darwin/libalut.dylib", "libalut.dylib")
@@ -512,15 +524,6 @@ class DarwinManifest(ViewerManifest):
         mapping={"secondlife":"Second Life",
                  "snowglobe":"Snowglobe"}
         return mapping[self.viewer_branding_id()]
-
-    # *TODO: put this in llmanifest.py.  This was a last minute change that 
-    # I've put here because it's safer here. -- robla 2009-06-18
-    def default_channel(self):
-        if self.viewer_branding_id()=='secondlife':
-            return self.args.get('channel', None) == DEFAULT_CHANNEL
-        elif self.viewer_branding_id()=="snowglobe":
-            return self.args.get('channel', None) == "Snowglobe Release"
-        raise ValueError, "Invalid branding id: " + self.viewer_branding_id()
         
     def info_plist_name(self):
         mapping={"secondlife":"Info-SecondLife.plist",
@@ -528,8 +531,8 @@ class DarwinManifest(ViewerManifest):
         return mapping[self.viewer_branding_id()]
 
     def package_finish(self):
-        channel_standin = self.app_name()  # hah, our default channel is not usable on its own
-        if not self.default_channel():
+        channel_standin = self.app_name()
+        if not self.default_channel_for_brand():
             channel_standin = self.channel()
 
         imagename=self.installer_prefix() + '_'.join(self.args['version'])
@@ -537,7 +540,7 @@ class DarwinManifest(ViewerManifest):
         # See Ambroff's Hack comment further down if you want to create new bundles and dmg
         volname=self.app_name() + " Installer"  # DO NOT CHANGE without checking Ambroff's Hack comment further down
 
-        if self.default_channel():
+        if self.default_channel_for_brand():
             if not self.default_grid():
                 # beta case
                 imagename = imagename + '_' + self.args['grid'].upper()
@@ -561,7 +564,7 @@ class DarwinManifest(ViewerManifest):
 
         # Copy everything in to the mounted .dmg
 
-        if self.default_channel() and not self.default_grid():
+        if self.default_channel_for_brand() and not self.default_grid():
             app_name = self.app_name() + " " + self.args['grid']
         else:
             app_name = channel_standin.strip()
@@ -743,7 +746,7 @@ class Linux_i686Manifest(LinuxManifest):
             self.path("libcrypto.so.0.9.7")
             self.path("libexpat.so.1")
             self.path("libssl.so.0.9.7")
-            self.path("libuuid.so", "libuuid.so.1")
+            self.path("libuuid.so.1")
             self.path("libSDL-1.2.so.0")
             self.path("libELFIO.so")
             self.path("libopenjpeg.so.1.3.0", "libopenjpeg.so.1.3")
@@ -763,7 +766,7 @@ class Linux_i686Manifest(LinuxManifest):
 class Linux_x86_64Manifest(LinuxManifest):
     def construct(self):
         super(Linux_x86_64Manifest, self).construct()
-        self.path("secondlife-stripped",self.get_linuxbin())
+        self.path("secondlife-stripped","bin/"+self.binary_name())
         self.path("../linux_crash_logger/linux-crash-logger-stripped","linux-crash-logger.bin")
         self.path("linux_tools/launch_url.sh","launch_url.sh")
         if self.prefix("res-sdl"):

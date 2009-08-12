@@ -1378,11 +1378,11 @@ void LLWindowMacOSX::setMouseClipping( BOOL b )
 
 	if(b)
 	{
-		//		llinfos << "setMouseClipping(TRUE)" << llendl
+		//		llinfos << "setMouseClipping(TRUE)" << llendl;
 	}
 	else
 	{
-		//		llinfos << "setMouseClipping(FALSE)" << llendl
+		//		llinfos << "setMouseClipping(FALSE)" << llendl;
 	}
 
 	adjustCursorDecouple();
@@ -1400,7 +1400,7 @@ BOOL LLWindowMacOSX::setCursorPosition(const LLCoordWindow position)
 
 	CGPoint newPosition;
 
-	//	llinfos << "setCursorPosition(" << screen_pos.mX << ", " << screen_pos.mY << ")" << llendl
+	//	llinfos << "setCursorPosition(" << screen_pos.mX << ", " << screen_pos.mY << ")" << llendl;
 
 	newPosition.x = screen_pos.mX;
 	newPosition.y = screen_pos.mY;

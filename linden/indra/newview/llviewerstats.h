@@ -197,7 +197,6 @@ private:
 };
 
 static const F32 SEND_STATS_PERIOD = 300.0f;
-static const F32 CAPTURE_TEXTURE_STATS_PERIOD = 30.0f;
 
 // The following are from (older?) statistics code found in appviewer.
 void init_statistics();

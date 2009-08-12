@@ -49,7 +49,8 @@ const S32 MAX_IMAGE_AREA = MAX_IMAGE_SIZE * MAX_IMAGE_SIZE;
 const S32 MAX_IMAGE_COMPONENTS = 8;
 const S32 MAX_IMAGE_DATA_SIZE = MAX_IMAGE_AREA * MAX_IMAGE_COMPONENTS;
 
-// Note!  These CANNOT be changed without invalidating the viewer VFS files, I think?
+// Note!  These CANNOT be changed without modifying simulator code
+// *TODO: change both to 1024 when SIM texture fetching is deprecated
 const S32 FIRST_PACKET_SIZE = 600;
 const S32 MAX_IMG_PACKET_SIZE = 1000;
 

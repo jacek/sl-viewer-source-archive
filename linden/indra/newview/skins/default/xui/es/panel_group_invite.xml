@@ -7,7 +7,7 @@ empezar, pulse &apos;Abrir el selector de
 residentes&apos;.
 	</text>
 	<button bottom_delta="-10" label="Abrir el selector de residentes" name="add_button" tool_tip=""/>
-	<name_list left="12" height="156" bottom_delta="-160" name="invitee_list" tool_tip="Para seleccionar a varios residentes, mantenga pulsada la tecla Ctrl y vaya pulsando sus nombres."/>
+	<name_list height="156" bottom_delta="-160" name="invitee_list" tool_tip="Para seleccionar a varios residentes, mantenga pulsada la tecla Ctrl y vaya pulsando sus nombres."/>
 	<button left_delta="-7" width="214" label="Eliminar de la lista a los seleccionados" name="remove_button" tool_tip="Elimina los residentes seleccionados de la lista de invitaciones."/>
 	<text name="role_text">
 		Elegir qué rol asignarles:

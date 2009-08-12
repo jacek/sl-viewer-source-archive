@@ -11,9 +11,9 @@
 		Archivo de avisos del grupo
 	</text>
 	<text name="lbl2">
-		Los avisos se mantienen durante 14 días. Pulse en la lista de abajo el que quiere
-ver. Pulse el botón &apos;Actualizar&apos; para comprobar si se han recibido avisos nuevos.
-Las listas de avisos tienen un límite de 200 avisos por día.
+		Los avisos se mantienen durante 14 días. Pulse en la lista de abajo el que 
+quiere ver. Pulse el botón &apos;Actualizar&apos; para comprobar si se han recibido avisos 
+nuevos. Las listas de avisos tienen un límite de 200 avisos por día.
 	</text>
 	<scroll_list name="notice_list">
 		<column label="Asunto" name="subject"/>

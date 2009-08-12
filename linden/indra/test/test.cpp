@@ -47,6 +47,8 @@
 #include "apr_pools.h"
 #include "apr_getopt.h"
 
+extern void ll_init_apr();
+
 // the CTYPE_WORKAROUND is needed for linux dev stations that don't
 // have the broken libc6 packages needed by our out-of-date static 
 // libs (such as libcrypto and libcurl). -- Leviathan 20060113
@@ -248,7 +250,7 @@ int main(int argc, char **argv)
 	ctype_workaround();
 #endif
 
-	apr_initialize();
+	ll_init_apr();
 	apr_pool_t* pool = NULL;
 	if(APR_SUCCESS != apr_pool_create(&pool, NULL))
 	{

@@ -22,12 +22,14 @@ Aimee Trescothick
 	VWR-3336
 	VWR-3903
 	VWR-4083
+	VWR-4106
 	VWR-6348
 	VWR-6358
 	VWR-6360
 	VWR-6550
 	VWR-6583
 	VWR-6482
+	VWR-6918
 	VWR-7109
 	VWR-7383
 	VWR-8008
@@ -36,13 +38,24 @@ Aimee Trescothick
 	VWR-8482
 	VWR-9255
 	VWR-11844
-	VWR-12748
 	VWR-12696
+	VWR-12631
+	VWR-12748
+	VWR-13227
+	VWR-14267
+	VWR-14278
 Alejandro Rosenthal
 	VWR-1184
 Aleric Inglewood
 	VWR-10759
 	VWR-10837
+	VWR-13996
+	VWR-14426
+	SNOW-47
+	SNOW-84
+	SNOW-86
+	SNOW-103
+	SNOW-119
 Alissa Sabre
 	VWR-81
 	VWR-83
@@ -91,6 +104,8 @@ Ann Congrejo
 	CT-193
 Argent Stonecutter
 	VWR-68
+Armin Weatherwax
+	VWR-14847
 Asuka Neely
 	VWR-3434
 	VWR-8179
@@ -147,6 +162,8 @@ Celierra Darling
 	VWR-6975
 Cron Stardust
 	VWR-10579
+Cypren Christenson
+	SNOW-140
 Dale Glass
 	VWR-120
 	VWR-560
@@ -468,6 +485,7 @@ Ringo Tuxing
 Robin Cornelius
 	VWR-2488
 	VWR-9557
+	VWR-11128
 	VWR-12758
 	VWR-12686
 Ryozu Kojima
@@ -552,13 +570,19 @@ TBBle Kurosawa
 	VWR-1892
 Teardrops Fall
 	VWR-5366
+Techwolf Lupindo
+	SNOW-92
+	VWR-12385
 tenebrous pau
 	VWR-247
 Tharax Ferraris
 	VWR-605
 Thickbrick Sleaford
 	VWR-7109
+	VWR-9287
 	SNOW-8
+	SNOW-22
+	SNOW-100
 Thraxis Epsilon
 	SVC-371
 	VWR-383

@@ -13,8 +13,8 @@
 		</text>
 		<text name="static2">
 			Los miembros del grupo tienen asignados roles con distintas capacidades.
-Estas configuraciones son fácilmente personalizables, para facilitar una mayor
-flexibilidad y organización.
+Estas configuraciones son fácilmente personalizables, para facilitar una 
+mayor flexibilidad y organización.
 		</text>
 	</panel>
 	<panel name="roles_header">
@@ -22,10 +22,12 @@ flexibilidad y organización.
 			Roles
 		</text>
 		<text name="role_properties_modifiable">
-			Elija un rol de los de abajo. Puede modificar su nombre, su descripción, y la etiqueta de los miembros.
+			Elija un rol de los de abajo. Puede modificar su nombre, su
+descripción, y la etiqueta de los miembros.
 		</text>
 		<text name="role_properties_not_modifiable">
-			Elija un rol de los de abajo para ver sus propiedades, miembros, y qué capacidades tiene asignadas.
+			Elija un rol de los de abajo para ver sus propiedades, miembros, y qué
+capacidades tiene asignadas.
 		</text>
 		<text bottom_delta="-28" name="role_actions_modifiable">
 			También puede asignar capacidades al rol.
@@ -39,7 +41,8 @@ flexibilidad y organización.
 			Capacidades
 		</text>
 		<text name="static2">
-			Puede ver una descripción de la capacidad, y qué miembros y roles pueden realizarla.
+			Puede ver una descripción de la capacidad, y qué miembros y roles pueden
+realizarla.
 		</text>
 	</panel>
 	<tab_container height="164" name="roles_tab_container">

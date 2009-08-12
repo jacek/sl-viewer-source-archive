@@ -20,7 +20,7 @@
 			Minha última localização
 		</combo_item>
 		<combo_item name="Typeregionname">
-			&lt; Digite o nome da região;
+			&lt;Digite o nome da região&gt;
 		</combo_item>
 	</combo_box>
 	<check_box label="Lembrar senha" name="remember_check"/>

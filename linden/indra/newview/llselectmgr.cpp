@@ -107,6 +107,7 @@ BOOL gHideSelectedObjects = FALSE;
 BOOL gAllowSelectAvatar = FALSE;
 
 BOOL LLSelectMgr::sRectSelectInclusive = TRUE;
+BOOL LLSelectMgr::sRenderSelectionHighlights = TRUE;
 BOOL LLSelectMgr::sRenderHiddenSelections = TRUE;
 BOOL LLSelectMgr::sRenderLightRadius = FALSE;
 F32	LLSelectMgr::sHighlightThickness = 0.f;
@@ -4809,7 +4810,7 @@ void LLSelectMgr::updateSilhouettes()
 
 void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 {
-	if (!mRenderSilhouettes)
+	if (!mRenderSilhouettes || !LLSelectMgr::sRenderSelectionHighlights)
 	{
 		return;
 	}

@@ -85,7 +85,8 @@ Jeżeli posiadasz odpowiednie prawa, możesz stworzyć nową propozycję, głoso
 		Głosy Propozycji
 	</string>
 	<string name="proposals_header_vote_inst">
-		Wybierz Tak lub Nie by zagłosować na propozycję. Wybierz Anuluj jeżeli wstrzymujesz się od głosowania.
+		Wybierz Tak lub Nie by zagłosować na propozycję. Wybierz Anuluj jeżeli
+wstrzymujesz się od głosowania.
 	</string>
 	<string name="proposals_header_voted_inst">
 		Głos: [VOTE]

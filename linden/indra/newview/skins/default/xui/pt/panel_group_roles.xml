@@ -22,10 +22,12 @@ e organização maiores.
 			Funções
 		</text>
 		<text name="role_properties_modifiable">
-			Selecionar uma função abaixo. Você pode modificar o nome, a descrição e o título do membro.
+			Selecionar uma função abaixo. Você pode modificar o nome, a descrição
+e o título do membro.
 		</text>
 		<text name="role_properties_not_modifiable">
-			Selecione uma função abaixo para ver suas propriedades, membros e habilidades permitidas.
+			Selecione uma função abaixo para ver suas propriedades, membros e
+habilidades permitidas.
 		</text>
 		<text bottom_delta="-28" name="role_actions_modifiable">
 			Você também pode atribuir habilidades à função.
@@ -39,7 +41,8 @@ e organização maiores.
 			Habilidades
 		</text>
 		<text name="static2">
-			Você pode ver a descrição de uma habilidade e quais funções e membros podem executar essa habilidade.
+			Você pode ver a descrição de uma habilidade e quais funções e membros
+podem executar essa habilidade.
 		</text>
 	</panel>
 	<tab_container height="164" name="roles_tab_container">

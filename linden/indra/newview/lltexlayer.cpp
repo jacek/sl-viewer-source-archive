@@ -131,7 +131,7 @@ void LLTexLayerSetBuffer::destroyGLTexture()
 	if( mBumpTex.notNull() )
 	{
 		mBumpTex = NULL ;
-		//LLImageGL::sGlobalTextureMemory -= mWidth * mHeight * 4;
+		//LLImageGL::sGlobalTextureMemoryInBytes -= mWidth * mHeight * 4;
 		LLTexLayerSetBuffer::sGLBumpByteCount -= mWidth * mHeight * 4;
 	}
 
@@ -162,7 +162,7 @@ void LLTexLayerSetBuffer::createBumpTexture()
 
 		gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
-		LLImageGL::sGlobalTextureMemory += mWidth * mHeight * 4;
+		LLImageGL::sGlobalTextureMemoryInBytes += mWidth * mHeight * 4;
 		LLTexLayerSetBuffer::sGLBumpByteCount += mWidth * mHeight * 4;
 
 		if(gAuditTexture)

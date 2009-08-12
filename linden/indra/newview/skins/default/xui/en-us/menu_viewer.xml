@@ -581,6 +581,11 @@
 			<on_click function="Tools.SelectBySurrounding" userdata="" />
 			<on_check control="RectangleSelectInclusive" />
 		</menu_item_check>
+		<menu_item_check bottom="" enabled="true" height="19" label="Show Selection Outlines" left="0"
+		     mouse_opaque="true" name="Show Selection Outlines" width="250">
+			<on_click function="Tools.ShowSelectionHighlights" userdata="" />
+			<on_check control="RenderHighlightSelections" />
+		</menu_item_check>
 		<menu_item_check bottom="-113" enabled="true" height="19" label="Show Hidden Selection" left="0"
 		     mouse_opaque="true" name="Show Hidden Selection" width="250">
 			<on_click function="Tools.ShowHiddenSelection" userdata="" />
@@ -632,6 +637,29 @@
 			<on_check control="EditLinkedParts" />
 			<on_enable function="Tools.EnableToolNotPie" />
 		</menu_item_check>
+		<menu create_jump_keys="true" drop_shadow="true" enabled="true" label="Select Linked Parts"
+			 mouse_opaque="false" name="Select Linked Parts" opaque="true" tear_off="true">
+			<menu_item_call enabled="false" label="Select Next Part" mouse_opaque="true"
+				 name="Select Next Part" shortcut="control|.">
+				<on_click function="Tools.SelectNextPart" userdata="next" />
+				<on_enable function="Tools.EnableSelectNextPart" />
+			</menu_item_call>
+			<menu_item_call enabled="false" label="Select Previous Part" mouse_opaque="true"
+				 name="Select Previous Part" shortcut="control|,">
+				<on_click function="Tools.SelectNextPart" userdata="previous" />
+				<on_enable function="Tools.EnableSelectNextPart" />
+			</menu_item_call>
+			<menu_item_call enabled="false" label="Include Next Part" mouse_opaque="true"
+				 name="Include Next Part" shortcut="control|shift|.">
+				<on_click function="Tools.SelectNextPart" userdata="includenext" />
+				<on_enable function="Tools.EnableSelectNextPart" />
+			</menu_item_call>
+			<menu_item_call enabled="false" label="Include Previous Part" mouse_opaque="true"
+				 name="Include Previous Part" shortcut="control|shift|,">
+				<on_click function="Tools.SelectNextPart" userdata="includeprevious" />
+				<on_enable function="Tools.EnableSelectNextPart" />
+			</menu_item_call>
+		</menu>
 		<menu_item_call bottom="-262" enabled="false" height="19" label="Link" left="0"
 		     mouse_opaque="true" name="Link" shortcut="control|L" width="250">
 			<on_click function="Tools.Link" userdata="" />

@@ -1012,6 +1012,7 @@ bool idle_startup()
 		requested_options.push_back("event_categories");
 		requested_options.push_back("event_notifications");
 		requested_options.push_back("classified_categories");
+		requested_options.push_back("adult_compliant");
 		//requested_options.push_back("inventory-targets");
 		requested_options.push_back("buddy-list");
 		requested_options.push_back("ui-config");
@@ -2983,6 +2984,8 @@ bool update_dialog_callback(const LLSD& notification, const LLSD& response)
 	LLAppViewer::sUpdaterInfo->mUpdateExePath += update_url.asString();
 	LLAppViewer::sUpdaterInfo->mUpdateExePath += "\" -name \"";
 	LLAppViewer::sUpdaterInfo->mUpdateExePath += LLAppViewer::instance()->getSecondLifeTitle();
+	LLAppViewer::sUpdaterInfo->mUpdateExePath += "\" -bundleid \"";
+	LLAppViewer::sUpdaterInfo->mUpdateExePath += LL_VERSION_BUNDLE_ID;
 	LLAppViewer::sUpdaterInfo->mUpdateExePath += "\" &";
 
 	LL_DEBUGS("AppInit") << "Calling updater: " << LLAppViewer::sUpdaterInfo->mUpdateExePath << LL_ENDL;

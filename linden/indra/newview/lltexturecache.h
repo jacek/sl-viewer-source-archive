@@ -202,4 +202,6 @@ private:
 	static S64 sCacheMaxTexturesSize;
 };
 
+extern const S32 TEXTURE_CACHE_ENTRY_SIZE;
+
 #endif // LL_LLTEXTURECACHE_H

@@ -222,6 +222,7 @@ void LLSimInfo::insertAgentLocation(const LLItemInfo& item)
 
 LLWorldMap::LLWorldMap() :
 	mIsTrackingLocation( false ),
+	mIsTrackingFound( false ),
 	mIsInvalidLocation( false ),
 	mIsTrackingDoubleClick( false ),
 	mIsTrackingCommit( false ),
