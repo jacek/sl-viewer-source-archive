@@ -190,7 +190,8 @@ CYGWIN)
   symbolfiles="newview/Release/secondlife-bin.pdb newview/Release/secondlife-bin.map newview/Release/secondlife-bin.exe"
   export PATH="/cygdrive/c/Python25:/cygdrive/c/Program Files/Cmake 2.6/bin":$PATH
   export PERL="/cygdrive/c/Perl/bin/perl.exe"
-  export S3CURL="C:\\buildscripts\\hg\\bin\\s3curl.py"
+  export S3CURL="C:\\buildscripts\\shared\\latest\\hg\\bin\\s3curl.py"
+  export SIGN_PY="C:\\buildscripts\\shared\\latest\\code-signing\\sign.py"
   export CURL="C:\\cygwin\\bin\\curl.exe"
   mail="C:\\buildscripts\\mail.py"
   all_done="C:\\buildscripts\\all_done.py"
