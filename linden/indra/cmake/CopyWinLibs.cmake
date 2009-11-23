@@ -14,23 +14,18 @@ set(vivox_files
     ortp.dll
     wrap_oal.dll
     )
+copy_if_different(
+    ${vivox_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/Debug"
+    out_targets
+    ${vivox_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
 
 set(debug_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/debug")
 set(debug_files
-    freebl3.dll
-    js3250.dll
-    nspr4.dll
-    nss3.dll
-    nssckbi.dll
-    plc4.dll
-    plds4.dll
-    smime3.dll
-    softokn3.dll
-    ssl3.dll
-    xpcom.dll
-    xul.dll
     openjpegd.dll
-    windbgdlg.exe
     )
 
 copy_if_different(
@@ -41,28 +36,177 @@ copy_if_different(
     )
 set(all_targets ${all_targets} ${out_targets})
 
+# Debug config runtime files required for the plugin test mule
+set(plugintest_debug_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/debug")
+set(plugintest_debug_files
+    libeay32.dll
+    libglib-2.0-0.dll
+    libgmodule-2.0-0.dll
+    libgobject-2.0-0.dll
+    libgthread-2.0-0.dll
+    qtcored4.dll
+    qtguid4.dll
+    qtnetworkd4.dll
+    qtopengld4.dll
+    qtwebkitd4.dll
+    ssleay32.dll
+    )
 copy_if_different(
-    ${vivox_src_dir} 
-    "${CMAKE_CURRENT_BINARY_DIR}/Debug"
-    out_targets 
-    ${vivox_files}
+    ${plugintest_debug_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/Debug"
+    out_targets
+    ${plugintest_debug_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+# Debug config runtime files required for the plugin test mule (Qt image format plugins)
+set(plugintest_debug_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/debug/imageformats")
+set(plugintest_debug_files
+    qgifd4.dll
+    qicod4.dll
+    qjpegd4.dll
+    qmngd4.dll
+    qsvgd4.dll
+    qtiffd4.dll
+    )
+copy_if_different(
+    ${plugintest_debug_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/Debug/imageformats"
+    out_targets
+    ${plugintest_debug_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugintest_debug_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/llplugin/imageformats"
+    out_targets
+    ${plugintest_debug_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+# Release & ReleaseDebInfo config runtime files required for the plugin test mule
+set(plugintest_release_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/release")
+set(plugintest_release_files
+    libeay32.dll
+    libglib-2.0-0.dll
+    libgmodule-2.0-0.dll
+    libgobject-2.0-0.dll
+    libgthread-2.0-0.dll
+#    llkdu.dll        (not required for plugin test)
+    qtcore4.dll
+    qtgui4.dll
+    qtnetwork4.dll
+    qtopengl4.dll
+    qtwebkit4.dll
+    ssleay32.dll
+    )
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/Release"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/RelWithDebInfo"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+# Release & ReleaseDebInfo config runtime files required for the plugin test mule (Qt image format plugins)
+set(plugintest_release_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/release/imageformats")
+set(plugintest_release_files
+    qgif4.dll
+    qico4.dll
+    qjpeg4.dll
+    qmng4.dll
+    qsvg4.dll
+    qtiff4.dll
+    )
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/Release/imageformats"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/../test_apps/llplugintest/RelWithDebInfo/imageformats"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/Release/llplugin/imageformats"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugintest_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/llplugin/imageformats"
+    out_targets
+    ${plugintest_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+# Debug config runtime files required for the plugins
+set(plugins_debug_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/debug")
+set(plugins_debug_files
+    libeay32.dll
+    qtcored4.dll
+    qtguid4.dll
+    qtnetworkd4.dll
+    qtopengld4.dll
+    qtwebkitd4.dll
+    ssleay32.dll
+    )
+copy_if_different(
+    ${plugins_debug_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/Debug/llplugin"
+    out_targets
+    ${plugins_debug_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+# Release & ReleaseDebInfo config runtime files required for the plugins
+set(plugins_release_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/release")
+set(plugins_release_files
+    libeay32.dll
+    qtcore4.dll
+    qtgui4.dll
+    qtnetwork4.dll
+    qtopengl4.dll
+    qtwebkit4.dll
+    ssleay32.dll
+    )
+copy_if_different(
+    ${plugins_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/Release/llplugin"
+    out_targets
+    ${plugins_release_files}
+    )
+set(all_targets ${all_targets} ${out_targets})
+
+copy_if_different(
+    ${plugins_release_src_dir}
+    "${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/llplugin"
+    out_targets
+    ${plugins_release_files}
     )
 set(all_targets ${all_targets} ${out_targets})
 
 set(release_src_dir "${CMAKE_SOURCE_DIR}/../libraries/i686-win32/lib/release")
 set(release_files
-    freebl3.dll
-    js3250.dll
-    nspr4.dll
-    nss3.dll
-    nssckbi.dll
-    plc4.dll
-    plds4.dll
-    smime3.dll
-    softokn3.dll
-    ssl3.dll
-    xpcom.dll
-    xul.dll
     openjpeg.dll
     )
     

@@ -124,6 +124,8 @@ LLDir_Linux::LLDir_Linux()
 		}
 	}
 
+	mLLPluginDir = mExecutableDir + mDirDelimiter + "llplugin";
+
 #ifdef APP_RO_DATA_DIR
         const char* appRODataDir = APP_RO_DATA_DIR;
         if(appRODataDir[0] == '/')
@@ -391,3 +393,15 @@ BOOL LLDir_Linux::fileExists(const std::string &filename) const
 	}
 }
 
+
+/*virtual*/ std::string LLDir_Linux::getLLPluginLauncher()
+{
+	return gDirUtilp->getExecutableDir() + gDirUtilp->getDirDelimiter() +
+		"SLPlugin";
+}
+
+/*virtual*/ std::string LLDir_Linux::getLLPluginFilename(std::string base_name)
+{
+	return gDirUtilp->getLLPluginDir() + gDirUtilp->getDirDelimiter() +
+		"lib" + base_name + ".so";
+}

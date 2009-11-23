@@ -2710,6 +2710,8 @@ LLXMLNodePtr LLScrollListCtrl::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLUICtrl::getXML();
 
+	node->setName(LL_SCROLL_LIST_CTRL_TAG);
+
 	// Attributes
 
 	node->createChild("multi_select", TRUE)->setBoolValue(mAllowMultipleSelection);

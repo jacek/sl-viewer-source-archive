@@ -56,4 +56,62 @@
 	</text>
 	<check_box label="Skriptfehler und Warnungen als normalen Chat anzeigen" name="script_errors_as_chat"/>
 	<color_swatch label="Fehler" name="script_error"/>
+	<combo_box name="translate_language_combobox" width="166">
+		<combo_item name="System Default Language">
+			Betriebssystem-Einstellung
+		</combo_item>
+		<combo_item name="English">
+			English (Englisch)
+		</combo_item>
+		<combo_item name="Danish">
+			Danks (Dänisch) - Beta
+		</combo_item>
+		<combo_item name="Deutsch(German)">
+			Deutsch - Beta
+		</combo_item>
+		<combo_item name="Spanish">
+			Español (Spanisch) - Beta
+		</combo_item>
+		<combo_item name="French">
+			Français (Französisch) - Beta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano (Italienisch) - Beta
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (Ungarisch) - Beta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Niederländisch) - Beta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Polnisch) - Beta
+		</combo_item>
+		<combo_item name="Portugese">
+			Português (Portugiesisch) - Beta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (Russian) - Beta
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe (Türkisch) - Beta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (Ukrainisch) - Beta
+		</combo_item>
+		<combo_item name="Chinese">
+			中文 (简体) (Chinesisch) - Beta
+		</combo_item>
+		<combo_item name="(Japanese)">
+			日本語 (Japanisch) - Beta
+		</combo_item>
+		<combo_item name="(Korean)">
+			한국어 (Koreanisch) - Beta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Chat-Sprache:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="Übersetzen Chat">
+	</text>
 </panel>

@@ -58,6 +58,7 @@
 #include "lltextbox.h"
 #include "llui.h"
 #include "lluiconstants.h"
+#include "llurlhistory.h" // OGPX : regionuri text box has a history of region uris (if FN/LN are loaded at startup)
 #include "llurlsimstring.h"
 #include "llviewerbuild.h"
 #include "llviewerimagelist.h"
@@ -69,11 +70,9 @@
 #include "lluictrlfactory.h"
 #include "llhttpclient.h"
 #include "llweb.h"
-#include "llwebbrowserctrl.h"
+#include "llmediactrl.h"
 
-#include "llfloaterhtml.h"
-
-#include "llfloaterhtmlhelp.h"
+#include "llfloatermediabrowser.h"
 #include "llfloatertos.h"
 
 #include "llglheaders.h"
@@ -92,7 +91,7 @@ class LLLoginRefreshHandler : public LLCommandHandler
 public:
 	// don't allow from external browsers
 	LLLoginRefreshHandler() : LLCommandHandler("login_refresh", true) { }
-	bool handle(const LLSD& tokens, const LLSD& query_map, LLWebBrowserCtrl* web)
+	bool handle(const LLSD& tokens, const LLSD& query_map, LLMediaCtrl* web)
 	{	
 		if (LLStartUp::getStartupState() < STATE_LOGIN_CLEANUP)
 		{
@@ -218,6 +217,36 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	LLLineEditor* edit = getChild<LLLineEditor>("password_edit");
 	if (edit) edit->setDrawAsterixes(TRUE);
 
+	//OGPX : This keeps the uris in a history file 
+	//OGPX TODO: should this be inside an OGP only check?
+	LLComboBox* regioncombo = getChild<LLComboBox>("regionuri_edit"); 
+	regioncombo->setAllowTextEntry(TRUE, 256, FALSE);
+	std::string  current_regionuri = gSavedSettings.getString("CmdLineRegionURI");
+
+	// iterate on uri list adding to combobox (couldn't figure out how to add them all in one call)
+	// ... and also append the command line value we might have gotten to the URLHistory
+	LLSD regionuri_history = LLURLHistory::getURLHistory("regionuri");
+	LLSD::array_iterator iter_history = regionuri_history.beginArray();
+	LLSD::array_iterator iter_end = regionuri_history.endArray();
+	for (; iter_history != iter_end; ++iter_history)
+	{
+		regioncombo->addSimpleElement((*iter_history).asString());
+	}
+
+	if ( LLURLHistory::appendToURLCollection("regionuri",current_regionuri)) 
+	{
+		// since we are in login, another read of urlhistory file is going to happen 
+		// so we need to persist the new value we just added (or maybe we should do it in startup.cpp?)
+
+		// since URL history only populated on create of sInstance, add to combo list directly
+		regioncombo->addSimpleElement(current_regionuri);
+	}
+	
+	// select which is displayed if we have a current URL.
+	regioncombo->setSelectedByValue(LLSD(current_regionuri),TRUE);
+
+	//llinfos << " url history: " << LLSDOStreamer<LLSDXMLFormatter>(LLURLHistory::getURLHistory("regionuri")) << llendl;
+
 	LLComboBox* combo = getChild<LLComboBox>("start_location_combo");
 	combo->setAllowTextEntry(TRUE, 128, FALSE);
 
@@ -277,16 +306,15 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 #endif    
 	
 	// get the web browser control
-	LLWebBrowserCtrl* web_browser = getChild<LLWebBrowserCtrl>("login_html");
+	LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("login_html");
+	web_browser->addObserver(this);
+
 	// Need to handle login secondlife:///app/ URLs
 	web_browser->setTrusted( true );
 
-	// observe browser events
-	web_browser->addObserver( this );
-
 	// don't make it a tab stop until SL-27594 is fixed
 	web_browser->setTabStop(FALSE);
-	web_browser->navigateToLocalPage( "loading", "loading.html" );
+	// web_browser->navigateToLocalPage( "loading", "loading.html" );
 
 	// make links open in external browser
 	web_browser->setOpenInExternalBrowser( true );
@@ -320,7 +348,7 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 
 void LLPanelLogin::setSiteIsAlive( bool alive )
 {
-	LLWebBrowserCtrl* web_browser = getChild<LLWebBrowserCtrl>("login_html");
+	LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("login_html");
 	// if the contents of the site was retrieved
 	if ( alive )
 	{
@@ -383,6 +411,11 @@ LLPanelLogin::~LLPanelLogin()
 
 	//// We know we're done with the image, so be rid of it.
 	//gImageList.deleteImage( mLogoImage );
+	
+	if ( gFocusMgr.getDefaultKeyboardFocus() == this )
+	{
+		gFocusMgr.setDefaultKeyboardFocus(NULL);
+	}
 }
 
 // virtual
@@ -559,6 +592,16 @@ void LLPanelLogin::setFields(const std::string& firstname,
 	sInstance->childSetText("first_name_edit", firstname);
 	sInstance->childSetText("last_name_edit", lastname);
 
+	
+	// OGPX : Are we guaranteed that LLAppViewer::instance exists already?
+	if (gSavedSettings.getBOOL("OpenGridProtocol"))
+	{
+		LLComboBox* regioncombo = sInstance->getChild<LLComboBox>("regionuri_edit");
+		
+		// select which is displayed if we have a current URL.
+		regioncombo->setSelectedByValue(LLSD(gSavedSettings.getString("CmdLineRegionURI")),TRUE);
+	}
+
 	// Max "actual" password length is 16 characters.
 	// Hex digests are always 32 characters.
 	if (password.length() == 32)
@@ -615,6 +658,21 @@ void LLPanelLogin::getFields(std::string *firstname,
 
 	*lastname = sInstance->childGetText("last_name_edit");
 	LLStringUtil::trim(*lastname);
+    // OGPX : Nice up the uri string and save it.
+	if (gSavedSettings.getBOOL("OpenGridProtocol"))
+	{
+		std::string regionuri = sInstance->childGetValue("regionuri_edit").asString();
+		LLStringUtil::trim(regionuri);
+		if (regionuri.find("://",0) == std::string::npos)
+		{
+			// if there wasn't a URI designation, assume http
+			regionuri = "http://"+regionuri;
+			llinfos << "Region URI was prepended, now " << regionuri << llendl;
+		}
+		gSavedSettings.setString("CmdLineRegionURI",regionuri);
+		// add new uri to url history (don't need to add to combo box since it is recreated each login)
+		LLURLHistory::appendToURLCollection("regionuri", regionuri);
+	}
 
 	*password = sInstance->mMungedPassword;
 }
@@ -674,8 +732,26 @@ void LLPanelLogin::refreshLocation( bool force_visible )
 	if ( ! force_visible )
 		show_start = gSavedSettings.getBOOL("ShowStartLocation");
 
-	sInstance->childSetVisible("start_location_combo", show_start);
-	sInstance->childSetVisible("start_location_text", show_start);
+	// OGPX : if --ogp on the command line (or --set OpenGridProtocol TRUE), then
+	// the start location is hidden, and regionuri shows in its place. 
+	// "Home", and "Last" have no meaning in OGPX, so it's OK to not have the start_location combo
+	// box unavailable on the menu panel. 
+	if (gSavedSettings.getBOOL("OpenGridProtocol"))
+	{
+		sInstance->childSetVisible("start_location_combo", FALSE); // hide legacy box
+		sInstance->childSetVisible("start_location_text", TRUE);   // when OGPX always show location
+		sInstance->childSetVisible("regionuri_edit",TRUE);         // show regionuri box if OGPX
+
+	}
+	else
+	{
+		sInstance->childSetVisible("start_location_combo", show_start); // maintain ShowStartLocation if legacy
+		sInstance->childSetVisible("start_location_text", show_start);
+		sInstance->childSetVisible("regionuri_edit",FALSE); // Do Not show regionuri box if legacy
+	}
+
+
+
 
 #if LL_RELEASE_FOR_DOWNLOAD
 	BOOL show_server = gSavedSettings.getBOOL("ForceShowGrid");
@@ -706,7 +782,7 @@ void LLPanelLogin::setAlwaysRefresh(bool refresh)
 {
 	if (LLStartUp::getStartupState() >= STATE_LOGIN_CLEANUP) return;
 
-	LLWebBrowserCtrl* web_browser = sInstance->getChild<LLWebBrowserCtrl>("login_html");
+	LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
 
 	if (web_browser)
 	{
@@ -852,25 +928,28 @@ void LLPanelLogin::loadLoginPage()
 #endif
 #endif
 	
-	LLWebBrowserCtrl* web_browser = sInstance->getChild<LLWebBrowserCtrl>("login_html");
+	LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
 	
 	// navigate to the "real" page 
-	web_browser->navigateTo( oStr.str() );
+	web_browser->navigateTo( oStr.str(), "text/html" );
 }
 
-void LLPanelLogin::onNavigateComplete( const EventType& eventIn )
+void LLPanelLogin::handleMediaEvent(LLPluginClassMedia* /*self*/, EMediaEvent event)
 {
-	LLWebBrowserCtrl* web_browser = sInstance->getChild<LLWebBrowserCtrl>("login_html");
-	if (web_browser)
+	if(event == MEDIA_EVENT_NAVIGATE_COMPLETE)
 	{
-		// *HACK HACK HACK HACK!
-		/* Stuff a Tab key into the browser now so that the first field will
-		** get the focus!  The embedded javascript on the page that properly
-		** sets the initial focus in a real web browser is not working inside
-		** the viewer, so this is an UGLY HACK WORKAROUND for now.
-		*/
-		// Commented out as it's not reliable
-		//web_browser->handleKey(KEY_TAB, MASK_NONE, false);
+		LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
+		if (web_browser)
+		{
+			// *HACK HACK HACK HACK!
+			/* Stuff a Tab key into the browser now so that the first field will
+			** get the focus!  The embedded javascript on the page that properly
+			** sets the initial focus in a real web browser is not working inside
+			** the viewer, so this is an UGLY HACK WORKAROUND for now.
+			*/
+			// Commented out as it's not reliable
+			//web_browser->handleKey(KEY_TAB, MASK_NONE, false);
+		}
 	}
 }
 
@@ -1023,6 +1102,11 @@ void LLPanelLogin::onSelectServer(LLUICtrl*, void*)
 
 void LLPanelLogin::onServerComboLostFocus(LLFocusableElement* fe, void*)
 {
+	if( !sInstance )
+	{
+		return;
+	}
+	
 	LLComboBox* combo = sInstance->getChild<LLComboBox>("server_combo");
 	if(fe == combo)
 	{

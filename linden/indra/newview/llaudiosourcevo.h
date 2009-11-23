@@ -34,7 +34,7 @@
 #ifndef LL_LLAUDIOSOURCEVO_H
 #define LL_LLAUDIOSOURCEVO_H
 
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "llviewerobject.h"
 
 class LLViewerObject;
@@ -48,11 +48,10 @@ public:
 	/*virtual*/ void setGain(const F32 gain);
 
 private:
-	void updateGain();
+	void updateMute();
 
 private:
 	LLPointer<LLViewerObject>	mObjectp;
-	F32							mActualGain; // The "real" gain, when not off due to parcel effects
 };
 
 #endif // LL_LLAUDIOSOURCEVO_H

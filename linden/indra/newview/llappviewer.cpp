@@ -61,6 +61,8 @@
 #include "llviewerwindow.h"
 #include "llviewerdisplay.h"
 #include "llviewermedia.h"
+#include "llviewerparcelmedia.h"
+#include "llviewermediafocus.h"
 #include "llviewermessage.h"
 #include "llviewerobjectlist.h"
 #include "llworldmap.h"
@@ -101,7 +103,8 @@
 #include "llassetstorage.h"
 #include "llpolymesh.h"
 #include "llcachename.h"
-#include "audioengine.h"
+#include "llaudioengine.h"
+#include "llstreamingaudio.h"
 #include "llviewermenu.h"
 #include "llselectmgr.h"
 #include "lltrans.h"
@@ -269,6 +272,8 @@ BOOL gPeriodicSlowFrame = FALSE;
 BOOL gCrashOnStartup = FALSE;
 BOOL gLLErrorActivated = FALSE;
 BOOL gLogoutInProgress = FALSE;
+
+static std::string gPlaceAvatarCap;	//OGPX TODO: should belong elsewhere, as part of the llagent caps?
 
 ////////////////////////////////////////////////////////////
 // Internal globals... that should be removed.
@@ -1159,6 +1164,14 @@ bool LLAppViewer::cleanup()
 
 	if (gAudiop)
 	{
+		// shut down the streaming audio sub-subsystem first, in case it relies on not outliving the general audio subsystem.
+
+		LLStreamingAudioInterface *sai = gAudiop->getStreamingAudioImpl();
+		delete sai;
+		gAudiop->setStreamingAudioImpl(NULL);
+
+		// shut down the audio subsystem
+
 		bool want_longname = false;
 		if (gAudiop->getDriverName(want_longname) == "FMOD")
 		{
@@ -1359,7 +1372,9 @@ bool LLAppViewer::cleanup()
 	//Note:
 	//LLViewerMedia::cleanupClass() has to be put before gImageList.shutdown()
 	//because some new image might be generated during cleaning up media. --bao
+	LLViewerMediaFocus::cleanupClass();
 	LLViewerMedia::cleanupClass();
+	LLViewerParcelMedia::cleanupClass();
 	gImageList.shutdown(); // shutdown again in case a callback added something
 	LLUIImageList::getInstance()->cleanUp();
 	
@@ -2404,7 +2419,7 @@ void LLAppViewer::handleViewerCrash()
 		llinfos << "Creating crash marker file " << crash_file_name << llendl;
 		
 		LLAPRFile crash_file ;
-		crash_file.open(crash_file_name, LL_APR_W, LLAPRFile::global);
+		crash_file.open(crash_file_name, LL_APR_W, LLAPRFile::local);
 		if (crash_file.getFileHandle())
 		{
 			LL_INFOS("MarkerFile") << "Created crash marker file " << crash_file_name << LL_ENDL;
@@ -2966,6 +2981,18 @@ const std::string& LLAppViewer::getWindowTitle() const
 	return gWindowTitle;
 }
 
+ // OGPX TODO: refactor caps code please, also "PlaceAvatar" is a bit dated, since
+ // we have since changed the name of the cap
+void LLAppViewer::setPlaceAvatarCap(const std::string& uri)
+{
+    gPlaceAvatarCap = uri;
+}
+
+const std::string& LLAppViewer::getPlaceAvatarCap() const
+{
+	return gPlaceAvatarCap;
+}
+
 // Callback from a dialog indicating user was logged out.  
 bool finish_disconnect(const LLSD& notification, const LLSD& response)
 {
@@ -3470,6 +3497,9 @@ void LLAppViewer::idle()
 		gAgent.updateCamera();
 	}
 
+	// update media focus
+	LLViewerMediaFocus::getInstance()->update();
+
 	// objects and camera should be in sync, do LOD calculations now
 	{
 		LLFastTimer t(LLFastTimer::FTM_LOD_UPDATE);
@@ -3571,16 +3601,65 @@ void LLAppViewer::idleShutdown()
 	}
 }
 
+// OGPX : Instead of sending UDP messages to the sim, tell the Agent Domain about logoff
+//... This responder is used with rez_avatar/place when the specialized case
+//... of sending a null region name is sent to the agent domain. Null region name means
+//... log me off of agent domain. *But* what about cases where you want to be logged into
+//... agent domain, but not physically on a region? 
+class LLLogoutResponder :
+	public LLHTTPClient::Responder
+{
+public:
+	LLLogoutResponder()
+	{
+	}
+
+	~LLLogoutResponder()
+	{
+	}
+	
+	void error(U32 statusNum, const std::string& reason)
+	{		
+		// consider retries
+		llinfos << "LLLogoutResponder error "
+				<< statusNum << " " << reason << llendl;
+	}
+
+	void result(const LLSD& content)
+	{
+		// perhaps logoutReply should come through this in the future
+		llinfos << "LLLogoutResponder completed successfully" << llendl;
+	
+	}
+
+};
+
+
 void LLAppViewer::sendLogoutRequest()
 {
 	if(!mLogoutRequestSent)
 	{
+
+		if (!gSavedSettings.getBOOL("OpenGridProtocol")) // OGPX : if not OGP mode, then tell sim bye
+		{
 		LLMessageSystem* msg = gMessageSystem;
 		msg->newMessageFast(_PREHASH_LogoutRequest);
 		msg->nextBlockFast(_PREHASH_AgentData);
 		msg->addUUIDFast(_PREHASH_AgentID, gAgent.getID() );
 		msg->addUUIDFast(_PREHASH_SessionID, gAgent.getSessionID());
 		gAgent.sendReliableMessage();
+		}
+		else 
+		{
+			// OGPX : Send log-off to Agent Domain instead of sim. This is done via HTTP using the
+			// rez_avatar/place cap. Also, note that sending a null region is how a 
+			// "logoff" is indicated.
+			LLSD args;
+			args["public_region_seed_capability"] = "";
+			std::string cap = LLAppViewer::instance()->getPlaceAvatarCap();
+			LLHTTPClient::post(cap, args, new LLLogoutResponder());
+		}
+
 
 		gLogoutTimer.reset();
 		gLogoutMaxTime = LOGOUT_REQUEST_TIME;

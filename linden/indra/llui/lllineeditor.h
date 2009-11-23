@@ -90,6 +90,7 @@ public:
 	/*virtual*/ BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL	handleHover(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL	handleDoubleClick(S32 x,S32 y,MASK mask);
+	/*virtual*/ BOOL	handleMiddleMouseDown(S32 x,S32 y,MASK mask);
 	/*virtual*/ BOOL	handleKeyHere(KEY key, MASK mask );
 	/*virtual*/ BOOL	handleUnicodeCharHere(llwchar uni_char);
 	/*virtual*/ void	onMouseCaptureLost();
@@ -103,7 +104,12 @@ public:
 
 	virtual void	paste();
 	virtual BOOL	canPaste() const;
-	
+
+	virtual void	updatePrimary();
+	virtual void	copyPrimary();
+ 	virtual void	pastePrimary();
+	virtual BOOL	canPastePrimary() const;
+
 	virtual void	doDelete();
 	virtual BOOL	canDoDelete() const;
 
@@ -217,6 +223,9 @@ public:
 	
 private:
 	// private helper methods
+
+	void            pasteHelper(bool is_primary);
+
 	void			removeChar();
 	void			addChar(const llwchar c);
 	void			setCursorAtLocalPos(S32 local_mouse_x);
@@ -375,6 +384,7 @@ public:
 
 	/*virtual*/ void	draw();
 
+	virtual LLXMLNodePtr getXML(bool save_children = true) const;
 	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
 
 	void setText(const LLStringExplicit &new_text) { mSearchEdit->setText(new_text); }

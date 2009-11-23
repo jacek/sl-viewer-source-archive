@@ -59,4 +59,62 @@
 	<check_box label="Szöveges üzenetek buborék jellegű megjelenítése"
 	     name="bubble_text_chat" />
 	<slider label="Átlátszóság" name="bubble_chat_opacity" />
+	<combo_box name="translate_language_combobox" width="166">
+		<combo_item length="1" name="System Default Language" type="string">
+			Alapértelmezett
+		</combo_item>
+		<combo_item length="1" name="English" type="string">
+			English
+		</combo_item>
+		<combo_item name="Danish">
+			Dansk (Dán) - Beta
+		</combo_item>
+		<combo_item length="1" name="Deutsch(German)" type="string">
+			Deutsch (German) - Beta
+		</combo_item>
+		<combo_item length="1" name="Spanish" type="string">
+			Español (Spanish) - Beta
+		</combo_item>
+		<combo_item length="1" name="French" type="string">
+			Français (French) - Beta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano (Olasz) - Beta
+		</combo_item>
+		<combo_item length="1" name="Hungarian" type="string">
+			Magyar - Beta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Holland) - Beta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Lengyel) - Beta
+		</combo_item>
+		<combo_item name="Portugese">
+			Portugués (Portugál) - Beta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (Orosz) - Beta
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe (Török) - Beta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (Ukrán) - Beta
+		</combo_item>
+		<combo_item length="1" name="Chinese" type="string">
+			中文 (简体) (Kínai) - Beta
+		</combo_item>
+		<combo_item length="1" name="(Japanese)" type="string">
+			日本語 (Japanese) - Beta
+		</combo_item>
+		<combo_item length="1" name="(Korean)" type="string">
+			한국어 (Korean) - Beta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Chat Nyelv:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="FordÃ­tÃ¡s Chat">
+	</text>
 </panel>

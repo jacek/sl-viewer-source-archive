@@ -112,6 +112,12 @@ void LLIconCtrl::draw()
 	LLUICtrl::draw();
 }
 
+// virtual 
+void LLIconCtrl::setAlpha(F32 alpha)
+{
+	mColor.setAlpha(alpha);
+}
+
 // virtual
 void LLIconCtrl::setValue(const LLSD& value )
 {
@@ -136,6 +142,8 @@ LLSD LLIconCtrl::getValue() const
 LLXMLNodePtr LLIconCtrl::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLUICtrl::getXML();
+
+	node->setName(LL_ICON_CTRL_TAG);
 
 	if (mImageName != "")
 	{

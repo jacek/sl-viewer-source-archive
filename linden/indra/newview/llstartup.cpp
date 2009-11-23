@@ -40,20 +40,22 @@
 #	include <sys/stat.h>		// mkdir()
 #endif
 
-#include "audioengine.h"
+#include "llviewermedia_streamingaudio.h"
+#include "llaudioengine.h"
 
 #ifdef LL_FMOD
-# include "audioengine_fmod.h"
+# include "llaudioengine_fmod.h"
 #endif
 
 #ifdef LL_OPENAL
-#include "audioengine_openal.h"
+#include "llaudioengine_openal.h"
 #endif
 
 #include "llares.h"
 #include "llcachename.h"
 #include "llviewercontrol.h"
 #include "lldir.h"
+#include "lleventpoll.h" // OGPX for Agent Domain event queue
 #include "llerrorcontrol.h"
 #include "llfiltersd2xmlrpc.h"
 #include "llfocusmgr.h"
@@ -131,6 +133,7 @@
 #include "llpreview.h"
 #include "llpreviewscript.h"
 #include "llproductinforequest.h"
+#include "llsdhttpserver.h" // OGPX might not need when EVENTHACK is sorted
 #include "llsecondlifeurls.h"
 #include "llselectmgr.h"
 #include "llsky.h"
@@ -186,10 +189,6 @@
 #include "llwaterparammanager.h"
 #include "llagentlanguage.h"
 
-#if LL_LIBXUL_ENABLED
-#include "llmozlib.h"
-#endif // LL_LIBXUL_ENABLED
-
 #if LL_WINDOWS
 #include "llwindebug.h"
 #include "lldxhardware.h"
@@ -228,6 +227,8 @@ static bool gUseCircuitCallbackCalled = false;
 
 EStartupState LLStartUp::gStartupState = STATE_FIRST;
 
+static std::vector<std::string> sAuthUris; 
+static S32 sAuthUriNum = -1;
 
 //
 // local function declaration
@@ -252,6 +253,362 @@ void init_start_screen(S32 location_id);
 void release_start_screen();
 void reset_login();
 void apply_udp_blacklist(const std::string& csv);
+
+// OGPX TODO: what is the proper way to handle this? doesn't feel right.
+void login_error(std::string message)
+{
+	if (sAuthUriNum >= (int) sAuthUris.size() - 1)
+	{
+		/* TODO::  we should have translations for all the various reasons,
+		   if no reason, then we display the message */
+
+		LLSD args = LLSD();
+		std::string emsg2 = message;
+		args["ERROR_MESSAGE"] = emsg2;
+		LLNotifications::instance().add("ErrorMessage",args);
+		// I miss alertXML, now I can't break when the dialog is actually 
+		// thrown and have something useful in my stack
+		
+		reset_login();
+	} 
+	else 
+	{
+		sAuthUriNum++;
+		std::ostringstream s;
+		llinfos << "Previous login attempt failed: Logging in, attempt "
+			<< (sAuthUriNum + 1) << "." << llendl;
+		// OGPX uses AUTHENTICATE state, and XMLRPC login uses XMLRPC_LEGACY
+		if (gSavedSettings.getBOOL("OpenGridProtocol"))
+		{ 
+			LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE ); // OGPX 
+		}
+		else
+		{
+			LLStartUp::setStartupState( STATE_XMLRPC_LEGACY_LOGIN ); // XML-RPC
+		}
+		sAuthUriNum++;
+	}            
+}
+
+class LLInventorySkeletonResponder :
+	public LLHTTPClient::Responder
+{
+public:
+	LLInventorySkeletonResponder()
+	{
+	}
+
+	~LLInventorySkeletonResponder()
+	{
+	}
+	
+	void error(U32 statusNum, const std::string& reason)
+	{		
+		LL_INFOS("Inventory") << " status = "
+				<< statusNum << " " << reason << " for cap " << gAgent.getCapability("agent/inventory-skeleton") << LL_ENDL;
+		// wasn't sure, but maybe we should continue in spite of error
+
+		LLStartUp::setStartupState( STATE_LOGIN_PROCESS_RESPONSE );
+	}
+
+	void result(const LLSD& content)
+	{
+
+		LLUserAuth::getInstance()->mResult["inventory-skeleton"] = content["Skeleton"];
+		// so this is nasty. it makes the assumption that the inventory-root is the first folder,
+		// which it is, but still don't like that
+		LLUserAuth::getInstance()->mResult["inventory-root"] = content["Skeleton"][0]["folder_id"];
+
+		
+		LL_DEBUGS("Inventory") << " All the inventory-skeleton content: \n " << ll_pretty_print_sd(content) << LL_ENDL;
+		LL_DEBUGS("Inventory") << " inventory-root: " << LLUserAuth::getInstance()->mResult["inventory-root"] << LL_ENDL;
+		LLStartUp::setStartupState( STATE_LOGIN_PROCESS_RESPONSE ); // now that we have skeleton and successful place av, continue	
+	}
+};
+	
+// OGPX : Responder for the HTTP post to rez_avatar/place in the agent domain.
+// OGPX TODO: refactor Place Avatar handling for both login and TP , and make result() smarter
+
+class LLPlaceAvatarLoginResponder :
+	public LLHTTPClient::Responder
+{
+public:
+	LLPlaceAvatarLoginResponder()
+	{
+	}
+
+	~LLPlaceAvatarLoginResponder()
+	{
+	}
+	
+	void error(U32 statusNum, const std::string& reason)
+	{		
+		LL_INFOS("OGPX") << "LLPlaceAvatarLoginResponder error "
+				<< statusNum << " " << reason << " for URI " << gSavedSettings.getString("CmdLineRegionURI") << LL_ENDL;
+
+		login_error("PlaceAvatarLoginResponder got an error "+reason);
+	}
+
+	void result(const LLSD& content)
+	{
+		LLSD result;
+		result["agent_id"] = content["agent_id"];  // need this for send_complete_agent_movement
+		result["region_x"] = content["region_x"];  // need these for making the first region
+		result["region_y"] = content["region_y"];	
+		result["login"]    = "true";
+		result["session_id"] = content["session_id"];
+		result["secure_session_id"] = content["secure_session_id"];
+		result["circuit_code"] = content["circuit_code"];
+		result["sim_port"] = content["sim_port"];
+        // need sim_ip field for legacy login
+		result["sim_ip"] = content["sim_ip"];
+		result["sim_host"] = content["sim_host"];
+		result["look_at"] = content["look_at"];
+		result["seed_capability"] = content["region_seed_capability"];
+		result["position"] = content["position"]; //  used by process_agent_movement_complete
+		result["udp_blacklist"] = content["udp_blacklist"];
+
+		// OGPX : Not what I had hoped. initial-outfit means *the* initial login... like first login ever
+		// It does not mean what you are currently wearing (except on that super special first login ever)
+		// In the viewer, initial-outfit includes your gender, and a folder name for the initial wearables that you
+		// want to start with. Unsure what this means in OGPX-land.
+		// result["initial-outfit"] = content["initial_outfit"];
+
+		LL_DEBUGS("OGPX") << "agent_id: " << content["agent_id"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "region_x: " << content["region_x"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "session_id: " << content["session_id"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "sim_port: " << content["sim_port"] << LL_ENDL;
+		// need sim_ip field for legacy login
+		LL_DEBUGS("OGPX") << "sim_ip: " << content["sim_ip"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "sim_host: " << content["sim_host"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "look_at: " << content["look_at"] << LL_ENDL;
+		LL_DEBUGS("OGPX") << "seed_capability: " << content["region_seed_capability"] << LL_ENDL;
+
+		// inventory-skeleton is now a proper cap on agentd, and the dangerous assumption that the
+		//    top of your inventory-skeleton is inventory-root is made. 
+		// LL_DEBUGS("OGPX") << "inventory-root" << result["inventory-root"] << LL_ENDL; // note the switch in - to _
+		// LL_INFOS("OGPX") << "inventory-lib-root" << result["inventory-lib-root"] << LL_ENDL;
+		// LL_INFOS("OGPX") << "inventory-lib-owner" << result["inventory-lib-owner"]  << LL_ENDL;
+		// LL_INFOS("OGPX") << "inventory-skel-lib" << result["inventory-skel-lib"] << LL_ENDL;
+		// LL_INFOS("OGPX") << "inventory-skeleton" << result["inventory-skeleton"] << LL_ENDL;
+	
+		LL_INFOS("OGPX") << " All the LLSD PlaceAvatar content: \n " << ll_pretty_print_sd(content) << LL_ENDL;
+
+		// check "connect" to make sure place_avatar fully successful
+		if (!content["connect"].asBoolean()) 
+		{
+			// place_avatar failed somewhere
+			LL_INFOS("OGPX") << "Login failed, connect false in PlaceAvatarResponder " << LL_ENDL;
+			
+			LLSD args;
+			args["ERROR_MESSAGE"] = "Place Avatar Failed, CONNECT=0";
+			LLNotifications::instance().add("ErrorMessage", args);
+		
+			reset_login();
+
+			return;
+		}
+		// OGPX : I think we only need the skeleton once 
+		// (in other words, it doesn't get refetched every time we TP).
+		std::string skeleton_cap = gAgent.getCapability("agent/inventory-skeleton");
+		if (!skeleton_cap.empty())
+		{
+			// LLStartup state will be set in the skeleton responder so we know we have
+			// the inventory-skeleton before proceeding with the rest of the 
+			// login sequence. 
+			LLHTTPClient::get(skeleton_cap, new LLInventorySkeletonResponder());
+		}
+		else
+		{
+			// If there was no agent/inventory-skeleton cap given to us by agent domain (like in 
+			// the original POC vaak agent domain implementation), we still need to 
+			// progress with the login process. 
+			LLStartUp::setStartupState( STATE_LOGIN_PROCESS_RESPONSE );
+		}
+		LLUserAuth::getInstance()->mAuthResponse = LLUserAuth::E_OK;
+		LLUserAuth::getInstance()->mResult = result;
+
+
+	}
+};
+
+
+// OGPX handles the agent domain seed cap response. This is the spot in the login sequence where we
+// tuck away caps that the agent domain gives us on authenticate.
+class LLAgentHostSeedCapResponder :
+	public LLHTTPClient::Responder
+{
+public:
+	LLAgentHostSeedCapResponder()
+	{
+	}
+
+	~LLAgentHostSeedCapResponder()
+	{
+	}
+	
+	void error(U32 statusNum, const std::string& reason)
+	{		
+		LL_INFOS("OGPX") << "LLAgentHostSeedCapResponder error "
+				<< statusNum << " " << reason << LL_ENDL;
+
+		login_error("Agent Domain seed cap responded with an error " + reason);
+	}
+
+	void result(const LLSD& content)
+	{
+		LL_DEBUGS("OGPX") << " Response to AgentHostSeedCap: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+		std::string agentEventQueue = content["capabilities"]["event_queue"].asString();
+
+		LL_INFOS("OGPX") << "Agent Event queue is:  " << agentEventQueue << LL_ENDL;
+
+		LLAgentEventPoll* agentPoll;
+		// OGPX TODO: should this be inside an if OGPX login type check??
+		if (!agentEventQueue.empty())
+		{
+			// OGPX TODO: figure out how to register certain services for certain eventqueues
+			// ... stated another way... we no longer trust anything from region and Agent Domain and XYZ eq
+			agentPoll = new LLAgentEventPoll(agentEventQueue);
+			// Note: host in eventpoll gets shoved in to message llsd in LLEventPollResponder::handleMessage 
+		}
+
+		std::string	regionuri	= gSavedSettings.getString("CmdLineRegionURI");
+		LL_INFOS("OGPX") << "llagenthostseedcapresponder content: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+		// Can't we assume OGP only inside the agent seed cap responder?
+		if (!regionuri.empty()&& gSavedSettings.getBOOL("OpenGridProtocol") )
+		{
+			// OGPX WFID grab the WFID cap (now called the agent/inventory cap) and skeleton cap
+			gAgent.setCapability("agent/inventory",content["capabilities"]["agent/inventory"].asString());
+			gAgent.setCapability("agent/inventory-skeleton",content["capabilities"]["agent/inventory-skeleton"].asString());
+			std::string placeAvatarCap = content["capabilities"]["rez_avatar/place"].asString();
+			LLSD args;
+
+			// OGPX TODO: Q: aren't we in an OGPX only block? If so, we shouldn't be trying to parse the LLURLSimString
+			if (LLURLSimString::parse())
+			{
+				args["position"] = ll_sd_from_vector3(LLVector3(LLURLSimString::sInstance.mX, LLURLSimString::sInstance.mY, LLURLSimString::sInstance.mZ));
+			}
+			else
+			{
+				// OGPX : we don't currently have the /X/Y/Z semantics in our regionuris, so initial login always requests center
+				// OGPX TODO: note that we could add  X Y Z UI controls to the login panel and TP floater, or add logic to cope 
+				// with X/Y/Z being on the URI, if OGPX decides that is valid.
+				args["position"] = ll_sd_from_vector3(LLVector3(128, 128, 128));
+			}
+
+			args["public_region_seed_capability"] = regionuri;
+
+			if (placeAvatarCap.empty())
+			{
+				llwarns << "PlaceAvatarLogin capability not returned" << llendl;
+				LL_INFOS("OGPX") << " agenthostseedcap content: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+				login_error("Agent Domain didn't return a rez_avatar/place cap");
+			}
+			else
+			{
+				LLAppViewer::instance()->setPlaceAvatarCap(placeAvatarCap); // save so it can be used on tp
+				LLHTTPClient::post(placeAvatarCap, args, new LLPlaceAvatarLoginResponder());
+				LL_INFOS("OGPX") << " args to placeavatar on login: " << LLSDOStreamer<LLSDXMLFormatter>(args) << LL_ENDL;
+				// we should have gotten back both rez_avatar/place and agent/info 
+				// TODO: do a GET here using "agent/info" seed cap after agent domain implements it. 
+				//      after we are successfully getting agent,session,securesession via "agent/info"
+				//      we need to change login and teleport placeavatarresponders to not look for those
+
+			}
+		}
+		else
+		{
+			// Q: Is this leftover LLSD login path code? c'est possible, but i'm not sure. 
+			std::string legacyLoginCap = content["capabilities"]["legacy_login"].asString();
+			if (legacyLoginCap.empty())
+			{
+				llwarns << "LegacyLogin capability not returned" << llendl;
+				login_error("No Legacy login seed cap returned");
+			}
+			else
+			{
+				sAuthUris = LLSRV::rewriteURI(content["capabilities"]["legacy_login"].asString());
+				sAuthUriNum = 0;
+				LLStartUp::setStartupState(STATE_XMLRPC_LEGACY_LOGIN);
+			}
+		}
+	}
+};
+
+
+class LLAgentHostAuthResponder :
+	public LLHTTPClient::Responder
+{
+public:
+	LLAgentHostAuthResponder()
+	{
+	}
+
+	~LLAgentHostAuthResponder()
+	{
+	}
+
+	void completed(U32 status, const std::string& reason, const LLSD& content) { 
+
+		LL_INFOS("OGPX") << " Response From AgentHostAuth: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+		if (content.has("authenticated") && (content["authenticated"].asBoolean() == true))
+		{
+			
+			if (content.has("agent_seed_capability"))
+			{  
+				LLSD args;
+				
+				// make sure content["agent_seed_capability"].asString() is a url
+				
+				args["capabilities"]["event_queue"] = true;
+				
+				if (gSavedSettings.getBOOL("OpenGridProtocol"))
+				{
+					args["capabilities"]["rez_avatar/place"] = true; // place_avatar
+					args["capabilities"]["agent/info"] = true;
+					args["capabilities"]["agent/inventory-skeleton"] = true;
+					args["capabilities"]["agent/inventory"] = true; // OGPX get from Agent Domain was WebFetchInventoryDescendents
+				}
+				else
+				{
+					// OGPX is this leftover LLSD login cruft? 
+					args["capabilities"]["legacy_login"] = true;
+				}
+				
+				LL_INFOS("OGPX") << "completedHeader content: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+				LL_INFOS("OGPX") << " Post to AgentHostSeed Cap: " << LLSDOStreamer<LLSDXMLFormatter>(args) << LL_ENDL;
+				LLHTTPClient::post(content["agent_seed_capability"].asString(), args, new LLAgentHostSeedCapResponder());
+				
+				return;
+			}
+			   
+			if (content["reason"].asString() == "tos")
+			{
+				LL_DEBUGS("AppInit") << "Need tos agreement" << LL_ENDL;
+				LLStartUp::setStartupState( STATE_UPDATE_CHECK );
+				LLFloaterTOS* tos_dialog = LLFloaterTOS::show(LLFloaterTOS::TOS_TOS,
+															  content["message"].asString());
+				tos_dialog->startModal();
+				return;
+			}
+			
+			if (content["reason"].asString() == "critical")
+			{
+				LL_DEBUGS("AppInit") << "Need critical message" << LL_ENDL;
+				LLStartUp::setStartupState( STATE_UPDATE_CHECK );
+				LLFloaterTOS* tos_dialog = LLFloaterTOS::show(LLFloaterTOS::TOS_CRITICAL_MESSAGE,
+															  content["message"].asString());
+				tos_dialog->startModal();
+				return;
+			}
+	  }
+	    
+	  LL_INFOS("OGPX") << "LLAgentHostAuthResponder error " << status << " " << reason << LL_ENDL;
+	  LL_DEBUGS("OGPX") << "completedHeader content: " << LLSDOStreamer<LLSDXMLFormatter>(content) << LL_ENDL;
+	  login_error(reason+" "+content["reason"].asString()+": "+content["message"].asString());                                                                                                         
+	}
+};
+
 
 void callback_cache_name(const LLUUID& id, const std::string& firstname, const std::string& lastname, BOOL is_group, void* data)
 {
@@ -308,8 +665,6 @@ void update_texture_fetch()
 	gImageList.updateImages(0.10f);
 }
 
-static std::vector<std::string> sAuthUris;
-static S32 sAuthUriNum = -1;
 
 // Returns false to skip other idle processing. Should only return
 // true when all initialization done.
@@ -643,6 +998,16 @@ bool idle_startup()
 					delete gAudiop;
 					gAudiop = NULL;
 				}
+
+				if (gAudiop)
+				{
+					// if the audio engine hasn't set up its own preferred handler for streaming audio then set up the generic streaming audio implementation which uses media plugins
+					if (NULL == gAudiop->getStreamingAudioImpl())
+					{
+						LL_INFOS("AppInit") << "Using media plugins to render streaming audio" << LL_ENDL;
+						gAudiop->setStreamingAudioImpl(new LLStreamingAudio_MediaPlugins());
+					}
+				}
 			}
 		}
 		
@@ -728,7 +1093,7 @@ bool idle_startup()
 		std::string msg = LLTrans::getString("LoginInitializingBrowser");
 		set_startup_status(0.03f, msg.c_str(), gAgent.mMOTD.c_str());
 		display_startup();
-		LLViewerMedia::initBrowser();
+		// LLViewerMedia::initBrowser();
 
 		LLStartUp::setStartupState( STATE_LOGIN_SHOW );
 		return FALSE;
@@ -742,6 +1107,14 @@ bool idle_startup()
 		gViewerWindow->getWindow()->setCursor(UI_CURSOR_ARROW);
 
 		timeout_count = 0;
+
+		// OGPX : Load URL History File for saved user. Needs to happen *before* login panel is displayed.
+		//  Note: it only loads them if it can figure out the saved username. 
+		if (!firstname.empty() && !lastname.empty()) 
+		{
+			gDirUtilp->setLindenUserDir(firstname, lastname);
+			LLURLHistory::loadFile("url_history.xml");
+		} 
 
 		if (show_connect_box)
 		{
@@ -924,6 +1297,14 @@ bool idle_startup()
 
 		// Load URL History File
 		LLURLHistory::loadFile("url_history.xml");
+		// OGPX : Since loading the file wipes the new value that might have gotten added on
+		// the login panel, let's add it to URL history 
+		// (appendToURLCollection() only adds unique values to list)
+		// OGPX kind of ugly. TODO: figure out something less hacky
+		if (!gSavedSettings.getString("CmdLineRegionURI").empty())
+		{
+			LLURLHistory::appendToURLCollection("regionuri",gSavedSettings.getString("CmdLineRegionURI"));
+		}
 
 		//-------------------------------------------------
 		// Handle startup progress screen
@@ -1027,6 +1408,8 @@ bool idle_startup()
 		}
 		std::vector<std::string> uris;
 		LLViewerLogin::getInstance()->getLoginURIs(uris);
+		// OGPX TODO: old OGP9 had this. needed? sAuthUris.clear();
+		//  might cause a funny interaction, it is set when legacy login cap is returned from auth
 		std::vector<std::string>::const_iterator iter, end;
 		for (iter = uris.begin(), end = uris.end(); iter != end; ++iter)
 		{
@@ -1041,13 +1424,91 @@ bool idle_startup()
 		LLStringUtil::format_map_t args;
 		args["[APP_NAME]"] = LLAppViewer::instance()->getSecondLifeTitle();
 		auth_desc = LLTrans::getString("LoginInProgress", args);
-		LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE );
+		// OGPX uses AUTHENTICATE startup state, and XMLRPC uses XMLRPC_LEGACY
+		if ((!gSavedSettings.getString("CmdLineRegionURI").empty())&&gSavedSettings.getBOOL("OpenGridProtocol"))
+		{ 
+		    LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE ); // OGPX
+		}
+		else
+		{
+			LLStartUp::setStartupState( STATE_XMLRPC_LEGACY_LOGIN ); // XMLRPC
+		}
 	}
+
+	// OGPX : Note that this uses existing STATE_LOGIN_AUTHENTICATE in viewer, 
+	// and also inserts two new states for LEGACY (where Legacy in this case
+	// was LLSD HTTP Post in OGP9, and not XML-RPC). 
+	//
+	// The OGP login daisy chains together several POSTs that must complete successfully 
+	// in order for startup state to finally get set to STATE_LOGIN_PROCESS_RESPONSE. 
+	//
 
 	if (STATE_LOGIN_AUTHENTICATE == LLStartUp::getStartupState())
 	{
 		LL_DEBUGS("AppInit") << "STATE_LOGIN_AUTHENTICATE" << LL_ENDL;
 		set_startup_status(progress, auth_desc, auth_message);
+		
+		LLSD args;
+		LLSD identifier;
+		LLSD authenticator;
+
+		identifier["type"] = "agent";
+		identifier["first_name"] = firstname;
+		identifier["last_name"] = lastname;
+		authenticator["type"] = "hash";
+		authenticator["algorithm"] = "md5";
+		authenticator["secret"] = password;
+		args["identifier"] = identifier;
+		args["authenticator"] = authenticator;
+	
+
+		//args["firstname"] = firstname;
+		//args["lastname"] = lastname;
+		//args["md5-password"] = password;
+		
+		// allows you to 'suggest' which agent service you'd like to use
+		std::string	agenturi = gSavedSettings.getString("CmdLineAgentURI");
+		if (!agenturi.empty())
+		{
+			 args["agent_url"] = agenturi;
+		}
+
+		char hashed_mac_string[MD5HEX_STR_SIZE];		/* Flawfinder: ignore */
+		LLMD5 hashed_mac;
+		hashed_mac.update( gMACAddress, MAC_ADDRESS_BYTES );
+		hashed_mac.finalize();
+		hashed_mac.hex_digest(hashed_mac_string);
+		args["mac_address"] = hashed_mac_string;
+
+		args["id0"] = LLAppViewer::instance()->getSerialNumber();
+
+		args["agree_to_tos"] = gAcceptTOS;
+		args["read_critical"] = gAcceptCriticalMessage;
+
+		LL_INFOS("OGPX") << " URI to POST to : " << sAuthUris[sAuthUriNum] << LL_ENDL;
+
+		LL_INFOS("OGPX") << " Post to AgentHostAuth: " << LLSDOStreamer<LLSDXMLFormatter>(args) << LL_ENDL;
+		LLHTTPClient::post(
+			sAuthUris[sAuthUriNum],
+			args,
+			new LLAgentHostAuthResponder()
+		);
+
+		gAcceptTOS = FALSE;
+		gAcceptCriticalMessage = FALSE;
+
+		LLStartUp::setStartupState(STATE_WAIT_LEGACY_LOGIN);
+		return FALSE;
+	}
+
+	if (STATE_WAIT_LEGACY_LOGIN == LLStartUp::getStartupState())
+	{
+		return FALSE;
+	}
+	
+	if (STATE_XMLRPC_LEGACY_LOGIN == LLStartUp::getStartupState())
+	{
+		lldebugs << "STATE_XMLRPC_LEGACY_LOGIN" << llendl;
 		progress += 0.02f;
 		display_startup();
 		
@@ -1081,6 +1542,7 @@ bool idle_startup()
 
 		// TODO if statement here to use web_login_key
 		sAuthUriNum = llclamp(sAuthUriNum, 0, (S32)sAuthUris.size()-1);
+	    // OGPX : which routine would this end up in? the LLSD or XMLRPC, or ....?
 		LLUserAuth::getInstance()->authenticate(
 			sAuthUris[sAuthUriNum],
 			auth_method,
@@ -1166,13 +1628,21 @@ bool idle_startup()
 		switch(error)
 		{
 		case LLUserAuth::E_OK:
+			if (gSavedSettings.getBOOL("OpenGridProtocol"))
+			{	
+				// OGPX : this field set explicitly in rez_av/place responder for OGP
+				login_response = LLUserAuth::getInstance()->mResult["login"].asString();
+			}
+			else
+			{
 			login_response = LLUserAuth::getInstance()->getResponse("login");
+			}
 			if(login_response == "true")
 			{
 				// Yay, login!
 				successful_login = true;
 			}
-			else if(login_response == "indeterminate")
+			else if (login_response == "indeterminate") // OGPX : this is XML-RPC auth only, PlaceAV bails with alert if not successful
 			{
 				LL_INFOS("AppInit") << "Indeterminate login..." << LL_ENDL;
 				sAuthUris = LLSRV::rewriteURI(LLUserAuth::getInstance()->getResponse("next_url"));
@@ -1189,7 +1659,15 @@ bool idle_startup()
 				}
 				// ignoring the duration & options array for now.
 				// Go back to authenticate.
-				LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE );
+				// OGPX hijacks AUTHENTICATE state, and XMLRPC uses XMLRPC_LEGACY
+				if (gSavedSettings.getBOOL("OpenGridProtocol"))
+				{ 
+					LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE );
+				}
+				else
+				{
+					LLStartUp::setStartupState( STATE_XMLRPC_LEGACY_LOGIN );
+				}
 				return FALSE;
 			}
 			else
@@ -1288,7 +1766,15 @@ bool idle_startup()
 				LLStringUtil::format_map_t args;
 				args["[NUMBER]"] = llformat("%d", sAuthUriNum + 1);
 				auth_desc = LLTrans::getString("LoginAttempt", args);
-				LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE );
+				// OGPX hijacks AUTHENTICATE state, and XMLRPC uses XMLRPC_LEGACY
+				if (gSavedSettings.getBOOL("OpenGridProtocol"))
+				{ 
+					LLStartUp::setStartupState( STATE_LOGIN_AUTHENTICATE );
+				}
+				else
+				{
+					LLStartUp::setStartupState( STATE_XMLRPC_LEGACY_LOGIN );
+				}
 				return FALSE;
 			}
 			break;
@@ -1297,16 +1783,9 @@ bool idle_startup()
 		if (update || gSavedSettings.getBOOL("ForceMandatoryUpdate"))
 		{
 			gSavedSettings.setBOOL("ForceMandatoryUpdate", FALSE);
-			if (show_connect_box)
-			{
-				update_app(TRUE, auth_message);
-				LLStartUp::setStartupState( STATE_UPDATE_CHECK );
-				return false;
-			}
-			else
-			{
-				quit = true;
-			}
+			update_app(TRUE, auth_message);
+			LLStartUp::setStartupState( STATE_UPDATE_CHECK );
+			return false;
 		}
 
 		// Version update and we're not showing the dialog
@@ -1317,7 +1796,197 @@ bool idle_startup()
 			return false;
 		}
 
-		if(successful_login)
+		// OGPX : OGP successful login path here
+		if (successful_login && gSavedSettings.getBOOL("OpenGridProtocol"))
+		{
+			std::string text;
+			// OGPX : this block for OGPX
+			// could have tried to fit in with the rest of the auth response, but 
+			// I think (hope?) the two protocols will differ significantly as OGP evolves.
+			//
+			// For now OGP skipping/omitting getting the following values: 
+			// udp_blacklist, first/lastname, ao_transition, start_location(home,lst), home, global-textures
+			//
+			// At this point, we've gathered everything into LLUserAuth::getInstance()->mResult,
+			//   and we need to do similar things to what XMLRPC path does with the return from authenticate.
+			//   
+			// Q: sim_port, can it be smarter that strtoul in orig legacy? and can i skip c_str()?
+			// moved this up in the checking, since it might actually fail if we get an ugly ip
+			// skip all the checking of fields, if we are here, and have a horked ip, it should be caught by isOk()
+			first_sim.setHostByName(LLUserAuth::getInstance()->mResult["sim_host"].asString());
+            first_sim.setPort(LLUserAuth::getInstance()->mResult["sim_port"].asInteger());
+
+			if (!first_sim.isOk())
+			{
+				llwarns << " sim_host returned in PlaceAvatar FAIL "<< first_sim.getString() << llendl;
+				LLUserAuth::getInstance()->reset();
+				LLAppViewer::instance()->forceQuit();
+				return FALSE;
+			}	
+			// carefully trims circuit code to 10 chars
+			text = LLUserAuth::getInstance()->mResult["circuit_code"].asString();
+			if(!text.empty())
+			{
+				gMessageSystem->mOurCircuitCode = strtoul(text.c_str(), NULL, 10);
+			}
+
+			text = LLUserAuth::getInstance()->mResult["agent_id"].asString();
+			gAgentID.set(text); 		
+			gDebugInfo["AgentID"] = text;
+			text = LLUserAuth::getInstance()->mResult["session_id"].asString();
+			gAgentSessionID.set(text);
+			gDebugInfo["SessionID"] = text;
+
+			//text = LLUserAuth::getInstance()->mResult["secure_session_id"];
+			gAgent.mSecureSessionID.set(LLUserAuth::getInstance()->mResult["secure_session_id"]);
+
+
+			// OGPX TODO: I *do* actually get back my first/last name in LLAgentHostSeedCapResponder::result()
+			//   but I am pretty sure it gets overwritten by what the region tells me in UDP in the initial packets
+			//   that is where EXTERNAL gets appended, me thinks.
+			//   ...and should the region really be able to tell me my name??? 
+			//   I think that belongs to agent domain.
+
+
+			//text = LLUserAuth::getInstance()->mResult["first_name"];
+			//// Remove quotes from string.  Login.cgi sends these to force
+			//// names that look like numbers into strings.
+			//firstname.assign(text.asString());
+			//LLStringUtil::replaceChar(firstname, '"', ' ');
+			//LLStringUtil::trim(firstname);
+			//text = LLUserAuth::getInstance()->mResult["last_name"];
+			//lastname.assign(text.asString());
+
+			// hack: interop doesn't return name info in the
+			// login reply - we could add this to auth or just depend on the
+			// viewer to do proper formatting once we take out the old path
+			
+			//if (!firstname.empty() && !lastname.empty())
+			//{
+			//	gSavedSettings.setString("FirstName", firstname);
+			//	gSavedSettings.setString("LastName", lastname);
+			//}
+
+			if (gSavedSettings.getBOOL("RememberPassword"))
+			{
+				// Successful login means the password is valid, so save it.
+				LLStartUp::savePasswordToDisk(password);
+			}
+			else
+			{
+				// Don't leave password from previous session sitting around
+				// during this login session.
+				LLStartUp::deletePasswordFromDisk();
+			}
+			// this is their actual ability to access content
+			text = LLUserAuth::getInstance()->mResult["agent_access_max"].asString();
+			if (!text.empty())
+			{
+				// agent_access can be 'A', 'M', and 'PG'.
+				gAgent.setMaturity(text[0]);
+			}
+			// this is the value of their preference setting for that content
+			// which will always be <= agent_access_max
+			text = LLUserAuth::getInstance()->mResult["agent_region_access"].asString();
+			if (!text.empty())
+			{
+				int preferredMaturity = LLAgent::convertTextToMaturity(text[0]);
+				gSavedSettings.setU32("PreferredMaturity", preferredMaturity);
+			}
+			// OGPX TODO: so regionhandles need to change in the viewer. If two regions on two 
+			// unrelated grids send the same region_x / region_y back in rez_avatar/place
+			// the viewer will get very confused. The viewer depends in different 
+			// ways internally on the regionhandle really being x,y location in the "one" grid,
+			// so fixing it will be a non trivial task.
+			U32 region_x = strtoul(LLUserAuth::getInstance()->mResult["region_x"].asString().c_str(), NULL, 10);
+			U32 region_y = strtoul(LLUserAuth::getInstance()->mResult["region_y"].asString().c_str(), NULL, 10);
+
+			first_sim_handle = to_region_handle(region_x, region_y);
+
+			const std::string look_at_str = LLUserAuth::getInstance()->mResult["look_at"];
+			if (!look_at_str.empty())
+			{
+				size_t len = look_at_str.size();
+				LLMemoryStream mstr((U8*)look_at_str.c_str(), len);
+				LLSD sd = LLSDSerialize::fromNotation(mstr, len);
+				agent_start_look_at = ll_vector3_from_sd(sd);
+			}
+
+			text = LLUserAuth::getInstance()->mResult["seed_capability"].asString();
+			if (!text.empty())
+			{
+				first_sim_seed_cap = text;
+			}
+						
+			text = LLUserAuth::getInstance()->mResult["seconds_since_epoch"].asString();
+			if (!text.empty())
+			{
+				U32 server_utc_time = strtoul(text.c_str(), NULL, 10);
+				if (server_utc_time)
+				{
+					time_t now = time(NULL);
+					gUTCOffset = (server_utc_time - now);
+				}
+			}
+			gAgent.mMOTD.assign(LLUserAuth::getInstance()->mResult["message"]);
+			// OGPX : note: currently OGP strips out array/folder_id bits. 
+			if (!LLUserAuth::getInstance()->mResult["inventory-root"].asUUID().isNull())
+			{
+				gAgent.mInventoryRootID.set(
+					LLUserAuth::getInstance()->mResult["inventory-root"]);
+			}
+			// OGPX strips out array. string of initial outfit folder.
+			sInitialOutfit = LLUserAuth::getInstance()->mResult["initial-outfit"]["folder_name"].asString();
+
+			// OGPX : these are the OGP style calls to loadSkeleton. unsure what will happen to inventory-skel-lib, since we 
+			// haven't defined how libraries work. 
+			if (LLUserAuth::getInstance()->mResult["inventory-skel-lib"].isArray())
+ 			{
+ 				if (!gInventory.loadSkeleton(LLUserAuth::getInstance()->mResult["inventory-skel-lib"], gInventoryLibraryOwner))
+ 				{
+ 					LL_WARNS("AppInit") << "Problem loading inventory-skel-lib" << LL_ENDL;
+ 				}
+ 			}
+			if (LLUserAuth::getInstance()->mResult["inventory-skeleton"].isArray())
+ 			{	
+ 				if (!gInventory.loadSkeleton(LLUserAuth::getInstance()->mResult["inventory-skeleton"], gAgent.getID()))
+ 				{
+ 					LL_WARNS("AppInit") << "Problem loading inventory-skel-targets" << LL_ENDL;
+ 				}
+ 			}
+
+			// OGPX login-flags : we don't currently get those passed back (there is a gendered hack in the code elsewhere)
+			// unsure if OGPX should be getting all these. 
+			if (LLUserAuth::getInstance()->mResult["login-flags"].isArray())
+			{
+				if (!LLUserAuth::getInstance()->mResult["login-flags"][0]["ever_logged_in"].asString().empty())
+				{
+					gAgent.setFirstLogin(LLUserAuth::getInstance()->mResult["login-flags"][0]["ever_logged_in"].asString() == "N");
+				}
+				if (!LLUserAuth::getInstance()->mResult["login-flags"][0]["stipend_since_login"].asString().empty() &&
+					 (LLUserAuth::getInstance()->mResult["login-flags"][0]["stipend_since_login"].asString() == "Y"))
+				{
+					stipend_since_login = true;
+				}
+				if (!LLUserAuth::getInstance()->mResult["login-flags"][0]["gendered"].asString().empty() &&
+					 (LLUserAuth::getInstance()->mResult["login-flags"][0]["gendered"].asString() == "Y"))
+				{
+					gAgent.setGenderChosen(TRUE);
+				}
+				if (!LLUserAuth::getInstance()->mResult["login-flags"][0]["daylight_savings"].asString().empty())
+				{
+					gPacificDaylightTime = (LLUserAuth::getInstance()->mResult["login-flags"][0]["daylight_savings"].asString() == "Y");
+				}
+			}
+			
+			// OGPX Note: strips out array that exists in non-OGP path
+			sInitialOutfitGender = LLUserAuth::getInstance()->mResult["initial-outfit"]["gender"].asString();
+			gAgent.setGenderChosen(TRUE); // OGPX TODO: remove this once we start sending back gendered flag
+
+		}
+
+		// XML-RPC successful login path here
+		if (successful_login  && !gSavedSettings.getBOOL("OpenGridProtocol"))
 		{
 			std::string text;
 			text = LLUserAuth::getInstance()->getResponse("udp_blacklist");
@@ -1541,15 +2210,20 @@ bool idle_startup()
 				}
 			}
 
+		}
 
+		// OGPX : successful login path common to OGP and XML-RPC
+		if (successful_login)
+		{
 			// JC: gesture loading done below, when we have an asset system
 			// in place.  Don't delete/clear user_credentials until then.
 
 			if(gAgentID.notNull()
 			   && gAgentSessionID.notNull()
 			   && gMessageSystem->mOurCircuitCode
-			   && first_sim.isOk()
-			   && gAgent.mInventoryRootID.notNull())
+			   && first_sim.isOk())
+			// OGPX : Inventory root might be null in OGP.
+//			   && gAgent.mInventoryRootID.notNull())
 			{
 				LLStartUp::setStartupState( STATE_WORLD_INIT );
 			}
@@ -1980,6 +2654,9 @@ bool idle_startup()
 	//---------------------------------------------------------------------
 	if (STATE_INVENTORY_SEND == LLStartUp::getStartupState())
 	{
+		// Inform simulator of our language preference
+		LLAgentLanguage::update();
+
 		// unpack thin inventory
 		LLUserAuth::options_t options;
 		options.clear();
@@ -2295,9 +2972,6 @@ bool idle_startup()
 		// JC - 7/20/2002
 		gViewerWindow->sendShapeToSim();
 
-		// Inform simulator of our language preference
-		LLAgentLanguage::update();
-
 		
 		// Ignore stipend information for now.  Money history is on the web site.
 		// if needed, show the L$ history window
@@ -2308,7 +2982,7 @@ bool idle_startup()
 		if (!gAgent.isFirstLogin())
 		{
 			bool url_ok = LLURLSimString::sInstance.parse();
-			if (!((agent_start_location == "url" && url_ok) ||
+			if ( (!gSavedSettings.getBOOL("OpenGridProtocol"))&&!((agent_start_location == "url" && url_ok) || // OGPX
                   (!url_ok && ((agent_start_location == "last" && gSavedSettings.getBOOL("LoginLastLocation")) ||
 							   (agent_start_location == "home" && !gSavedSettings.getBOOL("LoginLastLocation"))))))
 			{
@@ -3403,6 +4077,10 @@ void LLStartUp::setStartupState( EStartupState state )
 
 void reset_login()
 {
+	// OGPX : Save URL history file
+	// This needs to be done on login failure because it gets read on *every* login attempt 
+	LLURLHistory::saveFile("url_history.xml");
+
 	LLStartUp::setStartupState( STATE_LOGIN_SHOW );
 
 	if ( gViewerWindow )
@@ -3434,7 +4112,7 @@ void LLStartUp::multimediaInit()
 	set_startup_status(0.42f, msg.c_str(), gAgent.mMOTD.c_str());
 	display_startup();
 
-	LLViewerMedia::initClass();
+	// LLViewerMedia::initClass();
 	LLViewerParcelMedia::initClass();
 }
 
@@ -3443,7 +4121,7 @@ bool LLStartUp::dispatchURL()
 	// ok, if we've gotten this far and have a startup URL
 	if (!sSLURLCommand.empty())
 	{
-		LLWebBrowserCtrl* web = NULL;
+		LLMediaCtrl* web = NULL;
 		const bool trusted_browser = false;
 		LLURLDispatcher::dispatch(sSLURLCommand, web, trusted_browser);
 	}
@@ -3461,7 +4139,7 @@ bool LLStartUp::dispatchURL()
 			|| (dy*dy > SLOP*SLOP) )
 		{
 			std::string url = LLURLSimString::getURL();
-			LLWebBrowserCtrl* web = NULL;
+			LLMediaCtrl* web = NULL;
 			const bool trusted_browser = false;
 			LLURLDispatcher::dispatch(url, web, trusted_browser);
 		}

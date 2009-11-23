@@ -34,7 +34,7 @@
 
 #include "llviewerobject.h"
 
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "imageids.h"
 #include "indra_constants.h"
 #include "llmath.h"
@@ -624,8 +624,8 @@ BOOL LLViewerObject::setDrawableParent(LLDrawable* parentp)
 	
 	BOOL ret = mDrawable->mXform.setParent(parentp ? &parentp->mXform : NULL);
 	gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_VOLUME, TRUE);
-	if(	old_parent != parentp &&
-		old_parent || (parentp && parentp->isActive()))
+	if(	(old_parent != parentp && old_parent)
+		|| (parentp && parentp->isActive()))
 	{
 		// *TODO we should not be relying on setDrawable parent to call markMoved
 		gPipeline.markMoved(mDrawable, FALSE);
@@ -4357,6 +4357,13 @@ void LLViewerObject::setAttachedSound(const LLUUID &audio_uuid, const LLUUID& ow
 	{
 		gAudiop->cleanupAudioSource(mAudioSourcep);
 		mAudioSourcep = NULL;
+	}
+
+	if (mAudioSourcep && mAudioSourcep->isMuted() &&
+	    mAudioSourcep->getCurrentData() && mAudioSourcep->getCurrentData()->getID() == audio_uuid)
+	{
+		//llinfos << "Already having this sound as muted sound, ignoring" << llendl;
+		return;
 	}
 
 	getAudioSource(owner_id);

@@ -55,4 +55,62 @@
 	</text>
 	<check_box label="スクリプト・エラーと警告をチャット同様に表示" name="script_errors_as_chat"/>
 	<color_swatch label="エラー" name="script_error"/>
+	<combo_box name="translate_language_combobox">
+		<combo_item length="1" name="System Default Language" type="string">
+			システム・デフォルト
+		</combo_item>
+		<combo_item length="1" name="English" type="string">
+			English (英語)
+		</combo_item>
+		<combo_item length="1" name="Danish" type="string">
+			Dansk (デンマーク語) – ベータ
+		</combo_item>
+		<combo_item length="1" name="Deutsch(German)" type="string">
+			Deutsch (ドイツ語) – ベータ
+		</combo_item>
+		<combo_item length="1" name="Spanish" type="string">
+			Español (スペイン語) – ベータ
+		</combo_item>
+		<combo_item length="1" name="French" type="string">
+			Français (フランス語) – ベータ
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano （イタリア語） - ベータ
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (ハンガリー語) - ベータ
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands （オランダ語） - ベータ
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (ポーランド語) - ベータ
+		</combo_item>
+		<combo_item length="1" name="Portugese" type="string">
+			Português (ポルトガル語) – ベータ
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (ロシア語) - ベータ
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe （トルコ語） - ベータ
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (ウクライナ語) - ベータ
+		</combo_item>
+		<combo_item length="1" name="Chinese" type="string">
+			中文 (简体) (中国語) - ベータ
+		</combo_item>
+		<combo_item length="1" name="(Japanese)" type="string">
+			日本語 – ベータ
+		</combo_item>
+		<combo_item length="1" name="(Korean)" type="string">
+			한국어 (韓国語) – ベータ
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		チャット言語:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="翻訳チャット">
+	</text>
 </panel>

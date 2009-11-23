@@ -34,8 +34,6 @@
 
 #include "llsliderctrl.h"
 
-#include "audioengine.h"
-
 #include "llmath.h"
 #include "llfontgl.h"
 #include "llgl.h"
@@ -418,6 +416,8 @@ void LLSliderCtrl::reportInvalidData()
 LLXMLNodePtr LLSliderCtrl::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLUICtrl::getXML();
+
+	node->setName(LL_SLIDER_CTRL_TAG);
 
 	node->createChild("show_text", TRUE)->setBoolValue(mShowText);
 

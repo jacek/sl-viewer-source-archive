@@ -2,7 +2,7 @@
 <panel border="true" bottom="-409" enabled="true" follows="left|top|right|bottom"
      height="408" label="General" left="102" mouse_opaque="true"
      name="general_panel" width="517">
-  <radio_group bottom="-45" draw_border="false" follows="left|bottom" height="40" left="151"
+  <radio_group bottom="-45" draw_border="false" follows="left|top" height="40" left="151"
 	     name="default_start_location" width="220">
     <radio_item bottom="-20" height="20" left="0" name="MyHome" width="50"
 		  tool_tip="Log into my home location by default.">
@@ -139,7 +139,7 @@
 		Crash reports:
 	</text>
 	<text type="string" length="1" bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
-	     bottom="-384" drop_shadow_visible="true" enabled="true" follows="left|top"
+	     bottom="-394" drop_shadow_visible="true" enabled="true" follows="left|top"
 	     font="SansSerifSmall" h_pad="0" halign="left" height="18" left="10"
 	     mouse_opaque="true" name="language_textbox" v_pad="0" width="394">
 		Language:
@@ -151,24 +151,8 @@
 	     v_pad="0" width="400">
 		(Requires restart for full effect)
 	</text>
-	<string name="region_name_prompt">
-		&lt;Type region name&gt;
-	</string>
-	<combo_box allow_text_entry="false" bottom="-362" enabled="true" follows="left|top"
-	     height="18" left="153" max_chars="20" mouse_opaque="true"
-	     name="crash_behavior_combobox" width="146">
-		<combo_item type="string" length="1" enabled="true" name="Askbeforesending" value="Ask before sending">
-			Ask before sending
-		</combo_item>
-		<combo_item type="string" length="1" enabled="true" name="Alwayssend" value="Always send">
-			Always send
-		</combo_item>
-		<combo_item type="string" length="1" enabled="true" name="Neversend" value="Never send">
-			Never send
-		</combo_item>
-	</combo_box>
-	<combo_box allow_text_entry="true" bottom="-382" enabled="true"
-	     follows="left|bottom" height="16" left="153" max_chars="135"
+	<combo_box allow_text_entry="true" bottom="-394" enabled="true"
+	     follows="left|top" height="16" left="153" max_chars="135"
 	     mouse_opaque="true" name="language_combobox" width="146">
 		<combo_item type="string" length="1" enabled="true" name="System Default Language" value="default">
 			System Default
@@ -225,7 +209,23 @@
 			한국어 (Korean) - Beta
 		</combo_item>
 	</combo_box>
-	<check_box bottom="-400" enabled="true"
+	<string name="region_name_prompt">
+		&lt;Type region name&gt;
+	</string>
+	<combo_box allow_text_entry="false" bottom="-362" enabled="true" follows="left|top"
+	     height="18" left="153" max_chars="20" mouse_opaque="true"
+	     name="crash_behavior_combobox" width="146">
+		<combo_item type="string" length="1" enabled="true" name="Askbeforesending" value="Ask before sending">
+			Ask before sending
+		</combo_item>
+		<combo_item type="string" length="1" enabled="true" name="Alwayssend" value="Always send">
+			Always send
+		</combo_item>
+		<combo_item type="string" length="1" enabled="true" name="Neversend" value="Never send">
+			Never send
+		</combo_item>
+	</combo_box>
+	<check_box bottom="-415" enabled="true"
 	     follows="left|top" font="SansSerifSmall" height="16" hidden="false"
 	     initial_value="false" label="Share language with objects" left="151"
 	     mouse_opaque="true" name="language_is_public"

@@ -68,5 +68,62 @@
 		脚本错误:
 	</text>
 	<check_box label="以聊天形式显示脚本错误和警告" name="script_errors_as_chat" />
-
+	<combo_box name="translate_language_combobox">
+		<combo_item name="System Default Language">
+			系统默认值
+		</combo_item>
+		<combo_item name="English">
+			English （英语）
+		</combo_item>
+		<combo_item name="Danish">
+			Dansk （丹麦）- 测试版
+		</combo_item>
+		<combo_item name="Deutsch(German)">
+			Deutsch （德语）- 测试版
+		</combo_item>
+		<combo_item name="Spanish">
+			Español （西班牙语）- 测试版
+		</combo_item>
+		<combo_item name="French">
+			Français （法语）- 测试版
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano （意大利语）- 测试版
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar 马札儿语（匈牙利）- 测试版
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands （荷兰语）- 测试版
+		</combo_item>
+		<combo_item name="Polish">
+			Polski （波兰）- 测试版
+		</combo_item>
+		<combo_item name="Portugese">
+			Português （葡萄牙语）- 测试版
+		</combo_item>
+		<combo_item name="Russian">
+			Русский （俄罗斯语）- 测试版
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe （土耳其语）- 测试版
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська （乌克兰语）- 测试版
+		</combo_item>
+		<combo_item name="Chinese">
+			中文 （简体）- 测试版
+		</combo_item>
+		<combo_item name="(Japanese)">
+			日本語 （日语）- 测试版
+		</combo_item>
+		<combo_item name="(Korean)">
+			한국어 （朝鲜语）- 测试版
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		聊天語言:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="翻譯聊天">
+	</text>
 </panel>

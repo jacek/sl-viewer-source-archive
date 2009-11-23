@@ -3,7 +3,6 @@
 project(llui)
 
 include(00-Common)
-include(LLAudio)
 include(LLCommon)
 include(LLImage)
 include(LLMath)
@@ -14,7 +13,6 @@ include(LLVFS)
 include(LLXML)
 
 include_directories(
-    ${LLAUDIO_INCLUDE_DIRS}
     ${LLCOMMON_INCLUDE_DIRS}
     ${LLIMAGE_INCLUDE_DIRS}
     ${LLMATH_INCLUDE_DIRS}
@@ -141,4 +139,14 @@ set_source_files_properties(${llui_HEADER_FILES}
 list(APPEND llui_SOURCE_FILES ${llui_HEADER_FILES})
 
 add_library (llui ${llui_SOURCE_FILES})
-add_dependencies(llui prepare)
+# Libraries on which this library depends, needed for Linux builds
+# Sort by high-level to low-level
+target_link_libraries(llui
+    llrender
+    llwindow
+    llimage
+    llvfs       # ugh, just for LLDir
+    llxml
+    llcommon    # must be after llimage, llwindow, llrender
+    llmath
+    )

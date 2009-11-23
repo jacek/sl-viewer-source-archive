@@ -36,6 +36,26 @@ $/LicenseInfo$
 import sys
 import os.path
 import string
+import getopt, os, re, commands
+
+
+lang_sep={"es":", ",
+          "en-us":", ",
+          "ru":", ",
+          "hu":", ",
+          "pl":", ",
+          "ko":", ",
+          "tr":", ",
+          "it":", ",
+          "da":", ",
+          "pt":", ",
+          "de":", ",
+          "zh":", ",
+          "fr":", ",
+          "ja":"、",
+          "uk":", "}
+
+intro="Snowglobe includes source code contributions of the following residents: "
 
 def add_indra_lib_path():
     root = os.path.realpath(__file__)
@@ -56,13 +76,10 @@ def add_indra_lib_path():
         print >>sys.stderr, "This script is not inside a valid installation."
         sys.exit(1)
 
-add_indra_lib_path()
+src_root = add_indra_lib_path()
 
-import getopt, os, re, commands
 from indra.util import llversion
 
-svn = os.path.expandvars("${SVN}")
-if not svn or svn == "${SVN}": svn = "svn"
 
 def usage():
     print "Usage:"
@@ -96,171 +113,43 @@ in a shell."""
     if text[-1:] == '\n': text = text[:-1]
     return sts, text
 
-contributors=["Able Whitman",
-              "Adam Marker",
-              "Agathos Frascati",
-              "Aimee Trescothick",
-              "Alejandro Rosenthal",
-              "Aleric Inglewood",
-              "Alissa Sabre",
-              "Angus Boyd",
-              "Ann Congrejo",
-              "Argent Stonecutter",
-              "Armin Weatherwax",
-              "Asuka Neely",
-              "Balp Allen",
-              "Benja Kepler",
-              "Biancaluce Robbiani",
-              "Blakar Ogre",
-              "blino Nakamura",
-              "Boroondas Gupte",
-              "Bulli Schumann",
-              "bushing Spatula",
-              "Carjay McGinnis",
-              "Catherine Pfeffer",
-              "Celierra Darling",
-              "Cron Stardust",
-              "Cypren Christenson",
-              "Dale Glass",
-              "Drewan Keats",
-              "Dylan Haskell",
-              "Dzonatas Sol",
-              "Eddy Stryker",
-              "EponymousDylan Ra",
-              "Eva Nowicka",
-              "Farallon Greyskin",
-              "Feep Larsson",
-              "Flemming Congrejo",
-              "Fluf Fredriksson",
-              "Fremont Cunningham",
-              "Geneko Nemeth",
-              "Gigs Taggart",
-              "Ginko Bayliss",
-              "Grazer Kline",
-              "Gudmund Shepherd",
-              "Hamncheese Omlet",
-              "HappySmurf Papp",
-              "Henri Beauchamp",
-              "Hikkoshi Sakai",
-              "Hiro Sommambulist",
-              "Hoze Menges",
-              "Ian Kas",
-              "Irene Muni",
-              "Iskar Ariantho",
-              "Jacek Antonelli",
-              "JB Kraft",
-              "Joghert LeSabre",
-              "Kage Pixel",
-              "Ken March",
-              "Kerutsen Sellery",
-              "Khyota Wulluf",
-              "Kunnis Basiat",
-              "Lisa Lowe",
-              "Lockhart Cordoso",
-              "maciek marksman",
-              "Magnus Balczo",
-              "Malwina Dollinger",
-              "march Korda",
-              "Matthew Dowd",
-              "McCabe Maxsted",
-              "Michelle2 Zenovka",
-              "Mm Alder",
-              "Mr Greggan",
-              "Nicholaz Beresford",
-              "Nounouch Hapmouche",
-              "Patric Mills",
-              "Paul Churchill",
-              "Paula Innis",
-              "Peekay Semyorka",
-              "Peter Lameth",
-              "Pf Shan",
-              "princess niven",
-              "Renault Clio",
-              "Ringo Tuxing",
-              "Robin Cornelius",
-              "Ryozu Kojima",
-              "Salahzar Stenvaag",
-              "Sammy Frederix",
-              "Scrippy Scofield",
-              "Seg Baphomet",
-              "Sergen Davies",
-              "SignpostMarv Martin",
-              "Simon Nolan",
-              "SpacedOut Frye",
-              "Sporked Friis",
-              "Stevex Janus",
-              "Still Defiant",
-              "Strife Onizuka",
-              "Tayra Dagostino",
-              "TBBle Kurosawa",
-              "Teardrops Fall",
-              "Techwolf Lupindo",
-              "tenebrous pau",
-              "Tharax Ferraris",
-              "Thickbrick Sleaford",
-              "Thraxis Epsilon",
-              "tiamat bingyi",
-              "TraductoresAnonimos Alter",
-              "Tue Torok",
-              "Vadim Bigbear",
-              "Vixen Heron",
-              "Whoops Babii",
-              "Wilton Lundquist",
-              "Zarkonnen Decosta",
-              "Zi Ree",
-              "Zipherius Turas"]
+def get_contributors(filename):
+    f = open(filename)
 
-
-lang_sep={"es":", ",
-          "en-us":", ",
-          "ru":", ",
-          "hu":", ",
-          "pl":", ",
-          "ko":", ",
-          "tr":", ",
-          "it":", ",
-          "da":", ",
-          "pt":", ",
-          "de":", ",
-          "zh":", ",
-          "fr":", ",
-          "ja":"、",
-          "uk":", "}
-
-lang_sep={"es":", ",
-          "en-us":", ",
-          "ru":", ",
-          "hu":", ",
-          "pl":", ",
-          "ko":", ",
-          "tr":", ",
-          "it":", ",
-          "da":", ",
-          "pt":", ",
-          "de":", ",
-          "zh":", ",
-          "fr":", ",
-          "ja":"、",
-          "uk":", "}
-
-intro="Snowglobe includes source code contributions of the following residents: "
-
-re_map = {}
-
-#re_map['filename'] = (('pattern', 'replacement'),
-#                      ('pattern', 'replacement')
-
-
-for lang in lang_sep.keys():
-    filename='indra/newview/skins/default/xui/%(lang)s/floater_about.xml' % locals()
-    searchpattern='%(intro)s.*\n' % locals()
-    replacelist=string.join(contributors, lang_sep[lang])
-    replacement='%(intro)s%(replacelist)s\n' % locals()
-    re_map[filename] = [[searchpattern, replacement]]
+    credits={}
+    contributors=[]
+    thisres=''
+    for line in f:
+        m = re.search('^(\S+ +\S+)\s*$', line.strip())
+        if(m):
+            thisres=m.group(1)
+            credits[thisres]=[]
+            contributors.append(thisres)
+        m = re.search('^\s+(\S+\-\d+)\s*$', line)
+        if(m and thisres != ''):
+            credits[thisres].append(m.group(1))
+    return contributors
 
 def main():
-    script_path = os.path.dirname(__file__)
-    src_root = script_path + "/../"
+    global src_root
+    global intro
+    svn = os.path.expandvars("${SVN}")
+    if not svn or svn == "${SVN}": svn = "svn"
+
+    contributors = get_contributors(src_root + "/doc/contributions.txt")
+
+    re_map = {}
+
+    #re_map['filename'] = (('pattern', 'replacement'),
+    #                      ('pattern', 'replacement')
+
+    for lang in lang_sep.keys():
+        filename='indra/newview/skins/default/xui/%(lang)s/floater_about.xml' % locals()
+        searchpattern='%(intro)s.*\n' % {'intro':intro}
+        replacelist=string.join(contributors, lang_sep[lang])
+        replacement='%(intro)s%(replacelist)s\n' % {'intro':intro,'replacelist':replacelist}
+        re_map[filename] = [[searchpattern, replacement]]
+
     verbose = False
 
     opts, args = getopt.getopt(sys.argv[1:],

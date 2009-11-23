@@ -20,7 +20,7 @@
 	     v_pad="0" width="128">
 		Browser cache:
 	</text>
-	<button bottom_delta="-10" enabled="true" follows="left|bottom" font="SansSerif"
+	<button bottom_delta="-1" enabled="true" follows="left|top" font="SansSerif"
 	     halign="center" height="22" label="Clear Now" left="140"
 	     mouse_opaque="true" name="clear_cache" scale_image="true" width="85" />
 	<text type="string" length="1" bg_visible="false" border_drop_shadow_visible="false" border_visible="false"

@@ -45,7 +45,6 @@
 #include "lltextbox.h"
 #include "llkeyboard.h"
 #include "llmath.h"
-#include "audioengine.h"
 #include "llcontrol.h"
 #include "llfocusmgr.h"
 #include "llresmgr.h"
@@ -472,6 +471,8 @@ BOOL LLSpinCtrl::handleKeyHere(KEY key, MASK mask)
 LLXMLNodePtr LLSpinCtrl::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLUICtrl::getXML();
+
+	node->setName(LL_SPIN_CTRL_TAG);
 
 	node->createChild("decimal_digits", TRUE)->setIntValue(mPrecision);
 

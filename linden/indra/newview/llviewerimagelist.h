@@ -129,7 +129,7 @@ public:
 	
 	// Using image stats, determine what images are necessary, and perform image updates.
 	void updateImages(F32 max_time);
-	void forceImmediateUpdate(LLViewerImage* imagep) ;
+	void bumpToMaxDecodePriority(LLViewerImage* imagep) ;
 
 	// Decode and create textures for all images currently in list.
 	void decodeAllImages(F32 max_decode_time); 

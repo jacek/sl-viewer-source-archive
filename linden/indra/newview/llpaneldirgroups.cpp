@@ -35,7 +35,7 @@
 #include "llpaneldirgroups.h"
 #include "llnotifications.h"
 
-#include "llwebbrowserctrl.h"
+#include "llmediactrl.h"
 
 LLPanelDirGroups::LLPanelDirGroups(const std::string& name, LLFloaterDirectory* floater)
 	:	LLPanelDirFind(name, floater, "groups_browser")

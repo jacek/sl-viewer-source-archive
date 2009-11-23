@@ -55,4 +55,38 @@
 	</text>
 	<check_box label="스크립트 오류 및 경고를 일반 채팅으로 표시하기" name="script_errors_as_chat"/>
 	<color_swatch label="오류" name="script_error"/>
+	<combo_box name="translate_language_combobox">
+		<combo_item type="string" length="1" name="System Default Language">
+			시스템 기본값
+		</combo_item>
+		<combo_item type="string" length="1" name="English">
+			English (영어)
+		</combo_item>
+		<combo_item type="string" length="1" name="Chinese">
+			中文 (简体) (중국어) - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="Deutsch(German)">
+			Deutsch (독일어) - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="French">
+			Français (불어) - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="(Japanese)">
+			日本語 (일본어) - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="(Korean)">
+			한국어 - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="Portugese">
+			Português(포르투갈어) - 베타
+		</combo_item>
+		<combo_item type="string" length="1" name="Spanish">
+			Español (스페인어) - 베타
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		채팅 언어:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="채팅 번역기">
+	</text>
 </panel>

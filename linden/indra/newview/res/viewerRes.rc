@@ -74,7 +74,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDI_LL_ICON,IDC_STATIC,7,7,20,20
-    LTEXT           "Loading Snowglobe...",666,36,13,91,8
+    LTEXT           "Loading Second Life...",666,36,13,91,8
 END
 
 
@@ -138,8 +138,8 @@ TOOLMEDIAOPEN           CURSOR                  "toolmediaopen.cur"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,3,0
- PRODUCTVERSION 1,1,3,0
+ FILEVERSION 1,2,4,0
+ PRODUCTVERSION 1,2,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -156,12 +156,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Linden Lab"
             VALUE "FileDescription", "Snowglobe"
-            VALUE "FileVersion", "1.1.3.0"
-            VALUE "InternalName", "Snowglobe"
+            VALUE "FileVersion", "1.2.4.0"
+            VALUE "InternalName", "Second Life"
             VALUE "LegalCopyright", "Copyright © 2001-2009, Linden Research, Inc."
             VALUE "OriginalFilename", "Snowglobe.exe"
             VALUE "ProductName", "Snowglobe"
-            VALUE "ProductVersion", "1.1.3.0"
+            VALUE "ProductVersion", "1.2.4.0"
         END
     END
     BLOCK "VarFileInfo"

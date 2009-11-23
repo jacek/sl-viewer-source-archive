@@ -37,7 +37,7 @@
 
 #include <deque>
 
-#include "audioengine.h" 
+#include "llaudioengine.h" 
 #include "indra_constants.h"
 #include "lscript_byteformat.h"
 #include "mean_collision_data.h"
@@ -135,6 +135,7 @@
 #include "llfloaterworldmap.h"
 #include "llviewerdisplay.h"
 #include "llkeythrottle.h"
+#include "lltranslate.h"
 
 #include <boost/tokenizer.hpp>
 
@@ -942,7 +943,7 @@ void open_offer(const std::vector<LLUUID>& items, const std::string& from_name)
 		LL_DEBUGS("Messaging") << "Highlighting" << item->getUUID()  << LL_ENDL;
 		//highlight item
 
-		LLUICtrl* focus_ctrl = gFocusMgr.getKeyboardFocus();
+		LLFocusableElement* focus_ctrl = gFocusMgr.getKeyboardFocus();
 		view->getPanel()->setSelection(item->getUUID(), TAKE_FOCUS_NO);
 		gFocusMgr.setKeyboardFocus(focus_ctrl);
 	}
@@ -2229,6 +2230,83 @@ void process_decline_callingcard(LLMessageSystem* msg, void**)
 	LLNotifications::instance().add("CallingCardDeclined");
 }
 
+class ChatTranslationReceiver : public LLTranslate::TranslationReceiver
+{
+public :
+	ChatTranslationReceiver(const std::string &fromLang, const std::string &toLang, LLChat *chat, 
+		const BOOL history)
+		: LLTranslate::TranslationReceiver(fromLang, toLang),
+		m_chat(chat),
+		m_history(history)	
+	{
+	}
+
+	static boost::intrusive_ptr<ChatTranslationReceiver> build(const std::string &fromLang, const std::string &toLang, LLChat *chat, const BOOL history)
+	{
+		return boost::intrusive_ptr<ChatTranslationReceiver>(new ChatTranslationReceiver(fromLang, toLang, chat, history));
+	}
+
+protected:
+	void handleResponse(const std::string &translation, const std::string &detectedLanguage)
+	{		
+		if (m_toLang != detectedLanguage)
+			m_chat->mText += " (" + translation + ")";			
+
+		add_floater_chat(*m_chat, m_history);
+
+		delete m_chat;
+	}
+
+	void handleFailure()
+	{
+		LLTranslate::TranslationReceiver::handleFailure();
+
+		m_chat->mText += " (?)";
+
+		add_floater_chat(*m_chat, m_history);
+
+		delete m_chat;
+	}
+
+private:
+	LLChat *m_chat;
+	const BOOL m_history;		
+};
+
+void add_floater_chat(const LLChat &chat, const BOOL history)
+{
+	if (history)
+	{
+		// just add to history
+		LLFloaterChat::addChatHistory(chat);
+	}
+	else
+	{
+		// show on screen and add to history
+		LLFloaterChat::addChat(chat, FALSE, FALSE);
+	}
+}
+
+void check_translate_chat(const std::string &mesg, LLChat &chat, const BOOL history)
+{	
+	const bool translate = LLUI::sConfigGroup->getBOOL("TranslateChat");
+
+	if (translate && chat.mSourceType != CHAT_SOURCE_SYSTEM)
+	{
+		// fromLang hardcoded to "" (autodetection) pending implementation of
+		// SVC-4879
+		const std::string &fromLang = "";
+		const std::string &toLang = LLTranslate::getTranslateLanguage();
+		LLChat *newChat = new LLChat(chat);
+
+		LLHTTPClient::ResponderPtr result = ChatTranslationReceiver::build(fromLang, toLang, newChat, history);
+		LLTranslate::translateMessage(result, fromLang, toLang, mesg);
+	}
+	else
+	{
+		add_floater_chat(chat, history);
+	}
+}
 
 void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 {
@@ -2263,7 +2341,7 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 	chat.mAudible = (EChatAudible)audible_temp;
 	
 	chat.mTime = LLFrameTimer::getElapsedSeconds();
-	
+
 	BOOL is_busy = gAgent.getBusy();
 
 	BOOL is_muted = FALSE;
@@ -2284,7 +2362,8 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 		
 		// Make swirly things only for talking objects. (not script debug messages, though)
 		if (chat.mSourceType == CHAT_SOURCE_OBJECT 
-			&& chat.mChatType != CHAT_TYPE_DEBUG_MSG)
+			&& chat.mChatType != CHAT_TYPE_DEBUG_MSG
+			&& gSavedSettings.getBOOL("EffectScriptChatParticles") )
 		{
 			LLPointer<LLViewerPartSourceChat> psc = new LLViewerPartSourceChat(chatter->getPositionAgent());
 			psc->setSourceObject(chatter);
@@ -2324,13 +2403,10 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 		if (prefix == "/me " || prefix == "/me'")
 		{
 			chat.mText = from_name;
-			chat.mText += mesg.substr(3);
+			mesg = mesg.substr(3);
 			ircstyle = TRUE;
 		}
-		else
-		{
-			chat.mText = mesg;
-		}
+		chat.mText += mesg;
 
 		// Look for the start of typing so we can put "..." in the bubbles.
 		if (CHAT_TYPE_START == chat.mChatType)
@@ -2399,10 +2475,7 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 				break;
 			}
 
-
-			chat.mText = from_name;
-			chat.mText += verb;
-			chat.mText += mesg;
+			chat.mText = from_name + verb + mesg;
 		}
 		
 		if (chatter)
@@ -2429,12 +2502,12 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 			&& (is_linden || !is_busy || is_owned_by_me))
 		{
 			// show on screen and add to history
-			LLFloaterChat::addChat(chat, FALSE, FALSE);
+			check_translate_chat(mesg, chat, FALSE);
 		}
 		else
 		{
 			// just add to chat history
-			LLFloaterChat::addChatHistory(chat);
+			check_translate_chat(mesg, chat, TRUE);
 		}
 	}
 }
@@ -2636,6 +2709,19 @@ void process_teleport_finish(LLMessageSystem* msg, void**)
 	effectp->setColor(LLColor4U(gAgent.getEffectColor()));
 	LLHUDManager::getInstance()->sendEffects();
 
+	// OGPX : when using agent domain, we get tp finish with ip of 0.0.0.0 and port 0. 
+	//    try bailing out early if tp state is PLACE_AVATAR (so legacy should still execute rest of this path)
+	//    not really wild about this, but it's a way to test if we can get TP working w/o receiving TP finish
+	//    TODO: can be removed *when* agent domain no longer sends tp finish
+	//
+    // OGPX TODO: see if we can nuke TELEPORT_PLACE_AVATAR state once TeleportFinish is 
+	//    completely removed from all SL and OS region code
+
+	if (gAgent.getTeleportState() == LLAgent::TELEPORT_PLACE_AVATAR )
+	{
+		llinfos << "Got teleport location message when doing agentd TP" << llendl;
+		return;
+	}
 	U32 location_id;
 	U32 sim_ip;
 	U16 sim_port;
@@ -2802,8 +2888,10 @@ void process_agent_movement_complete(LLMessageSystem* msg, void**)
 	gCacheName->setUpstream(msg->getSender());
 	gViewerThrottle.sendToSim();
 	gViewerWindow->sendShapeToSim();
-
-	bool is_teleport = gAgent.getTeleportState() == LLAgent::TELEPORT_MOVING;
+	// if this is an AgentMovementComplete message that happened as the result of a teleport,
+	// then we need to do things like chat the URL and reset the camera.
+	bool is_teleport = (gAgent.getTeleportState() & (LLAgent::TELEPORT_MOVING | LLAgent::TELEPORT_PLACE_AVATAR)); //OGPX
+	llinfos << " is_teleport =" << is_teleport << llendl;
 
 	if( is_teleport )
 	{
@@ -2829,6 +2917,11 @@ void process_agent_movement_complete(LLMessageSystem* msg, void**)
 			avatarp->setPositionAgent(agent_pos);
 			avatarp->clearChat();
 			avatarp->slamPosition();
+		}
+		// OGPX TODO: remove all usage of TELEPORT_PLACE_AVATAR state once Teleport UDP sequence finalized
+		if ( gAgent.getTeleportState() == LLAgent::TELEPORT_PLACE_AVATAR ) // unset TP state, agent domain is done. OGPX
+		{
+			gAgent.setTeleportState( LLAgent::TELEPORT_NONE );
 		}
 	}
 	else
@@ -3427,13 +3520,11 @@ void process_preload_sound(LLMessageSystem *msg, void **user_data)
 
 	// Don't play sounds from a region with maturity above current agent maturity
 	LLVector3d pos_global = objectp->getPositionGlobal();
-	if( !gAgent.canAccessMaturityAtGlobal( pos_global ) )
+	if (gAgent.canAccessMaturityAtGlobal(pos_global))
 	{
-		return;
+		// Add audioData starts a transfer internally.
+		sourcep->addAudioData(datap, FALSE);
 	}
-	
-	// Add audioData starts a transfer internally.
-	sourcep->addAudioData(datap, FALSE);
 }
 
 void process_attached_sound(LLMessageSystem *msg, void **user_data)
@@ -4384,11 +4475,11 @@ void mean_name_callback(const LLUUID &id, const std::string& first, const std::s
 		return;
 	}
 
-	static const int max_collision_list_size = 20;
+	static const U32 max_collision_list_size = 20;
 	if (gMeanCollisionList.size() > max_collision_list_size)
 	{
 		mean_collision_list_t::iterator iter = gMeanCollisionList.begin();
-		for (S32 i=0; i<max_collision_list_size; i++) iter++;
+		for (U32 i=0; i<max_collision_list_size; i++) iter++;
 		for_each(iter, gMeanCollisionList.end(), DeletePointer());
 		gMeanCollisionList.erase(iter, gMeanCollisionList.end());
 	}

@@ -1378,3 +1378,4 @@ char* _PREHASH_VCoord = LLMessageStringTable::getInstance()->getString("VCoord")
 char* _PREHASH_FaceIndex = LLMessageStringTable::getInstance()->getString("FaceIndex");
 char* _PREHASH_StatusData = LLMessageStringTable::getInstance()->getString("StatusData");
 char* _PREHASH_ProductSKU = LLMessageStringTable::getInstance()->getString("ProductSKU");
+char* _PREHASH_Language = LLMessageStringTable::getInstance()->getString("Language");

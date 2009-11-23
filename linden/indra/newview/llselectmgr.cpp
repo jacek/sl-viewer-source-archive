@@ -59,6 +59,7 @@
 #include "llfloaterreporter.h"
 #include "llfloatertools.h"
 #include "llframetimer.h"
+#include "llfocusmgr.h"
 #include "llhudeffecttrail.h"
 #include "llhudmanager.h"
 #include "llinventorymodel.h"
@@ -74,6 +75,8 @@
 #include "llviewercamera.h"
 #include "llviewercontrol.h"
 #include "llviewerimagelist.h"
+#include "llviewermedia.h"
+#include "llviewermediafocus.h"
 #include "llviewermenu.h"
 #include "llviewerobject.h"
 #include "llviewerobjectlist.h"
@@ -770,7 +773,7 @@ void LLSelectMgr::addAsIndividual(LLViewerObject *objectp, S32 face, BOOL undoab
 }
 
 
-LLObjectSelectionHandle LLSelectMgr::setHoverObject(LLViewerObject *objectp)
+LLObjectSelectionHandle LLSelectMgr::setHoverObject(LLViewerObject *objectp, S32 face)
 {
 	// Always blitz hover list when setting
 	mHoverObjects->deleteAllNodes();
@@ -802,6 +805,7 @@ LLObjectSelectionHandle LLSelectMgr::setHoverObject(LLViewerObject *objectp)
 	{
 		LLViewerObject* cur_objectp = *iter;
 		LLSelectNode* nodep = new LLSelectNode(cur_objectp, FALSE);
+		nodep->selectTE(face, TRUE);
 		mHoverObjects->addNodeAtEnd(nodep);
 	}
 
@@ -4567,54 +4571,7 @@ void LLSelectMgr::updateSilhouettes()
 	
 	std::vector<LLViewerObject*> changed_objects;
 
-	if (mSelectedObjects->getNumNodes())
-	{
-		//gGLSPipelineSelection.set();
-
-		//mSilhouetteImagep->bindTexture();
-		//glAlphaFunc(GL_GREATER, sHighlightAlphaTest);
-
-		for (S32 pass = 0; pass < 2; pass++)
-		{
-			for (LLObjectSelection::iterator iter = mSelectedObjects->begin();
-				 iter != mSelectedObjects->end(); iter++)
-			{
-				LLSelectNode* node = *iter;
-				LLViewerObject* objectp = node->getObject();
-				if (!objectp)
-					continue;
-				// do roots first, then children so that root flags are cleared ASAP
-				BOOL roots_only = (pass == 0);
-				BOOL is_root = (objectp->isRootEdit());
-				if (roots_only != is_root || objectp->mDrawable.isNull())
-				{
-					continue;
-				}
-
-				if (!node->mSilhouetteExists 
-					|| objectp->isChanged(LLXform::SILHOUETTE)
-					|| (objectp->getParent() && objectp->getParent()->isChanged(LLXform::SILHOUETTE)))
-				{
-					if (num_sils_genned++ < MAX_SILS_PER_FRAME)// && objectp->mDrawable->isVisible())
-					{
-						generateSilhouette(node, LLViewerCamera::getInstance()->getOrigin());
-						changed_objects.push_back(objectp);
-					}
-					else if (objectp->isAttachment())
-					{
-						//RN: hack for orthogonal projection of HUD attachments
-						LLViewerJointAttachment* attachment_pt = (LLViewerJointAttachment*)objectp->getRootEdit()->mDrawable->getParent();
-						if (attachment_pt && attachment_pt->getIsHUDAttachment())
-						{
-							LLVector3 camera_pos = LLVector3(-10000.f, 0.f, 0.f);
-							generateSilhouette(node, camera_pos);
-						}
-					}
-				}
-			}
-		}
-	}
-
+	updateSelectionSilhouette(mSelectedObjects, num_sils_genned, changed_objects);
 	if (mRectSelectedObjects.size() > 0)
 	{
 		//gGLSPipelineSelection.set();
@@ -4808,6 +4765,56 @@ void LLSelectMgr::updateSilhouettes()
 	//gGL.setAlphaRejectSettings(LLRender::CF_DEFAULT);
 }
 
+void LLSelectMgr::updateSelectionSilhouette(LLObjectSelectionHandle object_handle, S32& num_sils_genned, std::vector<LLViewerObject*>& changed_objects)
+{
+	if (object_handle->getNumNodes())
+	{
+		//gGLSPipelineSelection.set();
+
+		//mSilhouetteImagep->bindTexture();
+		//glAlphaFunc(GL_GREATER, sHighlightAlphaTest);
+
+		for (S32 pass = 0; pass < 2; pass++)
+		{
+			for (LLObjectSelection::iterator iter = object_handle->begin();
+				iter != object_handle->end(); iter++)
+			{
+				LLSelectNode* node = *iter;
+				LLViewerObject* objectp = node->getObject();
+				if (!objectp)
+					continue;
+				// do roots first, then children so that root flags are cleared ASAP
+				BOOL roots_only = (pass == 0);
+				BOOL is_root = (objectp->isRootEdit());
+				if (roots_only != is_root || objectp->mDrawable.isNull())
+				{
+					continue;
+				}
+
+				if (!node->mSilhouetteExists 
+					|| objectp->isChanged(LLXform::SILHOUETTE)
+					|| (objectp->getParent() && objectp->getParent()->isChanged(LLXform::SILHOUETTE)))
+				{
+					if (num_sils_genned++ < MAX_SILS_PER_FRAME)// && objectp->mDrawable->isVisible())
+					{
+						generateSilhouette(node, LLViewerCamera::getInstance()->getOrigin());
+						changed_objects.push_back(objectp);
+					}
+					else if (objectp->isAttachment())
+					{
+						//RN: hack for orthogonal projection of HUD attachments
+						LLViewerJointAttachment* attachment_pt = (LLViewerJointAttachment*)objectp->getRootEdit()->mDrawable->getParent();
+						if (attachment_pt && attachment_pt->getIsHUDAttachment())
+						{
+							LLVector3 camera_pos = LLVector3(-10000.f, 0.f, 0.f);
+							generateSilhouette(node, camera_pos);
+						}
+					}
+				}
+			}
+		}
+	}
+}
 void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 {
 	if (!mRenderSilhouettes || !LLSelectMgr::sRenderSelectionHighlights)
@@ -4845,7 +4852,7 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 	if (mSelectedObjects->getNumNodes())
 	{
 		LLUUID inspect_item_id = LLFloaterInspect::getSelectedUUID();
-		
+		LLUUID focus_item_id = LLViewerMediaFocus::getInstance()->getSelectedUUID();
 		for (S32 pass = 0; pass < 2; pass++)
 		{
 			for (LLObjectSelection::iterator iter = mSelectedObjects->begin();
@@ -4859,7 +4866,11 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 				{
 					continue;
 				}
-				if(objectp->getID() == inspect_item_id)
+				if (objectp->getID() == focus_item_id)
+				{
+					node->renderOneSilhouette(gFocusMgr.getFocusColor());
+				}
+				else if(objectp->getID() == inspect_item_id)
 				{
 					node->renderOneSilhouette(sHighlightInspectColor);
 				}
@@ -4941,32 +4952,29 @@ void LLSelectMgr::generateSilhouette(LLSelectNode* nodep, const LLVector3& view_
 // Utility classes
 //
 LLSelectNode::LLSelectNode(LLViewerObject* object, BOOL glow)
+:	mObject(object),
+	mIndividualSelection(FALSE),
+	mTransient(FALSE),
+	mValid(FALSE),
+	mPermissions(new LLPermissions()),
+	mInventorySerial(0),
+	mSilhouetteExists(FALSE),
+	mDuplicated(FALSE),
+	mTESelectMask(0),
+	mLastTESelected(0),
+	mName(LLStringUtil::null),
+	mDescription(LLStringUtil::null),
+	mTouchName(LLStringUtil::null),
+	mSitName(LLStringUtil::null),
+	mCreationDate(0)
 {
-	mObject = object;
 	selectAllTEs(FALSE);
-	mIndividualSelection	= FALSE;
-	mTransient		= FALSE;
-	mValid			= FALSE;
-	mPermissions	= new LLPermissions();
-	mInventorySerial = 0;
-	mName = LLStringUtil::null;
-	mDescription = LLStringUtil::null;
-	mTouchName = LLStringUtil::null;
-	mSitName = LLStringUtil::null;
-	mSilhouetteExists = FALSE;
-	mDuplicated = FALSE;
-	mCreationDate = 0;
-
 	saveColors();
 }
 
 LLSelectNode::LLSelectNode(const LLSelectNode& nodep)
 {
-	S32 i;
-	for (i = 0; i < SELECT_MAX_TES; i++)
-	{
-		mTESelected[i] = nodep.mTESelected[i];
-	}
+	mTESelectMask = nodep.mTESelectMask;
 	mLastTESelected = nodep.mLastTESelected;
 
 	mIndividualSelection = nodep.mIndividualSelection;
@@ -5019,10 +5027,7 @@ LLSelectNode::~LLSelectNode()
 
 void LLSelectNode::selectAllTEs(BOOL b)
 {
-	for (S32 i = 0; i < SELECT_MAX_TES; i++)
-	{
-		mTESelected[i] = b;
-	}
+	mTESelectMask = b ? 0xFFFFFFFF : 0x0;
 	mLastTESelected = 0;
 }
 
@@ -5032,7 +5037,14 @@ void LLSelectNode::selectTE(S32 te_index, BOOL selected)
 	{
 		return;
 	}
-	mTESelected[te_index] = selected;
+	if (selected)
+	{
+		mTESelectMask |= (0x1 << te_index);
+	}
+	else
+	{
+		mTESelectMask &= ~(0x1 << te_index);
+	}
 	mLastTESelected = te_index;
 }
 
@@ -5042,7 +5054,7 @@ BOOL LLSelectNode::isTESelected(S32 te_index)
 	{
 		return FALSE;
 	}
-	return mTESelected[te_index];
+	return (mTESelectMask & (0x1 << te_index)) != 0;
 }
 
 S32 LLSelectNode::getLastSelectedTE()

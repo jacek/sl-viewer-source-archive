@@ -455,7 +455,8 @@ LLInventoryView::LLInventoryView(const std::string& name,
 								 LLInventoryModel* inventory) :
 	LLFloater(name, rect, std::string("Inventory"), RESIZE_YES,
 			  INV_MIN_WIDTH, INV_MIN_HEIGHT, DRAG_ON_TOP,
-			  MINIMIZE_NO, CLOSE_YES)
+			  MINIMIZE_NO, CLOSE_YES),
+	mActivePanel(NULL)
 	//LLHandle<LLFloater> mFinderHandle takes care of its own initialization
 {
 	init(inventory);
@@ -466,7 +467,8 @@ LLInventoryView::LLInventoryView(const std::string& name,
 								 LLInventoryModel* inventory) :
 	LLFloater(name, rect, std::string("Inventory"), RESIZE_YES,
 			  INV_MIN_WIDTH, INV_MIN_HEIGHT, DRAG_ON_TOP,
-			  MINIMIZE_NO, CLOSE_YES)
+			  MINIMIZE_NO, CLOSE_YES),
+	mActivePanel(NULL)
 	//LLHandle<LLFloater> mFinderHandle takes care of its own initialization
 {
 	init(inventory);
@@ -480,16 +482,12 @@ void LLInventoryView::init(LLInventoryModel* inventory)
 	init_inventory_actions(this);
 
 	// Controls
-	U32 sort_order = gSavedSettings.getU32("InventorySortOrder");
-	BOOL sort_by_name = ! ( sort_order & LLInventoryFilter::SO_DATE );
-	BOOL sort_folders_by_name = ( sort_order & LLInventoryFilter::SO_FOLDERS_BY_NAME );
-	BOOL sort_system_folders_to_top = ( sort_order & LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP );
-
 	addBoolControl("Inventory.ShowFilters", FALSE);
-	addBoolControl("Inventory.SortByName", sort_by_name );
-	addBoolControl("Inventory.SortByDate", ! sort_by_name );
-	addBoolControl("Inventory.FoldersAlwaysByName", sort_folders_by_name );
-	addBoolControl("Inventory.SystemFoldersToTop", sort_system_folders_to_top );
+	addBoolControl("Inventory.SortByName", FALSE);
+	addBoolControl("Inventory.SortByDate", TRUE);
+	addBoolControl("Inventory.FoldersAlwaysByName", TRUE);
+	addBoolControl("Inventory.SystemFoldersToTop", TRUE);
+	updateSortControls();
 
 	mSavedFolderState = new LLSaveFolderState();
 	mSavedFolderState->setApply(FALSE);
@@ -503,7 +501,7 @@ void LLInventoryView::init(LLInventoryModel* inventory)
 	if (mActivePanel)
 	{
 		// "All Items" is the previous only view, so it gets the InventorySortOrder
-		mActivePanel->setSortOrder(gSavedSettings.getU32("InventorySortOrder"));
+		mActivePanel->setSortOrder(gSavedSettings.getU32(LLInventoryPanel::DEFAULT_SORT_ORDER));
 		mActivePanel->getFilter()->markDefault();
 		mActivePanel->getRootFolder()->applyFunctorRecursively(*mSavedFolderState);
 		mActivePanel->setSelectCallback(onSelectionChange, mActivePanel);
@@ -512,25 +510,34 @@ void LLInventoryView::init(LLInventoryModel* inventory)
 	if (recent_items_panel)
 	{
 		recent_items_panel->setSinceLogoff(TRUE);
-		recent_items_panel->setSortOrder(LLInventoryFilter::SO_DATE);
+		recent_items_panel->setSortOrder(gSavedSettings.getU32(LLInventoryPanel::RECENTITEMS_SORT_ORDER));
 		recent_items_panel->setShowFolderState(LLInventoryFilter::SHOW_NON_EMPTY_FOLDERS);
 		recent_items_panel->getFilter()->markDefault();
 		recent_items_panel->setSelectCallback(onSelectionChange, recent_items_panel);
+	}
+	LLInventoryPanel* worn_items_panel = getChild<LLInventoryPanel>("Worn Items");
+	if (worn_items_panel)
+	{
+		worn_items_panel->setSortOrder(gSavedSettings.getU32(LLInventoryPanel::WORNITEMS_SORT_ORDER));
+		worn_items_panel->setShowFolderState(LLInventoryFilter::SHOW_NON_EMPTY_FOLDERS);
+		worn_items_panel->getFilter()->markDefault();
+		worn_items_panel->setFilterWorn(true);
+		worn_items_panel->setSelectCallback(onSelectionChange, worn_items_panel);
 	}
 
 	// Now load the stored settings from disk, if available.
 	std::ostringstream filterSaveName;
 	filterSaveName << gDirUtilp->getExpandedFilename(LL_PATH_PER_SL_ACCOUNT, "filters.xml");
 	llinfos << "LLInventoryView::init: reading from " << filterSaveName << llendl;
-    llifstream file(filterSaveName.str());
+	llifstream file(filterSaveName.str());
 	LLSD savedFilterState;
-    if (file.is_open())
-    {
-        LLSDSerialize::fromXML(savedFilterState, file);
+	if (file.is_open())
+	{
+		LLSDSerialize::fromXML(savedFilterState, file);
 		file.close();
 
 		// Load the persistent "Recent Items" settings.
-		// Note that the "All Items" settings do not persist.
+		// Note that the "All Items" and "Worn Items" settings do not persist per-account.
 		if(recent_items_panel)
 		{
 			if(savedFilterState.has(recent_items_panel->getFilter()->getName()))
@@ -540,8 +547,7 @@ void LLInventoryView::init(LLInventoryModel* inventory)
 				recent_items_panel->getFilter()->fromLLSD(recent_items);
 			}
 		}
-
-    }
+	}
 
 
 	mSearchEditor = getChild<LLSearchEditor>("inventory search editor");
@@ -559,6 +565,7 @@ BOOL LLInventoryView::postBuild()
 {
 	childSetTabChangeCallback("inventory filter tabs", "All Items", onFilterSelected, this);
 	childSetTabChangeCallback("inventory filter tabs", "Recent Items", onFilterSelected, this);
+	childSetTabChangeCallback("inventory filter tabs", "Worn Items", onFilterSelected, this);
 	//panel->getFilter()->markDefault();
 	return TRUE;
 }
@@ -581,6 +588,15 @@ LLInventoryView::~LLInventoryView( void )
 	if (recent_items_panel)
 	{
 		LLInventoryFilter* filter = recent_items_panel->getFilter();
+		LLSD filterState;
+		filter->toLLSD(filterState);
+		filterRoot[filter->getName()] = filterState;
+	}
+	
+	LLInventoryPanel* worn_items_panel = getChild<LLInventoryPanel>("Worn Items");
+	if (worn_items_panel)
+	{
+		LLInventoryFilter* filter = worn_items_panel->getFilter();
 		LLSD filterState;
 		filter->toLLSD(filterState);
 		filterRoot[filter->getName()] = filterState;
@@ -908,6 +924,19 @@ void LLInventoryView::toggleFindOptions()
 	}
 }
 
+void LLInventoryView::updateSortControls()
+{
+	U32 order = mActivePanel ? mActivePanel->getSortOrder() : gSavedSettings.getU32("InventorySortOrder");
+	bool sort_by_date = order & LLInventoryFilter::SO_DATE;
+	bool folders_by_name = order & LLInventoryFilter::SO_FOLDERS_BY_NAME;
+	bool sys_folders_on_top = order & LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP;
+
+	getControl("Inventory.SortByDate")->setValue(sort_by_date);
+	getControl("Inventory.SortByName")->setValue(!sort_by_date);
+	getControl("Inventory.FoldersAlwaysByName")->setValue(folders_by_name);
+	getControl("Inventory.SystemFoldersToTop")->setValue(sys_folders_on_top);
+}
+
 // static
 BOOL LLInventoryView::filtersVisible(void* user_data)
 {
@@ -1042,6 +1071,7 @@ void LLInventoryView::onFilterSelected(void* userdata, bool from_click)
 		gInventory.startBackgroundFetch();
 	}
 	self->setFilterTextFromFilter();
+	self->updateSortControls();
 }
 
 // static
@@ -1212,6 +1242,7 @@ LLUIImagePtr get_item_icon(LLAssetType::EType asset_type,
 
 const std::string LLInventoryPanel::DEFAULT_SORT_ORDER = std::string("InventorySortOrder");
 const std::string LLInventoryPanel::RECENTITEMS_SORT_ORDER = std::string("RecentItemsSortOrder");
+const std::string LLInventoryPanel::WORNITEMS_SORT_ORDER = std::string("WornItemsSortOrder");
 const std::string LLInventoryPanel::INHERIT_SORT_ORDER = std::string("");
 
 LLInventoryPanel::LLInventoryPanel(const std::string& name,
@@ -1298,6 +1329,8 @@ LLXMLNodePtr LLInventoryPanel::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLPanel::getXML(false); // Do not print out children
 
+	node->setName(LL_INVENTORY_PANEL_TAG);
+
 	node->createChild("allow_multi_select", TRUE)->setBoolValue(mFolders->getAllowMultiSelect());
 
 	return node;
@@ -1353,6 +1386,11 @@ void LLInventoryPanel::setFilterPermMask(PermissionMask filter_perm_mask)
 void LLInventoryPanel::setFilterSubString(const std::string& string)
 {
 	mFolders->getFilter()->setFilterSubString(string);
+}
+
+void LLInventoryPanel::setFilterWorn(bool worn)
+{
+	mFolders->getFilter()->setFilterWorn(worn);
 }
 
 void LLInventoryPanel::setSortOrder(U32 order)

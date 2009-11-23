@@ -76,6 +76,15 @@
 #include "llweb.h"
 #include "llstylemap.h"
 
+// linden library includes
+#include "llaudioengine.h"
+#include "llchat.h"
+#include "llfontgl.h"
+#include "llrect.h"
+#include "llerror.h"
+#include "llstring.h"
+#include "llwindow.h"
+#include "message.h"
 
 //
 // Global statics
@@ -97,6 +106,8 @@ LLFloaterChat::LLFloaterChat(const LLSD& seed)
 	LLUICtrlFactory::getInstance()->buildFloater(this,"floater_chat_history.xml",&getFactoryMap(),no_open);
 
 	childSetCommitCallback("show mutes",onClickToggleShowMute,this); //show mutes
+	childSetCommitCallback("translate chat",onClickToggleTranslateChat,this);
+	childSetValue("translate chat", gSavedSettings.getBOOL("TranslateChat"));
 	childSetVisible("Chat History Editor with mute",FALSE);
 	childSetAction("toggle_active_speakers_btn", onClickToggleActiveSpeakers, this);
 	setDefaultBtn("Chat");
@@ -347,6 +358,26 @@ void LLFloaterChat::onClickToggleShowMute(LLUICtrl* caller, void *data)
 	}
 }
 
+// Update the "TranslateChat" pref after "translate chat" checkbox is toggled in
+// the "Local Chat" floater.
+//static
+void LLFloaterChat::onClickToggleTranslateChat(LLUICtrl* caller, void *data)
+{
+	LLFloaterChat* floater = (LLFloaterChat*)data;
+
+	BOOL translate_chat = floater->getChild<LLCheckBoxCtrl>("translate chat")->get();
+	gSavedSettings.setBOOL("TranslateChat", translate_chat);
+}
+
+// Update the "translate chat" checkbox after the "TranslateChat" pref is set in
+// some other place (e.g. prefs dialog).
+//static
+void LLFloaterChat::updateSettings()
+{
+	BOOL translate_chat = gSavedSettings.getBOOL("TranslateChat");
+	LLFloaterChat::getInstance(LLSD())->getChild<LLCheckBoxCtrl>("translate chat")->set(translate_chat);
+}
+
 // Put a line of chat in all the right places
 void LLFloaterChat::addChat(const LLChat& chat, 
 			  BOOL from_instant_message, 
@@ -398,11 +429,52 @@ void LLFloaterChat::addChat(const LLChat& chat,
 	if(from_instant_message && gSavedSettings.getBOOL("IMInChatHistory")) 	 
 		addChatHistory(chat,false);
 
-	LLTextParser* highlight = LLTextParser::getInstance();
-	highlight->triggerAlerts(gAgent.getID(), gAgent.getPositionGlobal(), chat.mText, gViewerWindow->getWindow());
+	triggerAlerts(chat.mText);
 
 	if(!from_instant_message)
 		addChatHistory(chat);
+}
+
+// Moved from lltextparser.cpp to break llui/llaudio library dependency.
+//static
+void LLFloaterChat::triggerAlerts(const std::string& text)
+{
+	LLTextParser* parser = LLTextParser::getInstance();
+//    bool spoken=FALSE;
+	for (S32 i=0;i<parser->mHighlights.size();i++)
+	{
+		LLSD& highlight = parser->mHighlights[i];
+		if (parser->findPattern(text,highlight) >= 0 )
+		{
+			if(gAudiop)
+			{
+				if ((std::string)highlight["sound_lluuid"] != LLUUID::null.asString())
+				{
+					gAudiop->triggerSound(highlight["sound_lluuid"].asUUID(), 
+						gAgent.getID(),
+						1.f,
+						LLAudioEngine::AUDIO_TYPE_UI,
+						gAgent.getPositionGlobal() );
+				}
+/*				
+				if (!spoken) 
+				{
+					LLTextToSpeech* text_to_speech = NULL;
+					text_to_speech = LLTextToSpeech::getInstance();
+					spoken = text_to_speech->speak((LLString)highlight["voice"],text); 
+				}
+ */
+			}
+			if (highlight["flash"])
+			{
+				LLWindow* viewer_window = gViewerWindow->getWindow();
+				if (viewer_window && viewer_window->getMinimized())
+				{
+					viewer_window->flashIcon(5.f);
+				}
+			}
+		}
+	}
 }
 
 LLColor4 get_text_color(const LLChat& chat)

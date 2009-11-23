@@ -108,6 +108,13 @@ public:
     void loadNameCache();
     void saveNameCache();
 
+	// OGPX : rez_avatar/place cap is used on both initial login, and 
+	// ... then on teleports as well. The same cap should be good for the
+	// ... life of the connection to an agent domain. This cap is used by the viewer
+	// ... to request moving an agent between regions. 
+	void setPlaceAvatarCap(const std::string& uri);	// OGPX TODO: this should be refactored into own class that handles caps
+	const std::string& getPlaceAvatarCap() const;	// OGPX TODO: ...as above...
+
 	void removeMarkerFile(bool leave_logout_marker = false);
 	
     // LLAppViewer testing helpers.

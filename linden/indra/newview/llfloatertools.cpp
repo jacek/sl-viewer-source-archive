@@ -790,11 +790,22 @@ void LLFloaterTools::onClose(bool app_quitting)
 	mParcelSelection = NULL;
 	mObjectSelection = NULL;
 
-	// Switch back to basic toolset
-	LLToolMgr::getInstance()->setCurrentToolset(gBasicToolset);
-	// we were already in basic toolset, using build tools
-	// so manually reset tool to default (pie menu tool)
-	LLToolMgr::getInstance()->getCurrentToolset()->selectFirstTool();
+	if (!gAgent.cameraMouselook())
+	{
+		// Switch back to basic toolset
+		LLToolMgr::getInstance()->setCurrentToolset(gBasicToolset);
+		// we were already in basic toolset, using build tools
+		// so manually reset tool to default (pie menu tool)
+		LLToolMgr::getInstance()->getCurrentToolset()->selectFirstTool();
+	}
+	else 
+	{
+		// Switch back to mouselook toolset
+		LLToolMgr::getInstance()->setCurrentToolset(gMouselookToolset);
+
+		gViewerWindow->hideCursor();
+		gViewerWindow->moveCursorToCenter();
+	}
 
 	// gMenuBarView->setItemVisible(std::string("Tools"), FALSE);
 	// gMenuBarView->arrange();

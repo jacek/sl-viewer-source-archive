@@ -472,57 +472,40 @@ class LLSetSortBy : public inventory_listener_t
 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
 	{
 		std::string sort_field = userdata.asString();
+		U32 order = mPtr->getActivePanel()->getSortOrder();
 		if (sort_field == "name")
 		{
-			U32 order = mPtr->getActivePanel()->getSortOrder();
-			mPtr->getActivePanel()->setSortOrder( order & ~LLInventoryFilter::SO_DATE );
-			
-			mPtr->getControl("Inventory.SortByName")->setValue( TRUE );
-			mPtr->getControl("Inventory.SortByDate")->setValue( FALSE );
+			order &= ~LLInventoryFilter::SO_DATE;
 		}
 		else if (sort_field == "date")
 		{
-			U32 order = mPtr->getActivePanel()->getSortOrder();
-			mPtr->getActivePanel()->setSortOrder( order | LLInventoryFilter::SO_DATE );
-
-			mPtr->getControl("Inventory.SortByName")->setValue( FALSE );
-			mPtr->getControl("Inventory.SortByDate")->setValue( TRUE );
+			order |= LLInventoryFilter::SO_DATE;
 		}
 		else if (sort_field == "foldersalwaysbyname")
 		{
-			U32 order = mPtr->getActivePanel()->getSortOrder();
-			if ( order & LLInventoryFilter::SO_FOLDERS_BY_NAME )
+			if (order & LLInventoryFilter::SO_FOLDERS_BY_NAME)
 			{
 				order &= ~LLInventoryFilter::SO_FOLDERS_BY_NAME;
-
-				mPtr->getControl("Inventory.FoldersAlwaysByName")->setValue( FALSE );
 			}
 			else
 			{
 				order |= LLInventoryFilter::SO_FOLDERS_BY_NAME;
-
-				mPtr->getControl("Inventory.FoldersAlwaysByName")->setValue( TRUE );
 			}
-			mPtr->getActivePanel()->setSortOrder( order );
 		}
 		else if (sort_field == "systemfolderstotop")
 		{
-			U32 order = mPtr->getActivePanel()->getSortOrder();
-			if ( order & LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP )
+			if (order & LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP)
 			{
 				order &= ~LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP;
-
-				mPtr->getControl("Inventory.SystemFoldersToTop")->setValue( FALSE );
 			}
 			else
 			{
 				order |= LLInventoryFilter::SO_SYSTEM_FOLDERS_TO_TOP;
-
-				mPtr->getControl("Inventory.SystemFoldersToTop")->setValue( TRUE );
 			}
-			mPtr->getActivePanel()->setSortOrder( order );
 		}
-
+		mPtr->getActivePanel()->setSortOrder(order);
+		mPtr->updateSortControls();
+	
 		return true;
 	}
 };

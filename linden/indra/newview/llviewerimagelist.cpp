@@ -573,7 +573,7 @@ void LLViewerImageList::updateImages(F32 max_time)
 	llpushcallstacks ;
 	if (!gNoRender && !gGLManager.mIsDisabled)
 	{
-		LLViewerMedia::updateImagesMediaStreams();
+		LLViewerMedia::updateMedia();
 	}
 	llpushcallstacks ;
 	updateImagesUpdateStats();
@@ -719,7 +719,7 @@ F32 LLViewerImageList::updateImagesCreateTextures(F32 max_time)
 	return create_timer.getElapsedTimeF32();
 }
 
-void LLViewerImageList::forceImmediateUpdate(LLViewerImage* imagep)
+void LLViewerImageList::bumpToMaxDecodePriority(LLViewerImage* imagep)
 {
 	if(!imagep)
 	{
@@ -727,6 +727,11 @@ void LLViewerImageList::forceImmediateUpdate(LLViewerImage* imagep)
 	}
 	if(imagep->mInImageList)
 	{
+		if (imagep->getDecodePriority() == LLViewerImage::maxDecodePriority())
+		{
+			// Already at maximum.
+		  	return;
+		}
 		removeImageFromList(imagep);
 	}
 

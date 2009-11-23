@@ -1193,6 +1193,12 @@ BOOL LLFloater::handleRightMouseDown(S32 x, S32 y, MASK mask)
 	return was_minimized || LLPanel::handleRightMouseDown( x, y, mask );
 }
 
+BOOL LLFloater::handleMiddleMouseDown(S32 x, S32 y, MASK mask)
+{
+	bringToFront( x, y );
+	return LLPanel::handleMiddleMouseDown( x, y, mask );
+}
+
 
 // virtual
 BOOL LLFloater::handleDoubleClick(S32 x, S32 y, MASK mask)
@@ -1439,9 +1445,9 @@ void LLFloater::draw()
 	{
 		if (hasFocus() && getDefaultButton()->getEnabled())
 		{
-			LLUICtrl* focus_ctrl = gFocusMgr.getKeyboardFocus();
+			LLFocusableElement* focus_ctrl = gFocusMgr.getKeyboardFocus();
 			// is this button a direct descendent and not a nested widget (e.g. checkbox)?
-			BOOL focus_is_child_button = dynamic_cast<LLButton*>(focus_ctrl) != NULL && focus_ctrl->getParent() == this;
+			BOOL focus_is_child_button = dynamic_cast<LLButton*>(focus_ctrl) != NULL && dynamic_cast<LLButton*>(focus_ctrl)->getParent() == this;
 			// only enable default button when current focus is not a button
 			getDefaultButton()->setBorderEnabled(!focus_is_child_button);
 		}
@@ -1461,7 +1467,7 @@ void LLFloater::draw()
 	else
 	{
 		// draw children
-		LLView* focused_child = gFocusMgr.getKeyboardFocus();
+		LLView* focused_child = dynamic_cast<LLView*>(gFocusMgr.getKeyboardFocus());
 		BOOL focused_child_visible = FALSE;
 		if (focused_child && focused_child->getParent() == this)
 		{
@@ -2188,7 +2194,7 @@ BOOL LLFloaterView::allChildrenClosed()
 		LLView* viewp = *it;
 		LLFloater* floaterp = (LLFloater*)viewp;
 
-		if (floaterp->getVisible() && !floaterp->isDead() && floaterp->canClose())
+		if (floaterp->getVisible() && !floaterp->isDead() && floaterp->isCloseable())
 		{
 			return false;
 		}
@@ -2507,6 +2513,15 @@ LLMultiFloater::LLMultiFloater(
 	
 }
 
+// virtual
+LLXMLNodePtr LLMultiFloater::getXML(bool save_children) const
+{
+	LLXMLNodePtr node = LLFloater::getXML();
+
+	node->setName(LL_MULTI_FLOATER_TAG);
+
+	return node;
+}
 
 void LLMultiFloater::open()	/* Flawfinder: ignore */
 {
@@ -2929,6 +2944,8 @@ void LLMultiFloater::updateResizeLimits()
 LLXMLNodePtr LLFloater::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLPanel::getXML();
+
+	node->setName(LL_FLOATER_TAG);
 
 	node->createChild("title", TRUE)->setStringValue(getCurrentTitle());
 

@@ -177,6 +177,7 @@ void LLFace::init(LLDrawable* drawablep, LLViewerObject* objp)
 	mLastIndicesIndex = mIndicesIndex;
 
 	mImportanceToCamera = 0.f ;
+	mBoundingSphereRadius = 0.0f ;
 }
 
 
@@ -726,7 +727,9 @@ BOOL LLFace::genVolumeBBoxes(const LLVolume &volume, S32 f,
 		}
 
 		mCenterLocal = (newMin+newMax)*0.5f;
-		
+		LLVector3 tmp = (newMin - newMax) ;
+		mBoundingSphereRadius = tmp.length() * 0.5f ;
+
 		updateCenterAgent();
 	}
 
@@ -988,7 +991,7 @@ BOOL LLFace::getGeometryVolume(const LLVolume& volume,
 			0.75f
 		};
 
-		if (getPoolType() != LLDrawPool::POOL_ALPHA && (LLPipeline::sRenderDeferred || LLPipeline::sRenderBump && tep->getShiny()))
+		if (getPoolType() != LLDrawPool::POOL_ALPHA && (LLPipeline::sRenderDeferred || (LLPipeline::sRenderBump && tep->getShiny())))
 		{
 			color.mV[3] = U8 (alpha[tep->getShiny()] * 255);
 		}
@@ -1199,9 +1202,18 @@ F32 LLFace::getTextureVirtualSize()
 		texel_area = 1.f;
 	}
 
-	//apply texel area to face area to get accurate ratio
-	//face_area /= llclamp(texel_area, 1.f/64.f, 16.f);
-	F32 face_area = mPixelArea / llclamp(texel_area, 0.015625f, 1024.f);
+	F32 face_area;
+	if (mVObjp->isSculpted() && texel_area > 1.f)
+	{
+		//sculpts can break assumptions about texel area
+		face_area = mPixelArea;
+	}
+	else
+	{
+		//apply texel area to face area to get accurate ratio
+		//face_area /= llclamp(texel_area, 1.f/64.f, 16.f);
+		face_area =  mPixelArea / llclamp(texel_area, 0.015625f, 1024.f);
+	}
 
 	if(face_area > LLViewerImage::sMaxSmallImageSize)
 	{
@@ -1239,9 +1251,17 @@ F32 LLFace::calcPixelArea(F32& cos_angle_to_view_dir, F32& radius)
 	radius = app_angle*LLDrawable::sCurPixelAngle;
 	F32 face_area = radius*radius * 3.14159f;
 
-	cos_angle_to_view_dir = lookAt * LLViewerCamera::getInstance()->getXAxis() ;	
-	mImportanceToCamera = LLFace::calcImportanceToCamera(cos_angle_to_view_dir, dist) ;
-	
+	if(dist < mBoundingSphereRadius) //camera is very close
+	{
+		cos_angle_to_view_dir = 1.0f ;
+		mImportanceToCamera = 1.0f ;
+	}
+	else
+	{
+		cos_angle_to_view_dir = lookAt * LLViewerCamera::getInstance()->getXAxis() ;	
+		mImportanceToCamera = LLFace::calcImportanceToCamera(cos_angle_to_view_dir, dist) ;
+	}
+
 	return face_area ;
 }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <floater bottom="27" can_close="true" can_drag_on_left="false" can_minimize="false"
-     can_resize="true" can_tear_off="true" enabled="true" height="270" left="15"
+     can_resize="true" can_tear_off="true" enabled="true" height="275" left="15"
      min_height="150" min_width="425" mouse_opaque="true" name="chat floater"
      rect_control="FloaterChatRect" title="Local Chat" width="435">
 	<string name="ringing">
@@ -65,9 +65,9 @@
       Control your camera
   </string>
 
-  <layout_stack border="false" bottom="2" follows="left|top|right|bottom" height="250" left="2"
+  <layout_stack border="false" bottom="2" follows="left|top|right|bottom" height="255" left="2"
 	     orientation="horizontal" width="430" name="panels">
-		<layout_panel border="false" bottom="0" default_tab_group="1" height="130" left="0"
+		<layout_panel border="false" bottom="0" default_tab_group="1" height="135" left="0"
 		     min_width="275" name="im_contents_panel" width="305">
 			<combo_box follows="left|top" height="20" label="Gestures" left="5" name="Gesture"
 			     width="120">
@@ -75,10 +75,13 @@
 					Gestures
 				</combo_item>
 			</combo_box>
-			<check_box bottom_delta="0" enabled="true" follows="left|top" font="SansSerifSmall"
+			<check_box bottom_delta="7" enabled="true" follows="left|top" font="SansSerifSmall"
 			     height="20" initial_value="false" label="Show Muted Text" left_delta="125"
 			     name="show mutes" radio_style="false" width="116" />
-			<button bottom_delta="0" follows="right|top" height="20" label="&lt; &lt;"
+			<check_box bottom_delta="-15" enabled="true" follows="left|top" font="SansSerifSmall"
+			     height="20" initial_value="false" label="Translate Chat (powered by Google)" left_delta="0"
+			     name="translate chat" radio_style="false" width="100" />
+			<button bottom_delta="7" follows="right|top" height="20" label="&lt; &lt;"
 			     label_selected="&gt; &gt;" left="272" name="toggle_active_speakers_btn"
 			     right="305"
 			     tool_tip="Click here to show list of active participants in this IM session."

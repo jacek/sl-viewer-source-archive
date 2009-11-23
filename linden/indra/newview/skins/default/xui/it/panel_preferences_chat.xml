@@ -55,4 +55,62 @@ chat:
 	</text>
 	<check_box label="Mostra vignette chat" name="bubble_text_chat"/>
 	<slider label="Opacità" name="bubble_chat_opacity"/>
+	<combo_box name="translate_language_combobox" width="166">
+		<combo_item name="System Default Language">
+			Default di sistema
+		</combo_item>
+		<combo_item name="English">
+			English
+		</combo_item>
+		<combo_item name="Danish">
+			Dansk (Danese) - Beta
+		</combo_item>
+		<combo_item name="Deutsch(German)">
+			Deutsch (Tedesco) - Beta
+		</combo_item>
+		<combo_item name="Spanish">
+			Español (Spagnolo) - Beta
+		</combo_item>
+		<combo_item name="French">
+			Français (Francese) - Beta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano - Beta
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (Ungherese) - Beta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Olandese) - Beta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Polacco) - Beta
+		</combo_item>
+		<combo_item name="Portugese">
+			Portugués (Portoghese) - Beta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (Russo) - Beta
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe (Turco) - Beta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (Ukraino) - Beta
+		</combo_item>
+		<combo_item name="Chinese">
+			中文 (简体) (Cinese) - Beta
+		</combo_item>
+		<combo_item name="(Japanese)">
+			日本語 (Giapponese) - Beta
+		</combo_item>
+		<combo_item name="(Korean)">
+			한국어 (Coreano) - Beta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Chat Lingua:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="Traduci Chat">
+	</text>
 </panel>

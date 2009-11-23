@@ -42,6 +42,7 @@ set(llcommon_SOURCE_FILES
     llmetrics.cpp
     llmortician.cpp
     lloptioninterface.cpp
+    llprocesslauncher.cpp
     llprocessor.cpp
     llqueuedthread.cpp
     llrand.cpp
@@ -138,6 +139,7 @@ set(llcommon_HEADER_FILES
     lloptioninterface.h
     llpreprocessor.h
     llpriqueuemap.h
+    llprocesslauncher.h
     llprocessor.h
     llptrskiplist.h
     llptrskipmap.h

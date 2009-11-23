@@ -76,6 +76,7 @@
 #include "llfloaterdirectory.h"
 #include "llfloatergroupinfo.h"
 #include "llfloatergroups.h"
+#include "llfloaterland.h"
 #include "llfloatermap.h"
 #include "llfloatermute.h"
 #include "llfloatersnapshot.h"
@@ -112,6 +113,7 @@
 #include "llurldispatcher.h"
 #include "llviewercamera.h"
 #include "llviewerinventory.h"
+#include "llviewermediafocus.h"
 #include "llviewermenu.h"
 #include "llviewernetwork.h"
 #include "llviewerobjectlist.h"
@@ -382,6 +384,8 @@ LLAgent::LLAgent() :
 	mAutoPilotFinishedCallback(NULL),
 	mAutoPilotCallbackData(NULL),
 	
+	mCapabilities(),
+
 	mEffectColor(0.f, 1.f, 1.f, 1.f),
 
 	mHaveHomePosition(FALSE),
@@ -2941,7 +2945,6 @@ void LLAgent::endAnimationUpdateUI()
 			gMorphView->setVisible(FALSE);
 		}
 
-		gIMMgr->setFloaterOpen( FALSE );
 		gConsole->setVisible( TRUE );
 
 		if (mAvatarObject.notNull())
@@ -3985,6 +3988,9 @@ void LLAgent::changeCameraToMouselook(BOOL animate)
 	// visibility changes at end of animation
 	gViewerWindow->getWindow()->resetBusyCount();
 
+	// Menus should not remain open on switching to mouselook...
+	LLMenuGL::sMenuContainer->hideMenus();
+	
 	// unpause avatar animation
 	mPauseRequest = NULL;
 
@@ -5985,7 +5991,11 @@ bool LLAgent::teleportCore(bool is_local)
 	LLFloaterWorldMap::hide(NULL);
 	LLFloaterDirectory::hide(NULL);
 
+	// hide land floater too - it'll be out of date
+	LLFloaterLand::hideInstance();
+	
 	LLViewerParcelMgr::getInstance()->deselectLand();
+	LLViewerMediaFocus::getInstance()->setFocusFace(false, NULL, 0, NULL);
 
 	// Close all pie menus, deselect land, etc.
 	// Don't change the camera until we know teleport succeeded. JC
@@ -6146,7 +6156,8 @@ void LLAgent::setTeleportState(ETeleportState state)
 	{
 		LLFloaterSnapshot::hide(0);
 	}
-	if (mTeleportState == TELEPORT_MOVING)
+	// OGPX : Only compute a 'slurl' in non-OGP mode. In OGP, set it to regionuri in floaterteleport.
+	if ((mTeleportState == TELEPORT_MOVING)&& (!gSavedSettings.getBOOL("OpenGridProtocol")))
 	{
 		// We're outa here. Save "back" slurl.
 		mTeleportSourceSLURL = getSLURL();
@@ -6391,7 +6402,7 @@ void LLAgent::sendAgentWearablesUpdate()
 	gMessageSystem->addUUIDFast(_PREHASH_AgentID, getID());
 	gMessageSystem->addUUIDFast(_PREHASH_SessionID, getSessionID());
 
-	lldebugs << "sendAgentWearablesUpdate()" << llendl;
+	LL_DEBUGS("Wearables") << "sendAgentWearablesUpdate()" << LL_ENDL;
 	for(i=0; i < WT_COUNT; ++i)
 	{
 		gMessageSystem->nextBlockFast(_PREHASH_WearableData);
@@ -6402,16 +6413,16 @@ void LLAgent::sendAgentWearablesUpdate()
 		LLWearable* wearable = mWearableEntry[ i ].mWearable;
 		if( wearable )
 		{
-			//llinfos << "Sending wearable " << wearable->getName() << llendl;
+			LL_DEBUGS("Wearables") << "Sending wearable " << wearable->getName() << " mItemID = " << mWearableEntry[ i ].mItemID << LL_ENDL; 
 			gMessageSystem->addUUIDFast(_PREHASH_ItemID, mWearableEntry[ i ].mItemID );
 		}
 		else
 		{
-			//llinfos << "Not wearing wearable type " << LLWearable::typeToTypeName((EWearableType)i) << llendl;
+			LL_DEBUGS("Wearables") << "Not wearing wearable type " << LLWearable::typeToTypeName((EWearableType)i) << LL_ENDL;
 			gMessageSystem->addUUIDFast(_PREHASH_ItemID, LLUUID::null );
 		}
 
-		lldebugs << "       " << LLWearable::typeToTypeLabel((EWearableType)i) << ": " << (wearable ? wearable->getID() : LLUUID::null) << llendl;
+		LL_DEBUGS("Wearables") << "       " << LLWearable::typeToTypeLabel((EWearableType)i) << " : " << (wearable ? wearable->getID() : LLUUID::null) << LL_ENDL;
 	}
 	gAgent.sendReliableMessage();
 }
@@ -6740,6 +6751,16 @@ void LLAgent::processAgentInitialWearablesUpdate( LLMessageSystem* mesgsys, void
 			// before we had wearables, or that the database has gotten messed up.
 			return;
 		}
+		//else
+		//{
+		//	 // OGPX HACK: OGP authentication does not pass back login-flags, 
+		//   // thus doesn't check for "gendered" flag
+		//	 // so this isn't an ideal place for this because the check in idle_startup in STATE_WEARABLES_WAIT
+		//	 // is happening *before* this call. That causes the welcomechoosesex dialog to be displayed
+		//	 // but I'm torn on removing this commented out code because I'm unsure how the initial wearables 
+		//   // code will work out. 
+		//	 gAgent.setGenderChosen(TRUE);
+		//}
 
 		//lldebugs << "processAgentInitialWearablesUpdate()" << llendl;
 		// Add wearables
@@ -6776,12 +6797,13 @@ void LLAgent::processAgentInitialWearablesUpdate( LLMessageSystem* mesgsys, void
 				asset_id_array[type] = asset_id;
 			}
 
-			lldebugs << "       " << LLWearable::typeToTypeLabel(type) << llendl;
+			LL_DEBUGS("Wearables") << "       " << LLWearable::typeToTypeLabel(type) << " " << asset_id << " item id " << gAgent.mWearableEntry[type].mItemID.asString() << LL_ENDL;
 		}
 
 		// now that we have the asset ids...request the wearable assets
 		for( i = 0; i < WT_COUNT; i++ )
 		{
+			LL_DEBUGS("Wearables") << "      fetching " << asset_id_array[i] << LL_ENDL;
 			if( !gAgent.mWearableEntry[i].mItemID.isNull() )
 			{
 				gWearableList.getAsset( 
@@ -7788,5 +7810,41 @@ void LLAgent::parseTeleportMessages(const std::string& xml_filename)
 	}//end for (all message sets in xml file)
 }
 
+// OGPX - This code will change when capabilities get refactored.
+// Right now this is used for capabilities that we get from OGP agent domain
+void LLAgent::setCapability(const std::string& name, const std::string& url)
+{
+#if 0 // OGPX : I think (hope?) we don't need this
+	  //    but I'm leaving it here commented out because I'm not quite
+	  //    sure why the region capabilities code had it wedged in setCap call
+	  //    Maybe the agent domain capabilities will need something like this as well
+
+	if (name == "EventQueueGet")
+	{
+		delete mEventPoll;
+		mEventPoll = NULL;
+		mEventPoll = new LLEventPoll(url, getHost());
+	}
+	else if (name == "UntrustedSimulatorMessage")
+	{
+		LLHTTPSender::setSender(mHost, new LLCapHTTPSender(url));
+	}
+	else
+#endif
+	{
+		mCapabilities[name] = url;
+	}
+}
+
+//OGPX : Agent Domain capabilities...  this needs to be refactored
+std::string LLAgent::getCapability(const std::string& name) const
+{
+	CapabilityMap::const_iterator iter = mCapabilities.find(name);
+	if (iter == mCapabilities.end())
+	{
+		return "";
+	}
+	return iter->second;
+}
 // EOF
 

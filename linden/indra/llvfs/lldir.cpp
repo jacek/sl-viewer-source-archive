@@ -294,6 +294,10 @@ const std::string LLDir::getSkinBaseDir() const
 	return dir;
 }
 
+const std::string &LLDir::getLLPluginDir() const
+{
+	return mLLPluginDir;
+}
 
 std::string LLDir::getExpandedFilename(ELLPath location, const std::string& filename) const
 {

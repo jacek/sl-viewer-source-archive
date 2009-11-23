@@ -2,6 +2,6 @@
 
 CFBundleName = "Snowglobe";
 
-CFBundleShortVersionString = "Snowglobe version 1.1.1.0";
-CFBundleGetInfoString = "Snowglobe version 1.1.1.0, Copyright 2004-2009 Linden Research, Inc.";
+CFBundleShortVersionString = "Snowglobe version 1.2.4.0";
+CFBundleGetInfoString = "Snowglobe version 1.2.4.0, Copyright 2004-2009 Linden Research, Inc.";
 

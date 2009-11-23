@@ -285,7 +285,8 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 		LLInventoryView* view = LLInventoryView::getActiveInventory();
 		if(view)
 		{
-			LLUICtrl* focus_ctrl = gFocusMgr.getKeyboardFocus();
+			LLFocusableElement* focus = gFocusMgr.getKeyboardFocus();
+
 			view->getPanel()->setSelection(content["new_inventory_item"].asUUID(), TAKE_FOCUS_NO);
 			if((LLAssetType::AT_TEXTURE == asset_type || LLAssetType::AT_SOUND == asset_type)
 				&& LLFilePicker::instance().getFileCount() <= FILE_COUNT_DISPLAY_THRESHOLD)
@@ -294,7 +295,7 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 			}
 			//LLInventoryView::dumpSelectionInformation((void*)view);
 			// restore keyboard focus
-			gFocusMgr.setKeyboardFocus(focus_ctrl);
+			gFocusMgr.setKeyboardFocus(focus);
 		}
 	}
 	else
@@ -364,7 +365,7 @@ void LLSendTexLayerResponder::uploadComplete(const LLSD& content)
 	std::string result = content["state"];
 	LLUUID new_id = content["new_asset"];
 
-	llinfos << "result: " << result << "new_id:" << new_id << llendl;
+	llinfos << "LLSendTexLayerResponder::result from capabilities: " << result << llendl;
 	if (result == "complete"
 		&& mBakedUploadData != NULL)
 	{	// Invoke 

@@ -34,9 +34,6 @@
 
 #include "llmultisliderctrl.h"
 
-#include "audioengine.h"
-#include "sound_ids.h"
-
 #include "llmath.h"
 #include "llfontgl.h"
 #include "llgl.h"
@@ -500,6 +497,8 @@ void LLMultiSliderCtrl::setControlName(const std::string& control_name, LLView* 
 LLXMLNodePtr LLMultiSliderCtrl::getXML(bool save_children) const
 {
 	LLXMLNodePtr node = LLUICtrl::getXML();
+
+	node->setName(LL_MULTI_SLIDER_CTRL_TAG);
 
 	node->createChild("show_text", TRUE)->setBoolValue(mShowText);
 

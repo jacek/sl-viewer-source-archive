@@ -56,4 +56,63 @@ du chat :
 		Erreurs de script :
 	</text>
 	<check_box label="Afficher les erreurs dans le chat" name="script_errors_as_chat"/>
+
+	<combo_box name="translate_language_combobox" width="166">
+		<combo_item name="System Default Language">
+			Choix par défaut
+		</combo_item>
+		<combo_item length="1" name="English" type="string">
+			English (Anglais)
+		</combo_item>
+		<combo_item length="1" name="Danish" type="string">
+			Dansk (Danois) - Bêta
+		</combo_item>
+		<combo_item length="1" name="Deutsch(German)" type="string">
+			Deutsch (Allemand) - Bêta
+		</combo_item>
+		<combo_item name="Spanish">
+			Español (Espagnol) - Bêta
+		</combo_item>
+		<combo_item name="French">
+			Français - Bêta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano (Italien) - Bêta
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (Hongrois) - Bêta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Néerlandais) - Bêta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Polonais) - Bêta
+		</combo_item>
+		<combo_item name="Portugese">
+			Portugués (Portugais) - Bêta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (Russe) - Bêta
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe (Turc) - Bêta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (Ukrainien) - Bêta
+		</combo_item>
+		<combo_item length="1" name="Chinese" type="string">
+			中文 (简体) (Chinois) - Bêta
+		</combo_item>
+		<combo_item length="1" name="(Japanese)" type="string">
+			日本語 (Japonais) - Bêta
+		</combo_item>
+		<combo_item length="1" name="(Korean)" type="string">
+			한국어 (Coréen) - Bêta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Langue de chat :
+	</text>
+	<text type="string" length="1" name="translate_chat" label="Traduire Chat">
+	</text>
 </panel>

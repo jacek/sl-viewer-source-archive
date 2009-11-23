@@ -69,6 +69,7 @@ class LLInventoryPanel : public LLPanel
 public:
 	static const std::string DEFAULT_SORT_ORDER;
 	static const std::string RECENTITEMS_SORT_ORDER;
+	static const std::string WORNITEMS_SORT_ORDER;
 	static const std::string INHERIT_SORT_ORDER;
 
 	LLInventoryPanel(const std::string& name,
@@ -109,6 +110,9 @@ public:
 	U32 getFilterPermMask() const { return mFolders->getFilterPermissions(); }
 	void setFilterSubString(const std::string& string);
 	const std::string getFilterSubString() { return mFolders->getFilterSubString(); }
+	void setFilterWorn(bool worn);
+	bool getFilterWorn() const { return mFolders->getFilterWorn(); }
+	
 	void setSortOrder(U32 order);
 	U32 getSortOrder() { return mFolders->getSortOrder(); }
 	void setSinceLogoff(BOOL sl);
@@ -253,6 +257,7 @@ public:
 	static LLUUID sWearNewClothingTransactionID;	// wear all clothing in this transaction
 
 	void toggleFindOptions();
+	void updateSortControls();
 
 	LLInventoryViewFinder* getFinder() { return (LLInventoryViewFinder*)mFinderHandle.get(); }
 

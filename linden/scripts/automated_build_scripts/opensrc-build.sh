@@ -157,7 +157,7 @@ case "$arch" in
 #  from indra/build-darwin-universal/newview/SecondLife.build/Debug/Second Life.build/Objects-normal/ppc/llvoicevisualizer.o
 
 Darwin)
-  helpers=/usr/local/buildscripts/generic_vc
+  helpers=/usr/local/buildscripts/shared/latest
   variants="Release"
   cmake_generator="Xcode"
   fmod=fmodapi375mac
@@ -176,7 +176,7 @@ Darwin)
   ;;
 
 CYGWIN)
-  helpers=/cygdrive/c/buildscripts
+  helpers=/cygdrive/c/buildscripts/shared/latest
   variants="Debug RelWithDebInfo Release"
   #variants="Release"
   cmake_generator="vc80"
@@ -193,14 +193,14 @@ CYGWIN)
   export S3CURL="C:\\buildscripts\\shared\\latest\\hg\\bin\\s3curl.py"
   export SIGN_PY="C:\\buildscripts\\shared\\latest\\code-signing\\sign.py"
   export CURL="C:\\cygwin\\bin\\curl.exe"
-  mail="C:\\buildscripts\\mail.py"
-  all_done="C:\\buildscripts\\all_done.py"
-  test -r "$helpers/update_version_files.py" && update_version_files="C:\\buildscripts\\update_version_files.py"
+  mail="C:\\buildscripts\\shared\\latest\\mail.py"
+  all_done="C:\\buildscripts\\shared\\latest\\all_done.py"
+  test -r "$helpers/update_version_files.py" && update_version_files="C:\\buildscripts\\shared\\latest\\update_version_files.py"
   libs_asset="$SLASSET_LIBS_WIN32"
   ;;
 
 Linux)
-  helpers=/var/opt/parabuild/buildscripts/generic_vc
+  helpers=/var/opt/parabuild/buildscripts/shared/latest
   if [ x"$CXX" = x ]
   then
     if test -x /usr/bin/g++-4.1
@@ -257,10 +257,10 @@ esac
 
 get_asset "http://www.fmod.org/index.php/release/version/$fmod_tar"
 
-# Special case for Mac...
 case "$arch" in
 
 Darwin)
+  # Create fat binary on Mac...
   if lipo -create -output "../$fmod"/api/$fmod_lib/libfmod-universal.a\
      "../$fmod"/api/$fmod_lib/libfmod.a\
      "../$fmod"/api/$fmod_lib/libfmodx86.a
@@ -273,10 +273,12 @@ Darwin)
   fi
   ;;
 
-esac
+CYGWIN)
+  # install Quicktime.  This will fail outside of Linden's network
+  scripts/install.py quicktime
+  ;;
 
-# ensure helpers are up to date
-( cd "$helpers" && svn up )
+esac
 
 # Only run this if the script exists
 if test x"$update_version_files" = x 
@@ -426,7 +428,13 @@ then
   then
     ( cd .. && svn log --verbose --stop-on-copy --limit 50 ) >>message
   else
-    ( cd .. && svn log --verbose -r`expr 1 + "$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER"`:"$PARABUILD_CHANGE_LIST_NUMBER" ) >>message
+    if [ "$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER" -lt "$PARABUILD_CHANGE_LIST_NUMBER" ]
+	then
+	  range=`expr 1 + "$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER"`:"$PARABUILD_CHANGE_LIST_NUMBER"
+	else
+	  range="$PARABUILD_CHANGE_LIST_NUMBER"
+	fi
+    ( cd .. && svn log --verbose -r"$range" ) >>message
   fi
   # $PUBLIC_EMAIL can be a list, so no quotes
   python "$mail" "$subject" $PUBLIC_EMAIL <message

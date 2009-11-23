@@ -43,6 +43,7 @@
 #include "llviewerbuild.h"
 #include "llviewercontrol.h"
 #include "llxmlrpctransaction.h"
+#include "llsdutil.h"
 
 // NOTE: MUST include these after otherincludes since queue gets redefined!?!!
 #include <curl/curl.h>
@@ -70,7 +71,8 @@ static const char* PLATFORM_STRING = "Sol";
 
 LLUserAuth::LLUserAuth() :
 	mTransaction(NULL),
-	mLastTransferRateBPS(0)
+	mLastTransferRateBPS(0),
+	mResult(LLSD())
 {
 	mAuthResponse = E_NO_RESPONSE_YET;
 }
@@ -86,6 +88,7 @@ void LLUserAuth::reset()
 	mTransaction = NULL;
 	mResponses.clear();
 	mOptions.clear();
+	mResult.clear();
 }
 
 

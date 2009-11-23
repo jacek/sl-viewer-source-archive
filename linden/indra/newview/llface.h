@@ -243,7 +243,8 @@ private:
 	//1.0: the most important.
 	//based on the distance from the face to the view point and the angle from the face center to the view direction.
 	F32         mImportanceToCamera ; 
-	
+	F32         mBoundingSphereRadius ;
+
 protected:
 	static BOOL	sSafeRenderSelect;
 	

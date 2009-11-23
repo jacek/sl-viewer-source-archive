@@ -8,9 +8,9 @@ if(DEFINED ARTWORK_REQUIRED)
 endif(DEFINED ARTWORK_REQUIRED)
 
 # Check if artwork is available.
-if(EXISTS "${ARTWORK_DIR}/character/avatar_lad.xml")
+if(EXISTS "${ARTWORK_DIR}/res/arrow.cur")
   set(ARTWORK_EXISTS 1)
-else(EXISTS "${ARTWORK_DIR}/character/avatar_lad.xml")
+else(EXISTS "${ARTWORK_DIR}/res/arrow.cur")
   set(ARTWORK_EXISTS 0)
   if(PACKAGE)
     set(ARTWORK_REQUIRED 1)
@@ -24,7 +24,7 @@ else(EXISTS "${ARTWORK_DIR}/character/avatar_lad.xml")
     # Show the option.
     set(ARTWORK_REQUIRED "${ARTWORK_REQUIRED}" CACHE BOOL "${doc}" FORCE)
   endif()
-endif(EXISTS "${ARTWORK_DIR}/character/avatar_lad.xml")
+endif(EXISTS "${ARTWORK_DIR}/res/arrow.cur")
 
 # Verify artwork setting.
 if(NOT ARTWORK_EXISTS AND ARTWORK_REQUIRED)

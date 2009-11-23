@@ -52,4 +52,62 @@
 	</text>
 	<check_box label="Показывать чат в пузыре" name="bubble_text_chat"/>
 	<slider label="Прозрачность" name="bubble_chat_opacity"/>
+	<combo_box name="translate_language_combobox">
+		<combo_item length="1" name="System Default Language" type="string">
+			По умолчанию
+		</combo_item>
+		<combo_item name="English">
+			English (Английский)
+		</combo_item>
+		<combo_item name="Danish">
+			Dansk (Датский) - Beta
+		</combo_item>
+		<combo_item name="Deutsch(German)">
+			Deutsch (Немецкий) - Beta
+		</combo_item>
+		<combo_item name="Spanish">
+			Español (Испанский) - Beta
+		</combo_item>
+		<combo_item name="French">
+			Français (Французский) - Beta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano (Итальянский) - Beta
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (Венгерский) - Beta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Голландский) - Beta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Польский) - Beta
+		</combo_item>
+		<combo_item name="Portugese">
+			Portugués (Португальский) - Beta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский - Beta
+		</combo_item>
+		<combo_item name="Turkish">
+			Türkçe (Турецкий) - Beta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська - Beta
+		</combo_item>
+		<combo_item name="Chinese">
+			中文 (简体) (Китайский) - Beta
+		</combo_item>
+		<combo_item name="(Japanese)">
+			日本語 (Японский) - Beta
+		</combo_item>
+		<combo_item name="(Korean)">
+			한국어 (Корейский) - Beta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Чат язык:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="Перевести Чат">
+	</text>
 </panel>

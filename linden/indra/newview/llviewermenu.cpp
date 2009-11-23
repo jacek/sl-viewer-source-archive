@@ -41,7 +41,7 @@
 #include <sstream>
 
 // linden library includes
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "indra_constants.h"
 #include "llassetstorage.h"
 #include "llchat.h"
@@ -108,9 +108,8 @@
 #include "llfloatergroupinfo.h"
 #include "llfloatergroupinvite.h"
 #include "llfloatergroups.h"
-#include "llfloaterhtml.h"
 #include "llfloaterhtmlcurrency.h"
-#include "llfloaterhtmlhelp.h"			// gViewerHtmlHelp
+#include "llfloatermediabrowser.h"			// gViewerHtmlHelp
 #include "llfloaterhtmlsimple.h"
 #include "llfloaterhud.h"
 #include "llfloaterinspect.h"
@@ -130,6 +129,7 @@
 #include "llfloatersettingsdebug.h"
 #include "llfloaterenvsettings.h"
 #include "llfloaterstats.h"
+#include "llfloaterteleport.h"
 #include "llfloatertest.h"
 #include "llfloatertools.h"
 #include "llfloaterwater.h"
@@ -155,6 +155,7 @@
 #include "llpanellogin.h"
 #include "llmenucommands.h"
 #include "llmenugl.h"
+#include "llmimetypes.h"
 #include "llmorphview.h"
 #include "llmoveview.h"
 #include "llmutelist.h"
@@ -858,6 +859,14 @@ void init_client_menu(LLMenuGL* menu)
 	init_debug_world_menu(sub_menu);
 	menu->appendMenu(sub_menu);
 
+	// only include region teleport UI if we are using agent domain
+	if (gSavedSettings.getBOOL("OpenGridProtocol"))
+	{
+		sub_menu = new LLMenuGL("Interop");
+		sub_menu->append(new LLMenuItemCallGL("Teleport Region...", 
+			&LLFloaterTeleport::show, NULL, NULL, 'R', MASK_CONTROL|MASK_ALT|MASK_SHIFT));
+		menu->appendMenu(sub_menu);
+	}
 	sub_menu = new LLMenuGL("UI");
 	init_debug_ui_menu(sub_menu);
 	menu->appendMenu(sub_menu);
@@ -919,6 +928,14 @@ void init_client_menu(LLMenuGL* menu)
 		sub->append(new LLMenuItemCallGL("Start Record",	&LLAgentPilot::startRecord, NULL));
 		sub->append(new LLMenuItemCallGL("Stop Record",	&LLAgentPilot::saveRecord, NULL));
 
+		menu->appendMenu( sub );
+		sub->createJumpKeys();
+	}
+	{
+		LLMenuGL* sub = NULL;
+		sub = new LLMenuGL("Media");
+		sub->append(new LLMenuItemCallGL("Reload MIME types", &LLMIMETypes::reload));
+		sub->append(new LLMenuItemCallGL("Web Browser Test", &handle_web_browser_test));
 		menu->appendMenu( sub );
 		sub->createJumpKeys();
 	}
@@ -1050,7 +1067,6 @@ void init_debug_ui_menu(LLMenuGL* menu)
 	menu->append(new LLMenuItemCheckGL("Show search panel in overlay bar", menu_toggle_control, NULL, menu_check_control, (void*)"ShowSearchBar"));
 	menu->appendSeparator();
 
-	menu->append(new LLMenuItemCallGL("Web Browser Test", &handle_web_browser_test));
 	// commented out until work is complete: DEV-32268
 	// menu->append(new LLMenuItemCallGL("Buy Currency Test", &handle_buy_currency_test));
 	menu->append(new LLMenuItemCallGL("Editable UI", &edit_ui));
@@ -5265,6 +5281,7 @@ class LLShowFloater : public view_listener_t
 		}
 		else if (floater_name == "help f1")
 		{
+			llinfos << "Spawning HTML help window" << llendl;
 			gViewerHtmlHelp.show();
 		}
 		else if (floater_name == "help tutorial")
@@ -6907,7 +6924,7 @@ void handle_grab_texture(void* data)
 			// user know that the image is now in inventory.
 			if(view)
 			{
-				LLUICtrl* focus_ctrl = gFocusMgr.getKeyboardFocus();
+				LLFocusableElement* focus_ctrl = gFocusMgr.getKeyboardFocus();
 
 				view->getPanel()->setSelection(item_id, TAKE_FOCUS_NO);
 				view->getPanel()->openSelected();
@@ -7111,13 +7128,7 @@ void handle_load_from_xml(void*)
 
 void handle_web_browser_test(void*)
 {
-	const bool open_links_externally = false;
-	const bool open_app_slurls = true;
-	LLFloaterHtml::getInstance()->show(
-		"http://secondlife.com/app/search/slurls.html",
-		"Web Browser Test", 
-		open_links_externally, 
-		open_app_slurls);
+	LLWeb::loadURL("http://secondlife.com/app/search/slurls.html");
 }
 
 void handle_buy_currency_test(void*)

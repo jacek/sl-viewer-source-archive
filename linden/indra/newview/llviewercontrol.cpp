@@ -38,7 +38,7 @@
 #include "indra_constants.h"
 
 // For Listeners
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "llagent.h"
 #include "llconsole.h"
 #include "lldrawpoolterrain.h"
@@ -70,6 +70,7 @@
 #include "llvosurfacepatch.h"
 #include "llvowlsky.h"
 #include "llrender.h"
+#include "llfloaterchat.h"
 
 #ifdef TOGGLE_HACKED_GODLIKE_VIEWER
 BOOL 				gHackGodmode = FALSE;
@@ -428,6 +429,19 @@ bool handleVoiceClientPrefsChanged(const LLSD& newvalue)
 	return true;
 }
 
+bool handleTranslateChatPrefsChanged(const LLSD& newvalue)
+{
+	LLFloaterChat* floaterp = LLFloaterChat::getInstance();
+
+	if(floaterp)
+	{
+		// update "translate chat" pref in "Local Chat" floater
+		floaterp->updateSettings();
+	}
+	return true;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 
 void settings_setup_listeners()
@@ -480,7 +494,6 @@ void settings_setup_listeners()
 	gSavedSettings.getControl("AudioLevelMusic")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelMedia")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelVoice")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
-	gSavedSettings.getControl("AudioLevelDistance")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelDoppler")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelRolloff")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioStreamingMusic")->getSignal()->connect(boost::bind(&handleAudioStreamMusicChanged, _1));
@@ -557,6 +570,7 @@ void settings_setup_listeners()
 	gSavedSettings.getControl("VoiceOutputAudioDevice")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));
 	gSavedSettings.getControl("AudioLevelMic")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));
 	gSavedSettings.getControl("LipSyncEnabled")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));	
+	gSavedSettings.getControl("TranslateChat")->getSignal()->connect(boost::bind(&handleTranslateChatPrefsChanged, _1));	
 }
 
 template <> eControlType get_control_type<U32>(const U32& in, LLSD& out) 

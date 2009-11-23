@@ -46,6 +46,7 @@
 #include "llagent.h"
 #include "llcallbacklist.h"
 #include "llcriticaldamp.h"
+#include "llfloaterperms.h"
 #include "llui.h"
 #include "llviewertexteditor.h"
 #include "llfocusmgr.h"
@@ -973,8 +974,8 @@ void LLSnapshotLivePreview::saveTexture()
 				    LLAssetType::AT_SNAPSHOT_CATEGORY,
 				    LLInventoryType::IT_SNAPSHOT,
 				    PERM_ALL,  // Note: Snapshots to inventory is a special case of content upload
-				    PERM_NONE, // that ignores the user's premissions preferences and continues to
-				    PERM_NONE, // always use these fairly permissive hard-coded initial perms. - MG
+				    LLFloaterPerms::getGroupPerms(), // that is more permissive than other uploads
+				    LLFloaterPerms::getEveryonePerms(),
 				    "Snapshot : " + pos_string,
 				    callback, expected_upload_cost, userdata);
 		gViewerWindow->playSnapshotAnimAndSound();

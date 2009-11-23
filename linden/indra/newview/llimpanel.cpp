@@ -69,7 +69,6 @@
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 #include "lllogchat.h"
-#include "llfloaterhtml.h"
 #include "llweb.h"
 #include "llhttpclient.h"
 #include "llmutelist.h"
@@ -2036,8 +2035,8 @@ void LLFloaterIMPanel::sendMsg()
 
 		LLViewerStats::getInstance()->incStat(LLViewerStats::ST_IM_COUNT);
 
+		mInputEditor->setText(LLStringUtil::null);
 	}
-	mInputEditor->setText(LLStringUtil::null);
 
 	// Don't need to actually send the typing stop message, the other
 	// client will infer it from receiving the message.

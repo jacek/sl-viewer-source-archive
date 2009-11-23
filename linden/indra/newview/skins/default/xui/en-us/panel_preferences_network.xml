@@ -38,7 +38,7 @@
 	     v_pad="0" width="40">
 		MB
 	</text>
-	<button bottom="-55" bottom_delta="-4" enabled="true" follows="left|bottom"
+	<button bottom="-55" bottom_delta="-4" enabled="true" follows="left|top"
 	     font="SansSerif" halign="center" height="22" label="Clear Cache" left="340"
 	     left_delta="30" mouse_opaque="true" name="clear_cache" scale_image="true"
 	     width="100" />

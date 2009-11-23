@@ -34,7 +34,7 @@
 
 #include "llmediaremotectrl.h"
 
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "lliconctrl.h"
 #include "llmimetypes.h"
 #include "lloverlaybar.h"
@@ -136,9 +136,11 @@ void* LLMediaRemoteCtrl::createVolumePanel(void* data)
 // Virtual
 void LLMediaRemoteCtrl::setToolTip(const std::string& msg)
 {
-	std::string mime_type = LLMIMETypes::translate(LLViewerMedia::getMimeType());
-	std::string tool_tip = LLMIMETypes::findToolTip(LLViewerMedia::getMimeType());
-	std::string play_tip = LLMIMETypes::findPlayTip(LLViewerMedia::getMimeType());
+	// TODO: this gets removed for Media on a Prim
+	
+	const std::string mime_type = LLViewerParcelMedia::getMimeType();
+	std::string tool_tip = LLMIMETypes::findToolTip(mime_type);
+	std::string play_tip = LLMIMETypes::findPlayTip(mime_type);
 	// childSetToolTip("media_stop", mControls->getString("stop_label") + "\n" + tool_tip);
 	childSetToolTip("media_icon", tool_tip);
 	childSetToolTip("media_play", play_tip);
@@ -163,7 +165,7 @@ void LLMediaRemoteCtrl::enableMediaButtons()
 
 	if (gSavedSettings.getBOOL("AudioStreamingVideo"))
 	{
-		if ( parcel && parcel->getMediaURL()[0])
+		if ( parcel && !parcel->getMediaURL().empty())
 		{
 			// Set the tooltip
 			// Put this text into xui file
@@ -173,23 +175,22 @@ void LLMediaRemoteCtrl::enableMediaButtons()
 			play_media_enabled = true;
 			media_icon_color = LLUI::sColorsGroup->getColor( "IconEnabledColor" );
 
-			LLMediaBase::EStatus status = LLViewerParcelMedia::getStatus();
+			LLViewerMediaImpl::EMediaStatus status = LLViewerParcelMedia::getStatus();
 			switch(status)
 			{
-			case LLMediaBase::STATUS_STOPPED:
-			case LLMediaBase::STATUS_UNKNOWN:
+			case LLViewerMediaImpl::MEDIA_NONE:
 				media_show_pause = false;
 				stop_media_enabled = false;
 				break;
-			case LLMediaBase::STATUS_STARTED:
-			case LLMediaBase::STATUS_NAVIGATING:
-			case LLMediaBase::STATUS_RESETTING:
+			case LLViewerMediaImpl::MEDIA_LOADING:
+			case LLViewerMediaImpl::MEDIA_LOADED:
+			case LLViewerMediaImpl::MEDIA_PLAYING:
 				// HACK: only show the pause button for movie types
 				media_show_pause = LLMIMETypes::widgetType(parcel->getMediaType()) == "movie" ? true : false;
 				stop_media_enabled = true;
 				play_media_enabled = false;
 				break;
-			case LLMediaBase::STATUS_PAUSED:
+			case LLViewerMediaImpl::MEDIA_PAUSED:
 				media_show_pause = false;
 				stop_media_enabled = true;
 				break;
@@ -199,10 +200,10 @@ void LLMediaRemoteCtrl::enableMediaButtons()
 			}
 		}
 	}
+	
 	if (gSavedSettings.getBOOL("AudioStreamingMusic") && gAudiop)
 	{
-	
-		if ( parcel && parcel->getMusicURL()[0])
+		if ( parcel && !parcel->getMusicURL().empty())
 		{
 			play_music_enabled = true;
 			music_icon_color = LLUI::sColorsGroup->getColor( "IconEnabledColor" );
@@ -218,13 +219,7 @@ void LLMediaRemoteCtrl::enableMediaButtons()
 				stop_music_enabled = false;
 			}
 		}
-		// if no mime type has been set disable play
-		if( LLViewerMedia::getMimeType().empty() 
-			|| LLViewerMedia::getMimeType() == "none/none")
-		{
-			play_media_enabled = false;
-			stop_media_enabled = false;
-		}
+		// Don't test the mime-type: this is not updated in a consistent basis. The existence of a valid gAudiop is enough guarantee.
 	}
 	const std::string media_icon_name = LLMIMETypes::findIcon(media_type);
 	LLButton* music_play_btn = getChild<LLButton>("music_play");

@@ -256,7 +256,7 @@ void LLPanelPermissions::refresh()
 	BOOL is_perm_modify = (LLSelectMgr::getInstance()->getSelection()->getFirstRootNode() 
 							&& LLSelectMgr::getInstance()->selectGetRootsModify()) 
 							|| LLSelectMgr::getInstance()->selectGetModify();
-	const LLView* keyboard_focus_view = gFocusMgr.getKeyboardFocus();
+	const LLFocusableElement* keyboard_focus_view = gFocusMgr.getKeyboardFocus();
 	S32 string_index = 0;
 	std::string MODIFY_INFO_STRINGS[] =
 	{
@@ -1034,7 +1034,7 @@ void LLPanelPermissions::setAllSaleInfo()
 	{
 		// Don't extract the price if it's labeled as MIXED or is empty.
 		const std::string& editPriceString = editPrice->getText();
-		if (editPriceString != getString("Cost Mixed") &&
+		if (editPriceString != getString("Cost Mixed") && editPriceString != getString("Sale Mixed") &&
 			!editPriceString.empty())
 		{
 			price = atoi(editPriceString.c_str());

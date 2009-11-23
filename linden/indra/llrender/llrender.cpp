@@ -192,8 +192,11 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 	
 	if (!texture->getTexName()) //if texture does not exist
 	{
-		//if deleted, will re-generate it immediately
-		texture->forceImmediateUpdate() ;
+		if (texture->isDeleted())
+		{
+			// This will re-generate the texture immediately.
+			texture->forceImmediateUpdate() ;
+		}
 
 		texture->forceUpdateBindStats() ;
 		return texture->bindDefaultImage(mIndex);

@@ -666,17 +666,8 @@ bool LLWorldMapView::drawMipmapLevel(S32 width, S32 height, S32 level, bool load
 			LLPointer<LLViewerImage> simimage = LLWorldMap::getInstance()->getObjectsTile(grid_x, grid_y, level, load);
 			if (simimage)
 			{
-				// Check the fetch state
-				// Note: we'd rather test something that's truly related to the completion state of a fetch
-				// but there's nothing clear or public giving that info. mFullyLoaded for instance is private
-				// and doesn't seem to be updated ever. For our case then (jpeg images), we use the side effect
-				// of the current width and height being updated as a sign of full fetch state.
-				if (!simimage->getCurrentWidth() || !simimage->getCurrentHeight())
-				{
-					// Waiting for a tile -> the level is not complete
-					//LL_INFOS("World Map") << "Unfetched tile. level = " << level << LL_ENDL;
-				}
-				else
+				// Check the texture state
+				if (simimage->getHasGLTexture())
 				{
 					// Increment the number of completly fetched tiles
 					completed_tiles++;
@@ -717,6 +708,11 @@ bool LLWorldMapView::drawMipmapLevel(S32 width, S32 height, S32 level, bool load
 					drawTileOutline(level, top, left, bottom, right);
 #endif // DEBUG_DRAW_TILE
 				}
+				//else
+				//{
+				//	Waiting for a tile -> the level is not complete
+				//	LL_INFOS("World Map") << "Unfetched tile. level = " << level << LL_ENDL;
+				//}
 			}
 			else
 			{

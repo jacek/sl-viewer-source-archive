@@ -51,4 +51,62 @@
 	</text>
 	<check_box label="Sohbet baloncuklarını göster" name="bubble_text_chat"/>
 	<slider label="Saydamlık" name="bubble_chat_opacity"/>
+	<combo_box name="translate_language_combobox">
+		<combo_item length="1" name="System Default Language" type="string">
+			Sistem dili
+		</combo_item>
+		<combo_item length="1" name="English" type="string">
+			English (İngilizce)
+		</combo_item>
+		<combo_item name="Danish">
+			Dansk (Danimarkaca) - Beta
+		</combo_item>
+		<combo_item length="1" name="Deutsch(German)" type="string">
+			Deutsch (Almanca) - Beta
+		</combo_item>
+		<combo_item length="1" name="Spanish" type="string">
+			Español (İspanyolca) - Beta
+		</combo_item>
+		<combo_item length="1" name="French" type="string">
+			Français (Fransızca) - Beta
+		</combo_item>
+		<combo_item name="Italian">
+			Italiano (İtalyanca) - Beta
+		</combo_item>
+		<combo_item name="Hungarian">
+			Magyar (Macarca) - Beta
+		</combo_item>
+		<combo_item name="Dutch">
+			Nederlands (Flemenkçe) - Beta
+		</combo_item>
+		<combo_item name="Polish">
+			Polski (Polonyaca) - Beta
+		</combo_item>
+		<combo_item length="1" name="Portugese" type="string">
+			Portugués (Portekizce) - Beta
+		</combo_item>
+		<combo_item name="Russian">
+			Русский (Rusça) - Beta
+		</combo_item>
+		<combo_item length="1" name="Turkish" type="string">
+			Türkçe - Beta
+		</combo_item>
+		<combo_item name="Ukrainian">
+			Українська (Ukraynaca) - Beta
+		</combo_item>
+		<combo_item length="1" name="Chinese" type="string">
+			中文 (简体) (Çince) - Beta
+		</combo_item>
+		<combo_item length="1" name="(Japanese)" type="string">
+			日本語 (Japonca) - Beta
+		</combo_item>
+		<combo_item length="1" name="(Korean)" type="string">
+			한국어 (Korece) - Beta
+		</combo_item>
+	</combo_box>
+	<text type="string" length="1" name="text_chat_language">
+		Sohbet Dili:
+	</text>
+	<text type="string" length="1" name="translate_chat" label="Translate Sohbet">
+	</text>
 </panel>
