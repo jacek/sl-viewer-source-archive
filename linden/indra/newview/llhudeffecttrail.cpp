@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,14 +35,13 @@
 #include "llhudeffecttrail.h"
 
 #include "llviewercontrol.h"
-#include "llimagegl.h"
 #include "message.h"
 
 #include "llagent.h"
 #include "llbox.h"
 #include "lldrawable.h"
 #include "llhudrender.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobjectlist.h"
 #include "llviewerpartsim.h"
 #include "llviewerpartsource.h"
@@ -121,7 +120,7 @@ void LLHUDEffectSpiral::unpackData(LLMessageSystem *mesgsys, S32 blocknum)
 
 	LLHUDEffect::unpackData(mesgsys, blocknum);
 	LLUUID object_id, target_object_id;
-	S32 size = mesgsys->getSizeFast(_PREHASH_Effect, blocknum, _PREHASH_TypeData);
+	size_t size = mesgsys->getSizeFast(_PREHASH_Effect, blocknum, _PREHASH_TypeData);
 	if (size != EFFECT_SIZE)
 	{
 		llwarns << "Spiral effect with bad size " << size << llendl;
@@ -286,9 +285,4 @@ void LLHUDEffectSpiral::render()
 		markDead();
 		return;
 	}
-}
-
-void LLHUDEffectSpiral::renderForTimer()
-{
-	render();
 }

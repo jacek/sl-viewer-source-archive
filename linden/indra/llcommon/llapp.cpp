@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,8 +38,10 @@
 #include "llerrorcontrol.h"
 #include "llerrorthread.h"
 #include "llframetimer.h"
+#include "lllivefile.h"
 #include "llmemory.h"
-#include "lltimer.h"
+#include "llstl.h" // for DeletePointer()
+#include "lleventtimer.h"
 
 //
 // Signal handling
@@ -91,7 +93,6 @@ LLAppChildCallback LLApp::sDefaultChildCallback = NULL;
 LLApp::LLApp() : mThreadErrorp(NULL)
 {
 	commonCtor();
-	startErrorThread();
 }
 
 void LLApp::commonCtor()
@@ -105,9 +106,6 @@ void LLApp::commonCtor()
 	// This must be initialized before the error handler.
 	sSigChildCount = new LLAtomicU32(0);
 #endif
-
-	// Setup error handling
-	setupErrorHandling();
 
 	// initialize the options structure. We need to make this an array
 	// because the structured data will not auto-allocate if we
@@ -141,6 +139,11 @@ LLApp::~LLApp()
 	delete sSigChildCount;
 	sSigChildCount = NULL;
 #endif
+
+	// reclaim live file memory
+	std::for_each(mLiveFiles.begin(), mLiveFiles.end(), DeletePointer());
+	mLiveFiles.clear();
+
 	setStopped();
 	// HACK: wait for the error thread to clean itself
 	ms_sleep(20);
@@ -214,6 +217,15 @@ bool LLApp::parseCommandOptions(int argc, char** argv)
 	return true;
 }
 
+
+void LLApp::manageLiveFile(LLLiveFile* livefile)
+{
+	if(!livefile) return;
+	livefile->checkAndReload();
+	livefile->addToEventTimer();
+	mLiveFiles.push_back(livefile);
+}
+
 bool LLApp::setOptionData(OptionPriority level, LLSD data)
 {
 	if((level < 0)
@@ -275,6 +287,7 @@ void LLApp::setupErrorHandling()
 
 #endif
 
+	startErrorThread();
 }
 
 void LLApp::startErrorThread()
@@ -283,10 +296,13 @@ void LLApp::startErrorThread()
 	// Start the error handling thread, which is responsible for taking action
 	// when the app goes into the APP_STATUS_ERROR state
 	//
-	llinfos << "Starting error thread" << llendl;
-	mThreadErrorp = new LLErrorThread();
-	mThreadErrorp->setUserData((void *) this);
-	mThreadErrorp->start();	
+	if(!mThreadErrorp)
+	{
+		llinfos << "Starting error thread" << llendl;
+		mThreadErrorp = new LLErrorThread();
+		mThreadErrorp->setUserData((void *) this);
+		mThreadErrorp->start();
+	}
 }
 
 void LLApp::setErrorHandler(LLAppErrorHandler handler)

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,15 +49,14 @@
 #include "material_codes.h"
 
 // project includes
-#include "llagent.h"
 #include "llbutton.h"
 #include "llcheckboxctrl.h"
 #include "llcolorswatch.h"
+#include "lltexturectrl.h"
 #include "llcombobox.h"
-#include "llfirstuse.h"
+//#include "llfirstuse.h"
 #include "llfocusmgr.h"
 #include "llmanipscale.h"
-#include "llpanelinventory.h"
 #include "llpreviewscript.h"
 #include "llresmgr.h"
 #include "llselectmgr.h"
@@ -73,6 +72,7 @@
 #include "llvovolume.h"
 #include "llworld.h"
 #include "pipeline.h"
+#include "llviewershadermgr.h"
 
 #include "lldrawpool.h"
 #include "lluictrlfactory.h"
@@ -107,16 +107,32 @@ BOOL	LLPanelVolume::postBuild()
 		childSetCommitCallback("Light Checkbox Ctrl",onCommitIsLight,this);
 		LLColorSwatchCtrl*	LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
 		if(LightColorSwatch){
-			LightColorSwatch->setOnCancelCallback(onLightCancelColor);
-			LightColorSwatch->setOnSelectCallback(onLightSelectColor);
+			LightColorSwatch->setOnCancelCallback(boost::bind(&LLPanelVolume::onLightCancelColor, this, _2));
+			LightColorSwatch->setOnSelectCallback(boost::bind(&LLPanelVolume::onLightSelectColor, this, _2));
 			childSetCommitCallback("colorswatch",onCommitLight,this);
 		}
+
+		LLTextureCtrl* LightTexPicker = getChild<LLTextureCtrl>("light texture control");
+		if (LightTexPicker)
+		{
+			LightTexPicker->setOnCancelCallback(boost::bind(&LLPanelVolume::onLightCancelTexture, this, _2));
+			LightTexPicker->setOnSelectCallback(boost::bind(&LLPanelVolume::onLightSelectTexture, this, _2));
+			childSetCommitCallback("light texture control", onCommitLight, this);
+		}
+
 		childSetCommitCallback("Light Intensity",onCommitLight,this);
 		childSetValidate("Light Intensity",precommitValidate);
 		childSetCommitCallback("Light Radius",onCommitLight,this);
 		childSetValidate("Light Radius",precommitValidate);
 		childSetCommitCallback("Light Falloff",onCommitLight,this);
 		childSetValidate("Light Falloff",precommitValidate);
+		
+		childSetCommitCallback("Light FOV", onCommitLight, this);
+		childSetValidate("Light FOV", precommitValidate);
+		childSetCommitCallback("Light Focus", onCommitLight, this);
+		childSetValidate("Light Focus", precommitValidate);
+		childSetCommitCallback("Light Ambiance", onCommitLight, this);
+		childSetValidate("Light Ambiance", precommitValidate);
 	}
 	
 	// Start with everyone disabled
@@ -125,8 +141,8 @@ BOOL	LLPanelVolume::postBuild()
 	return TRUE;
 }
 
-LLPanelVolume::LLPanelVolume(const std::string& name)
-	:	LLPanel(name)
+LLPanelVolume::LLPanelVolume()
+	: LLPanel()
 {
 	setMouseOpaque(FALSE);
 
@@ -221,13 +237,31 @@ void LLPanelVolume::getState( )
 			LightColorSwatch->setValid( TRUE );
 			LightColorSwatch->set(volobjp->getLightBaseColor());
 		}
+
+		LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+		if (LightTextureCtrl)
+		{
+			LightTextureCtrl->setEnabled(TRUE);
+			LightTextureCtrl->setValid(TRUE);
+			LightTextureCtrl->setImageAssetID(volobjp->getLightTextureID());
+		}
+
 		childSetEnabled("Light Intensity",true);
 		childSetEnabled("Light Radius",true);
 		childSetEnabled("Light Falloff",true);
 
+		childSetEnabled("Light FOV", true);
+		childSetEnabled("Light Focus", true);
+		childSetEnabled("Light Ambiance", true);
+		
 		childSetValue("Light Intensity",volobjp->getLightIntensity());
 		childSetValue("Light Radius",volobjp->getLightRadius());
 		childSetValue("Light Falloff",volobjp->getLightFalloff());
+
+		LLVector3 params = volobjp->getSpotLightParams();
+		childSetValue("Light FOV", params.mV[0]);
+		childSetValue("Light Focus", params.mV[1]);
+		childSetValue("Light Ambiance", params.mV[2]);
 
 		mLightSavedColor = volobjp->getLightColor();
 	}
@@ -244,9 +278,20 @@ void LLPanelVolume::getState( )
 			LightColorSwatch->setEnabled( FALSE );
 			LightColorSwatch->setValid( FALSE );
 		}
+		LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+		if (LightTextureCtrl)
+		{
+			LightTextureCtrl->setEnabled(FALSE);
+			LightTextureCtrl->setValid(FALSE);
+		}
+
 		childSetEnabled("Light Intensity",false);
 		childSetEnabled("Light Radius",false);
 		childSetEnabled("Light Falloff",false);
+
+		childSetEnabled("Light FOV",false);
+		childSetEnabled("Light Focus",false);
+		childSetEnabled("Light Ambiance",false);
 	}
 	
 	// Flexible properties
@@ -317,7 +362,7 @@ void LLPanelVolume::getState( )
 }
 
 // static
-BOOL LLPanelVolume::precommitValidate( LLUICtrl* ctrl, void* userdata )
+bool LLPanelVolume::precommitValidate( const LLSD& data )
 {
 	// TODO: Richard will fill this in later.  
 	return TRUE; // FALSE means that validation failed and new value should not be commited.
@@ -336,6 +381,15 @@ void LLPanelVolume::refresh()
 	{
 		mRootObject = NULL;
 	}
+
+	BOOL visible = LLViewerShaderMgr::instance()->getVertexShaderLevel(LLViewerShaderMgr::SHADER_DEFERRED) > 0 ? TRUE : FALSE;
+
+	childSetVisible("label texture", visible);
+	childSetVisible("Light FOV", visible);
+	childSetVisible("Light Focus", visible);
+	childSetVisible("Light Ambiance", visible);
+	childSetVisible("light texture control", visible);
+
 }
 
 
@@ -362,6 +416,13 @@ void LLPanelVolume::clearCtrls()
 		LightColorSwatch->setEnabled( FALSE );
 		LightColorSwatch->setValid( FALSE );
 	}
+	LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+	if(LightTextureCtrl)
+	{
+		LightTextureCtrl->setEnabled( FALSE );
+		LightTextureCtrl->setValid( FALSE );
+	}
+
 	childSetEnabled("Light Intensity",false);
 	childSetEnabled("Light Radius",false);
 	childSetEnabled("Light Falloff",false);
@@ -409,7 +470,7 @@ void LLPanelVolume::sendIsFlexible()
 
 	if (is_flexible)
 	{
-		LLFirstUse::useFlexible();
+		//LLFirstUse::useFlexible();
 
 		if (objectp->getClickAction() == CLICK_ACTION_SIT)
 		{
@@ -427,21 +488,28 @@ void LLPanelVolume::sendIsFlexible()
 	llinfos << "update flexible sent" << llendl;
 }
 
-void LLPanelVolume::onLightCancelColor(LLUICtrl* ctrl, void* userdata)
+void LLPanelVolume::onLightCancelColor(const LLSD& data)
 {
-	LLPanelVolume* self = (LLPanelVolume*) userdata;
-	LLColorSwatchCtrl*	LightColorSwatch = self->getChild<LLColorSwatchCtrl>("colorswatch");
+	LLColorSwatchCtrl*	LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
 	if(LightColorSwatch)
 	{
-		LightColorSwatch->setColor(self->mLightSavedColor);
+		LightColorSwatch->setColor(mLightSavedColor);
 	}
-	onLightSelectColor(NULL, userdata);
+	onLightSelectColor(data);
 }
 
-void LLPanelVolume::onLightSelectColor(LLUICtrl* ctrl, void* userdata)
+void LLPanelVolume::onLightCancelTexture(const LLSD& data)
 {
-	LLPanelVolume* self = (LLPanelVolume*) userdata;
-	LLViewerObject* objectp = self->mObject;
+	LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+	if (LightTextureCtrl)
+	{
+		LightTextureCtrl->setImageAssetID(mLightSavedTexture);
+	}
+}
+
+void LLPanelVolume::onLightSelectColor(const LLSD& data)
+{
+	LLViewerObject* objectp = mObject;
 	if (!objectp || (objectp->getPCode() != LL_PCODE_VOLUME))
 	{
 		return;
@@ -449,13 +517,31 @@ void LLPanelVolume::onLightSelectColor(LLUICtrl* ctrl, void* userdata)
 	LLVOVolume *volobjp = (LLVOVolume *)objectp;
 
 
-	LLColorSwatchCtrl*	LightColorSwatch = self->getChild<LLColorSwatchCtrl>("colorswatch");
+	LLColorSwatchCtrl*	LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
 	if(LightColorSwatch)
 	{
 		LLColor4	clr = LightColorSwatch->get();
 		LLColor3	clr3( clr );
 		volobjp->setLightColor(clr3);
-		self->mLightSavedColor = clr;
+		mLightSavedColor = clr;
+	}
+}
+
+void LLPanelVolume::onLightSelectTexture(const LLSD& data)
+{
+	if (mObject.isNull() || (mObject->getPCode() != LL_PCODE_VOLUME))
+	{
+		return;
+	}	
+	LLVOVolume *volobjp = (LLVOVolume *) mObject.get();
+
+
+	LLTextureCtrl*	LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+	if(LightTextureCtrl)
+	{
+		LLUUID id = LightTextureCtrl->getImageAssetID();
+		volobjp->setLightTextureID(id);
+		mLightSavedTexture = id;
 	}
 }
 
@@ -474,12 +560,47 @@ void LLPanelVolume::onCommitLight( LLUICtrl* ctrl, void* userdata )
 	volobjp->setLightIntensity((F32)self->childGetValue("Light Intensity").asReal());
 	volobjp->setLightRadius((F32)self->childGetValue("Light Radius").asReal());
 	volobjp->setLightFalloff((F32)self->childGetValue("Light Falloff").asReal());
+
 	LLColorSwatchCtrl*	LightColorSwatch = self->getChild<LLColorSwatchCtrl>("colorswatch");
 	if(LightColorSwatch)
 	{
 		LLColor4	clr = LightColorSwatch->get();
 		volobjp->setLightColor(LLColor3(clr));
 	}
+
+	LLTextureCtrl*	LightTextureCtrl = self->getChild<LLTextureCtrl>("light texture control");
+	if(LightTextureCtrl)
+	{
+		LLUUID id = LightTextureCtrl->getImageAssetID();
+		if (id.notNull())
+		{
+			if (volobjp->getLightTextureID().isNull())
+			{ //this commit is making this a spot light, set UI to default params
+				volobjp->setLightTextureID(id);
+				LLVector3 spot_params = volobjp->getSpotLightParams();
+				self->childSetValue("Light FOV", spot_params.mV[0]);
+				self->childSetValue("Light Focus", spot_params.mV[1]);
+				self->childSetValue("Light Ambiance", spot_params.mV[2]);
+			}
+			else
+			{ //modifying existing params
+				LLVector3 spot_params;
+				spot_params.mV[0] = (F32) self->childGetValue("Light FOV").asReal();
+				spot_params.mV[1] = (F32) self->childGetValue("Light Focus").asReal();
+				spot_params.mV[2] = (F32) self->childGetValue("Light Ambiance").asReal();
+				volobjp->setSpotLightParams(spot_params);
+			}
+		}
+		else if (volobjp->getLightTextureID().notNull())
+		{ //no longer a spot light
+			volobjp->setLightTextureID(id);
+			//self->childDisable("Light FOV");
+			//self->childDisable("Light Focus");
+			//self->childDisable("Light Ambiance");
+		}
+	}
+
+	
 }
 
 // static

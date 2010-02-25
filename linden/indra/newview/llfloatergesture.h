@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,12 +36,12 @@
 
 #ifndef LL_LLFLOATERGESTURE_H
 #define LL_LLFLOATERGESTURE_H
+#include <vector> 
 
 #include "llfloater.h"
+#include "llinventoryobserver.h"
 
-#include "lldarray.h"
-
-class LLScrollableContainerView;
+class LLScrollContainer;
 class LLView;
 class LLButton;
 class LLLineEditor;
@@ -51,37 +51,62 @@ class LLGestureOptions;
 class LLScrollListCtrl;
 class LLFloaterGestureObserver;
 class LLFloaterGestureInventoryObserver;
+class LLMultiGesture;
+class LLMenuGL;
 
 class LLFloaterGesture
-:	public LLFloater
+:	public LLFloater, LLInventoryFetchDescendentsObserver
 {
+	LOG_CLASS(LLFloaterGesture);
 public:
-	LLFloaterGesture();
+	LLFloaterGesture(const LLSD& key);
 	virtual ~LLFloaterGesture();
 
 	virtual BOOL postBuild();
-
-	static void show();
-	static void toggleVisibility();
-	static void refreshAll();
+	virtual void done ();
+	void refreshAll();
+	/**
+	 * @brief Add new scrolllistitem into gesture_list.
+	 * @param  item_id inventory id of gesture
+	 * @param  gesture can be NULL , if item was not loaded yet
+	 */
+	void addGesture(const LLUUID& item_id, LLMultiGesture* gesture, LLCtrlListInterface * list);
 
 protected:
 	// Reads from the gesture manager's list of active gestures
 	// and puts them in this list.
 	void buildGestureList();
+	void playGesture(LLUUID item_id);
+private:
+	void addToCurrentOutFit();
+	/**
+	 * @brief  This method is using to collect selected items. 
+	 * In some places gesture_list can be rebuilt by gestureObservers during  iterating data from LLScrollListCtrl::getAllSelected().
+	 * Therefore we have to copy these items to avoid viewer crash.
+	 * @see LLFloaterGesture::onActivateBtnClick
+	 */
+	void getSelectedIds(std::vector<LLUUID>& ids);
+	bool isActionEnabled(const LLSD& command);
+	/**
+	 * @brief Activation rules:
+	 *  According to Gesture Spec:
+	 *  1. If all selected gestures are active: set to inactive
+	 *  2. If all selected gestures are inactive: set to active
+	 *  3. If selected gestures are in a mixed state: set all to active
+	 */
+	void onActivateBtnClick();
+	void onClickEdit();
+	void onClickPlay();
+	void onClickNew();
+	void onCommitList();
+	void onCopyPasteAction(const LLSD& command);
+	void onDeleteSelected();
 
-	static void onClickInventory(void* data);
-	static void onClickEdit(void* data);
-	static void onClickPlay(void* data);
-	static void onClickNew(void* data);
-	static void onCommitList(LLUICtrl* ctrl, void* data);
-
-protected:
 	LLUUID mSelectedID;
+	LLUUID mGestureFolderID;
+	LLScrollListCtrl* mGestureList;
 
-	static LLFloaterGesture* sInstance;
-	static LLFloaterGestureObserver* sObserver;
-	static LLFloaterGestureInventoryObserver* sInventoryObserver;
+	LLFloaterGestureObserver* mObserver;
 };
 
 

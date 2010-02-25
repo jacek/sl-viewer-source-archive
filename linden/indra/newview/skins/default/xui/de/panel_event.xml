@@ -1,19 +1,28 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Event" title="Event">
+<panel label="Event" name="Event" title="Event">
+	<panel.string name="none">
+		-
+	</panel.string>
+	<panel.string name="notify">
+		Benachrichtigen
+	</panel.string>
+	<panel.string name="dont_notify">
+		Nicht benachrichtigen
+	</panel.string>
 	<text name="event_name_label">
 		Name:
 	</text>
-	<text name="event_name">
+	<text name="event_name" left="130">
 		(keiner)
 	</text>
 	<text name="event_category_label">
 		Typ:
 	</text>
-	<text name="event_category">
+	<text name="event_category" left="130">
 		(keiner)
 	</text>
 	<text name="event_mature_label">
-		Mature-Inhalt:
+		Moderater Inhalt:
 	</text>
 	<text name="event_mature_yes">
 		Ja
@@ -24,47 +33,38 @@
 	<text name="event_date_label">
 		Datum:
 	</text>
-	<text name="event_date">
+	<text name="event_date" left="130">
 		(keiner)
 	</text>
 	<text name="event_duration_label">
 		Event-Dauer:
 	</text>
-	<text name="event_duration">
+	<text name="event_duration" left="130">
 		(keiner)
 	</text>
 	<text name="event_runby_label">
 		Ausgeführt von:
 	</text>
-	<text name="event_runby">
+	<text name="event_runby" left="130">
 		(keiner)
 	</text>
 	<text name="event_location_label">
 		Standort:
 	</text>
-	<text name="event_location">
+	<text name="event_location" left="130">
 		(keiner)
 	</text>
 	<text name="event_cover_label">
 		Gebühr:
 	</text>
-	<text name="event_cover">
+	<text name="event_cover" left="130">
 		(keiner)
 	</text>
 	<text name="event_desc_label">
 		Beschreibung:
 	</text>
 	<button label="Teleportieren" name="teleport_btn"/>
-	<button label="Auf Karte" name="map_btn"/>
+	<button label="Karte" name="map_btn"/>
 	<button label="Benachrichtigen" name="notify_btn"/>
 	<button label="Event erstellen..." name="create_event_btn"/>
-	<string name="none">
-		-
-	</string>
-	<string name="notify">
-		Benachrichtigen
-	</string>
-	<string name="dont_notify">
-		Nicht benachrichtigen
-	</string>
 </panel>

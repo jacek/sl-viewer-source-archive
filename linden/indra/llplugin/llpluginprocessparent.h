@@ -2,9 +2,10 @@
  * @file llpluginprocessparent.h
  * @brief LLPluginProcessParent handles the parent side of the external-process plugin API.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,11 +29,13 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #ifndef LL_LLPLUGINPROCESSPARENT_H
 #define LL_LLPLUGINPROCESSPARENT_H
 
+#include "llapr.h"
 #include "llprocesslauncher.h"
 #include "llpluginmessage.h"
 #include "llpluginmessagepipe.h"
@@ -46,6 +49,7 @@ public:
 	virtual ~LLPluginProcessParentOwner();
 	virtual void receivePluginMessage(const LLPluginMessage &message) = 0;
 	// This will only be called when the plugin has died unexpectedly 
+	virtual void pluginLaunchFailed() {};
 	virtual void pluginDied() {};
 };
 
@@ -56,7 +60,7 @@ public:
 	LLPluginProcessParent(LLPluginProcessParentOwner *owner);
 	~LLPluginProcessParent();
 		
-	void init(const std::string &launcher_filename, const std::string &plugin_filename);
+	void init(const std::string &launcher_filename, const std::string &plugin_filename, bool debug, const std::string &user_data_path);
 	void idle(void);
 	
 	// returns true if the plugin is on its way to steady state
@@ -69,6 +73,9 @@ public:
 	bool isDone(void);	
 	
 	void killSockets(void);
+	
+	// Go to the proper error state
+	void errorState(void);
 
 	void setSleepTime(F64 sleep_time, bool force_send = false);
 	F64 getSleepTime(void) const { return mSleepTime; };
@@ -96,6 +103,11 @@ public:
 	
 	bool getDisableTimeout() { return mDisableTimeout; };
 	void setDisableTimeout(bool disable) { mDisableTimeout = disable; };
+	
+	void setLaunchTimeout(F32 timeout) { mPluginLaunchTimeout = timeout; };
+	void setLockupTimeout(F32 timeout) { mPluginLockupTimeout = timeout; };
+
+	F64 getCPUUsage() { return mCPUUsage; };
 
 private:
 
@@ -109,6 +121,7 @@ private:
 		STATE_HELLO,			// first message from the plugin process has been received
 		STATE_LOADING,			// process has been asked to load the plugin
 		STATE_RUNNING,			// 
+		STATE_LAUNCH_FAILURE,	// Failure before plugin loaded
 		STATE_ERROR,			// generic bailout state
 		STATE_CLEANUP,			// clean everything up
 		STATE_EXITING,			// Tried to kill process, waiting for it to exit
@@ -131,6 +144,8 @@ private:
 	
 	std::string mPluginFile;
 
+	std::string mUserDataPath;
+
 	LLPluginProcessParentOwner *mOwner;
 	
 	typedef std::map<std::string, LLPluginSharedMemory*> sharedMemoryRegionsType;
@@ -141,8 +156,16 @@ private:
 	
 	LLTimer mHeartbeat;
 	F64		mSleepTime;
+	F64		mCPUUsage;
 	
 	bool mDisableTimeout;
+	bool mDebug;
+
+	LLProcessLauncher mDebugger;
+	
+	F32 mPluginLaunchTimeout;		// Somewhat longer timeout for initial launch.
+	F32 mPluginLockupTimeout;		// If we don't receive a heartbeat in this many seconds, we declare the plugin locked up.
+
 };
 
 #endif // LL_LLPLUGINPROCESSPARENT_H

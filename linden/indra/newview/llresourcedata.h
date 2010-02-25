@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,11 +39,12 @@
 struct LLResourceData
 {
 	LLAssetInfo mAssetInfo;
-	LLAssetType::EType mPreferredLocation;
+	LLFolderType::EType mPreferredLocation;
 	LLInventoryType::EType mInventoryType;
 	U32 mNextOwnerPerm;
 	S32 mExpectedUploadCost;
 	void *mUserData;
+	static const S8 INVALID_LOCATION = -2;
 };
 
 #endif

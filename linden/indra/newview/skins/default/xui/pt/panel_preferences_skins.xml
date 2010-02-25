@@ -4,11 +4,8 @@
 		Selecione uma pele (necessita reiniciar):
 	</text>
 	<radio_group name="skin_selection">
-		<radio_item name="default">
-			Padrão
-		</radio_item>
-		<radio_item name="silver">
-			Prata
-		</radio_item>
+		<radio_item label="Padrão" name="default"/>
+		<radio_item label="Rascunho" name="sketch"/>
+		<radio_item label="2009" name="2009"/>
 	</radio_group>
 </panel>

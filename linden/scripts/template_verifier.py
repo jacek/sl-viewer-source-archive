@@ -5,7 +5,7 @@
 
 $LicenseInfo:firstyear=2007&license=viewergpl$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2007-2010, Linden Research, Inc.
 
 Second Life Viewer Source Code
 The source code in this file ("Source Code") is provided by Linden Lab
@@ -103,7 +103,7 @@ MESSAGE_TEMPLATE = 'message_template.msg'
 PRODUCTION_ACCEPTABLE = (compatibility.Same, compatibility.Newer)
 DEVELOPMENT_ACCEPTABLE = (
     compatibility.Same, compatibility.Newer,
-    compatibility.Older, compatibility.Mixed)	
+    compatibility.Older, compatibility.Mixed)
 
 MAX_MASTER_AGE = 60 * 60 * 4   # refresh master cache every 4 hours
 
@@ -203,8 +203,13 @@ def getuser():
         import getpass
         return getpass.getuser()
     except ImportError:
-        import win32api
-        return win32api.GetUserName()
+        import ctypes
+        MAX_PATH = 260                  # according to a recent WinDef.h
+        name = ctypes.create_unicode_buffer(MAX_PATH)
+        namelen = ctypes.c_int(len(name)) # len in chars, NOT bytes
+        if not ctypes.windll.advapi32.GetUserNameW(name, ctypes.byref(namelen)):
+            raise ctypes.WinError()
+        return name.value
 
 def local_master_cache_filename():
     """Returns the location of the master template cache (which is in the system tempdir)

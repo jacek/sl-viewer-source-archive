@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,26 +38,27 @@
 #define MAX_PATH MAXPATHLEN
 #endif
 
-// these numbers *may* get serialized, so we need to be explicit
+// these numbers *may* get serialized (really??), so we need to be explicit
 typedef enum ELLPath
 {
 	LL_PATH_NONE = 0,
 	LL_PATH_USER_SETTINGS = 1,
 	LL_PATH_APP_SETTINGS = 2,	
-	LL_PATH_PER_SL_ACCOUNT = 3,	
+	LL_PATH_PER_SL_ACCOUNT = 3, // returns/expands to blank string if we don't know the account name yet
 	LL_PATH_CACHE = 4,	
 	LL_PATH_CHARACTER = 5,	
-	LL_PATH_MOTIONS = 6,
-	LL_PATH_HELP = 7,		
-	LL_PATH_LOGS = 8,
-	LL_PATH_TEMP = 9,
-	LL_PATH_SKINS = 10,
-	LL_PATH_TOP_SKIN = 11,
-	LL_PATH_CHAT_LOGS = 12,
-	LL_PATH_PER_ACCOUNT_CHAT_LOGS = 13,
-	LL_PATH_MOZILLA_PROFILE = 14,
-//	LL_PATH_HTML = 15,
+	LL_PATH_HELP = 6,		
+	LL_PATH_LOGS = 7,
+	LL_PATH_TEMP = 8,
+	LL_PATH_SKINS = 9,
+	LL_PATH_TOP_SKIN = 10,
+	LL_PATH_CHAT_LOGS = 11,
+	LL_PATH_PER_ACCOUNT_CHAT_LOGS = 12,
+	LL_PATH_USER_SKIN = 14,
+	LL_PATH_LOCAL_ASSETS = 15,
 	LL_PATH_EXECUTABLE = 16,
+	LL_PATH_DEFAULT_SKIN = 17,
+	LL_PATH_FONTS = 18,
 	LL_PATH_LAST
 } ELLPath;
 
@@ -68,8 +69,13 @@ class LLDir
 	LLDir();
 	virtual ~LLDir();
 
-	virtual void initAppDirs(const std::string &app_name) = 0;
- public:	
+	// app_name - Usually SecondLife, used for creating settings directories
+	// in OS-specific location, such as C:\Documents and Settings
+	// app_read_only_data_dir - Usually the source code directory, used
+	// for test applications to read newview data files.
+	virtual void initAppDirs(const std::string &app_name, 
+		const std::string& app_read_only_data_dir = "") = 0;
+
 	virtual S32 deleteFilesInDir(const std::string &dirname, const std::string &mask);
 
 // pure virtual functions
@@ -79,7 +85,8 @@ class LLDir
 	virtual std::string getCurPath() = 0;
 	virtual BOOL fileExists(const std::string &filename) const = 0;
 
-	const std::string findFile(const std::string &filename, const std::string searchPath1 = "", const std::string searchPath2 = "", const std::string searchPath3 = "") const;
+	const std::string findFile(const std::string& filename, const std::vector<std::string> filenames) const; 
+	const std::string findFile(const std::string& filename, const std::string& searchPath1 = "", const std::string& searchPath2 = "", const std::string& searchPath3 = "") const;
 
 	virtual std::string getLLPluginLauncher() = 0; // full path and name for the plugin shell
 	virtual std::string getLLPluginFilename(std::string base_name) = 0; // full path and name to the plugin DSO for this base_name (i.e. 'FOO' -> '/bar/baz/libFOO.so')
@@ -158,6 +165,7 @@ protected:
 	std::string mDefaultCacheDir;	// default cache diretory
 	std::string mOSCacheDir;		// operating system cache dir
 	std::string mDirDelimiter;
+	std::string mSkinBaseDir;			// Base for skins paths.
 	std::string mSkinDir;			// Location for current skin info.
 	std::string mDefaultSkinDir;			// Location for default skin info.
 	std::string mUserSkinDir;			// Location for user-modified skin info.

@@ -9,7 +9,7 @@
 	<button name="media_pause" tool_tip="Mettez le flux média en pause"/>
 	<button name="media_stop" tool_tip="Arrêtez le flux média"/>
 	<volume_slider name="volume_slider" tool_tip="Volume principal"/>
-	<button name="mute_master" tool_tip="Coupez le volume principal"/>
+	<button name="mute_master" tool_tip="Volume principal coupé"/>
 	<button name="expand" tool_tip="Ajustez les niveaux de volume individuels"/>
 	<string name="play_label">
 		Jouer

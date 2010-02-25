@@ -1,2 +1,6 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="url_preview" title="Ortsinformationen" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="url_preview" title="ORTSINFORMATION">
+	<floater.string name="Title">
+		URL: [NAME]
+	</floater.string>
+</floater>

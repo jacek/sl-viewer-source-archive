@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- All our XML is utf-8 encoded. -->
+<panel name="private_call" title="chiamata_privata">
+	<panel name="pc_header" title="pc_header">
+		<text name="user_name">
+			CHIAMATA PRIVATA
+		</text>
+	</panel>
+	<panel name="control_panel" title="pannello_controllo">
+		<button label="Chiudi chiamata" name="end_call_btn"/>
+		<text name="user_name">
+			Tu
+		</text>
+		<slider name="volume_slider" tool_tip="Volume principale"/>
+	</panel>
+</panel>

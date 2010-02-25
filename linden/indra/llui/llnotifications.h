@@ -5,7 +5,7 @@
 *
 * $LicenseInfo:firstyear=2008&license=viewergpl$
 * 
-* Copyright (c) 2008-2009, Linden Research, Inc.
+* Copyright (c) 2008-2010, Linden Research, Inc.
 * 
 * Second Life Viewer Source Code
 * The source code in this file ("Source Code") is provided by Linden Lab
@@ -91,48 +91,19 @@
 
 #include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/signal.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/type_traits.hpp>
 
 // we want to minimize external dependencies, but this one is important
 #include "llsd.h"
 
 // and we need this to manage the notification callbacks
+#include "llevents.h"
 #include "llfunctorregistry.h"
-#include "llui.h"
-
-class LLNotification;
-typedef boost::shared_ptr<LLNotification> LLNotificationPtr;
-
-/*****************************************************************************
-*   Signal and handler declarations
-*   Using a single handler signature means that we can have a common handler
-*   type, rather than needing a distinct one for each different handler.
-*****************************************************************************/
-
-/**
- * A boost::signals Combiner that stops the first time a handler returns true
- * We need this because we want to have our handlers return bool, so that
- * we have the option to cause a handler to stop further processing. The
- * default handler fails when the signal returns a value but has no slots.
- */
-struct LLStopWhenHandled
-{
-    typedef bool result_type;
-
-    template<typename InputIterator>
-    result_type operator()(InputIterator first, InputIterator last) const
-    {
-        for (InputIterator si = first; si != last; ++si)
-		{
-            if (*si)
-			{
-                return true;
-			}
-		}
-        return false;
-    }
-};
+#include "llpointer.h"
+#include "llinitparam.h"
+#include "llnotificationslistener.h"
+#include "llnotificationptr.h"
 
 	
 typedef enum e_notification_priority
@@ -144,26 +115,10 @@ typedef enum e_notification_priority
 	NOTIFICATION_PRIORITY_CRITICAL
 } ENotificationPriority;
 
-/**
- * We want to have a standard signature for all signals; this way,
- * we can easily document a protocol for communicating across
- * dlls and into scripting languages someday.
- * we want to return a bool to indicate whether the signal has been
- * handled and should NOT be passed on to other listeners.
- * Return true to stop further handling of the signal, and false
- * to continue.
- * We take an LLSD because this way the contents of the signal
- * are independent of the API used to communicate it.
- * It is const ref because then there's low cost to pass it;
- * if you only need to inspect it, it's very cheap.
- */
-
 typedef boost::function<void (const LLSD&, const LLSD&)> LLNotificationResponder;
 
 typedef LLFunctorRegistry<LLNotificationResponder> LLNotificationFunctorRegistry;
 typedef LLFunctorRegistration<LLNotificationResponder> LLNotificationFunctorRegistration;
-
-typedef boost::signal<bool(const LLSD&), LLStopWhenHandled>  LLStandardSignal;
 
 // context data that can be looked up via a notification's payload by the display logic
 // derive from this class to implement specific contexts
@@ -202,7 +157,8 @@ public:
 
 	LLNotificationForm();
 	LLNotificationForm(const LLSD& sd);
-	LLNotificationForm(const std::string& name, const LLXMLNodePtr xml_node);
+	LLNotificationForm(const std::string& name, 
+		const LLPointer<class LLXMLNode> xml_node);
 
 	LLSD asLLSD() const;
 
@@ -280,6 +236,11 @@ struct LLNotificationTemplate
     // that URL. Obsolete this and eliminate the buttons for affected
     // messages when we allow clickable URLs in the UI
     U32 mURLOption;
+	
+	U32 mURLOpenExternally;
+	//This is a flag that tells if the url needs to open externally dispite 
+	//what the user setting is.
+	
 	// does this notification persist across sessions? if so, it will be
 	// serialized to disk on first receipt and read on startup
 	bool mPersist;
@@ -322,42 +283,53 @@ friend class LLNotifications;
 
 public:
 	// parameter object used to instantiate a new notification
-	class Params : public LLParamBlock<Params>
+	struct Params : public LLInitParam::Block<Params>
 	{
 		friend class LLNotification;
-	public:
-		Params(const std::string& _name) 
-			:	name(_name),
-				mTemporaryResponder(false),
-				functor_name(_name),
-				priority(NOTIFICATION_PRIORITY_UNSPECIFIED),
-				timestamp(LLDate::now())
-		{
-		}
-
-		// pseudo-param
-		Params& functor(LLNotificationFunctorRegistry::ResponseFunctor f) 
-		{ 	
-			functor_name = LLUUID::generateNewID().asString();
-			LLNotificationFunctorRegistry::instance().registerFunctor(functor_name, f);
-
-			mTemporaryResponder = true;
-			return *this;
-		}
-
-		LLMandatoryParam<std::string>					name;
+	
+		Mandatory<std::string>					name;
 
 		// optional
-		LLOptionalParam<LLSD>							substitutions;
-		LLOptionalParam<LLSD>							payload;
-		LLOptionalParam<ENotificationPriority>			priority;
-		LLOptionalParam<LLSD>							form_elements;
-		LLOptionalParam<LLDate>							timestamp;
-		LLOptionalParam<LLNotificationContext*>			context;
-		LLOptionalParam<std::string>					functor_name;
+		Optional<LLSD>							substitutions;
+		Optional<LLSD>							payload;
+		Optional<ENotificationPriority>			priority;
+		Optional<LLSD>							form_elements;
+		Optional<LLDate>						time_stamp;
+		Optional<LLNotificationContext*>		context;
 
-	private:
-		bool					mTemporaryResponder;
+		struct Functor : public LLInitParam::Choice<Functor>
+		{
+			Alternative<std::string>										name;
+			Alternative<LLNotificationFunctorRegistry::ResponseFunctor>	function;
+
+			Functor()
+			:	name("functor_name"),
+				function("functor")
+			{}
+		};
+		Optional<Functor>						functor;
+
+		Params()
+		:	name("name"),
+			priority("priority", NOTIFICATION_PRIORITY_UNSPECIFIED),
+			time_stamp("time_stamp"),
+			payload("payload"),
+			form_elements("form_elements")
+		{
+			time_stamp = LLDate::now();
+		}
+
+		Params(const std::string& _name) 
+		:	name("name"),
+			priority("priority", NOTIFICATION_PRIORITY_UNSPECIFIED),
+			time_stamp("time_stamp"),
+			payload("payload"),
+			form_elements("form_elements")
+		{
+			functor.name = _name;
+			name = _name;
+			time_stamp = LLDate::now();
+		}
 	};
 
 private:
@@ -399,7 +371,7 @@ private:
 
 	// this is just for making it easy to look things up in a set organized by UUID -- DON'T USE IT
 	// for anything real!
-	LLNotification(LLUUID uuid) : mId(uuid) {}
+ LLNotification(LLUUID uuid) : mId(uuid), mCancelled(false), mRespondedTo(false), mIgnored(false), mPriority(NOTIFICATION_PRIORITY_UNSPECIFIED), mTemporaryResponder(false) {}
 
 	void cancel();
 
@@ -409,10 +381,6 @@ public:
 
 	// constructor from a saved notification
 	LLNotification(const LLSD& sd);
-
-	// This is a string formatter for substituting into the message directly 
-	// from LLSD without going through the hopefully-to-be-obsoleted LLString
-	static std::string format(const std::string& text, const LLSD& substitutions);
 
 	void setResponseFunctor(std::string const &responseFunctorName);
 
@@ -505,16 +473,21 @@ public:
 	std::string getMessage() const;
 	std::string getLabel() const;
 
-	std::string getURL() const
-	{
-		return (mTemplatep ? mTemplatep->mURL : "");
-	}
+	std::string getURL() const;
+//	{
+//		return (mTemplatep ? mTemplatep->mURL : "");
+//	}
 
 	S32 getURLOption() const
 	{
 		return (mTemplatep ? mTemplatep->mURLOption : -1);
 	}
-
+    
+	S32 getURLOpenExternally() const
+	{
+		return(mTemplatep? mTemplatep->mURLOpenExternally : -1);
+	}
+	
 	const LLNotificationFormPtr getForm();
 
 	const LLDate getExpiration() const
@@ -648,7 +621,7 @@ namespace LLNotificationComparators
 	struct orderBy
 	{
 		typedef boost::function<T (LLNotificationPtr)> field_t;
-		orderBy(field_t field, EDirection = ORDER_INCREASING) : mField(field) {}
+        	orderBy(field_t field, EDirection direction = ORDER_INCREASING) : mField(field), mDirection(direction) {}
 		bool operator()(LLNotificationPtr lhs, LLNotificationPtr rhs)
 		{
 			if (mDirection == ORDER_DECREASING)
@@ -699,7 +672,7 @@ typedef std::multimap<std::string, LLNotificationPtr> LLNotificationMap;
 // all of the built-in tests should attach to the "Visible" channel
 //
 class LLNotificationChannelBase :
-	public boost::signals::trackable
+	public LLEventTrackable
 {
 	LOG_CLASS(LLNotificationChannelBase);
 public:
@@ -709,15 +682,54 @@ public:
 	virtual ~LLNotificationChannelBase() {}
 	// you can also connect to a Channel, so you can be notified of
 	// changes to this channel
-	virtual void connectChanged(const LLStandardSignal::slot_type& slot);
-	virtual void connectPassedFilter(const LLStandardSignal::slot_type& slot);
-	virtual void connectFailedFilter(const LLStandardSignal::slot_type& slot);
+	template <typename LISTENER>
+    LLBoundListener connectChanged(const LISTENER& slot)
+    {
+        // Examine slot to see if it binds an LLEventTrackable subclass, or a
+        // boost::shared_ptr to something, or a boost::weak_ptr to something.
+        // Call this->connectChangedImpl() to actually connect it.
+        return LLEventDetail::visit_and_connect(slot,
+                                  boost::bind(&LLNotificationChannelBase::connectChangedImpl,
+                                              this,
+                                              _1));
+    }
+	template <typename LISTENER>
+    LLBoundListener connectAtFrontChanged(const LISTENER& slot)
+    {
+        return LLEventDetail::visit_and_connect(slot,
+                                  boost::bind(&LLNotificationChannelBase::connectAtFrontChangedImpl,
+                                              this,
+                                              _1));
+    }
+    template <typename LISTENER>
+	LLBoundListener connectPassedFilter(const LISTENER& slot)
+    {
+        // see comments in connectChanged()
+        return LLEventDetail::visit_and_connect(slot,
+                                  boost::bind(&LLNotificationChannelBase::connectPassedFilterImpl,
+                                              this,
+                                              _1));
+    }
+    template <typename LISTENER>
+	LLBoundListener connectFailedFilter(const LISTENER& slot)
+    {
+        // see comments in connectChanged()
+        return LLEventDetail::visit_and_connect(slot,
+                                  boost::bind(&LLNotificationChannelBase::connectFailedFilterImpl,
+                                              this,
+                                              _1));
+    }
 
 	// use this when items change or to add a new one
 	bool updateItem(const LLSD& payload);
 	const LLNotificationFilter& getFilter() { return mFilter; }
 
 protected:
+    LLBoundListener connectChangedImpl(const LLEventListener& slot);
+    LLBoundListener connectAtFrontChangedImpl(const LLEventListener& slot);
+    LLBoundListener connectPassedFilterImpl(const LLEventListener& slot);
+    LLBoundListener connectFailedFilterImpl(const LLEventListener& slot);
+
 	LLNotificationSet mItems;
 	LLStandardSignal mChanged;
 	LLStandardSignal mPassedFilter;
@@ -799,9 +811,19 @@ private:
 	LLNotificationComparator mComparator;
 };
 
-
+// An interface class to provide a clean linker seam to the LLNotifications class.
+// Extend this interface as needed for your use of LLNotifications.
+class LLNotificationsInterface
+{
+public:
+	virtual LLNotificationPtr add(const std::string& name, 
+						const LLSD& substitutions, 
+						const LLSD& payload, 
+						LLNotificationFunctorRegistry::ResponseFunctor functor) = 0;
+};
 
 class LLNotifications : 
+	public LLNotificationsInterface,
 	public LLSingleton<LLNotifications>, 
 	public LLNotificationChannelBase
 {
@@ -812,17 +834,21 @@ public:
 	// load notification descriptions from file; 
 	// OK to call more than once because it will reload
 	bool loadTemplates();  
-	LLXMLNodePtr checkForXMLTemplate(LLXMLNodePtr item);
-
-	// we provide a collection of simple add notification functions so that it's reasonable to create notifications in one line
+	LLPointer<class LLXMLNode> checkForXMLTemplate(LLPointer<class LLXMLNode> item);
+	
+	// Add a simple notification (from XUI)
+	void addFromCallback(const LLSD& name);
+	
+	// *NOTE: To add simple notifications, #include "llnotificationsutil.h"
+	// and use LLNotificationsUtil::add("MyNote") or add("MyNote", args)
 	LLNotificationPtr add(const std::string& name, 
-						const LLSD& substitutions = LLSD(), 
-						const LLSD& payload = LLSD());
+						const LLSD& substitutions,
+						const LLSD& payload);
 	LLNotificationPtr add(const std::string& name, 
 						const LLSD& substitutions, 
 						const LLSD& payload, 
 						const std::string& functor_name);
-	LLNotificationPtr add(const std::string& name, 
+	/* virtual */ LLNotificationPtr add(const std::string& name, 
 						const LLSD& substitutions, 
 						const LLSD& payload, 
 						LLNotificationFunctorRegistry::ResponseFunctor functor);
@@ -868,6 +894,9 @@ public:
 	
 	std::string getGlobalString(const std::string& key) const;
 
+	void setIgnoreAllNotifications(bool ignore);
+	bool getIgnoreAllNotifications();
+
 private:
 	// we're a singleton, so we don't have a public constructor
 	LLNotifications();
@@ -889,13 +918,17 @@ private:
 
 	std::string mFileName;
 	
-	typedef std::map<std::string, LLXMLNodePtr> XMLTemplateMap;
+	typedef std::map<std::string, LLPointer<class LLXMLNode> > XMLTemplateMap;
 	XMLTemplateMap mXmlTemplates;
 
 	LLNotificationMap mUniqueNotifications;
 	
 	typedef std::map<std::string, std::string> GlobalStringMap;
 	GlobalStringMap mGlobalStrings;
+
+	bool mIgnoreAllNotifications;
+
+    boost::scoped_ptr<LLNotificationsListener> mListener;
 };
 
 

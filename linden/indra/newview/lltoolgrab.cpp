@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,7 +46,6 @@
 
 // newview headers
 #include "llagent.h"
-//#include "llfloateravatarinfo.h"
 #include "lldrawable.h"
 #include "llfloatertools.h"
 #include "llhudeffect.h"
@@ -61,7 +60,7 @@
 #include "llviewerobjectlist.h" 
 #include "llviewerregion.h"
 #include "llviewerwindow.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llworld.h"
 
 const S32 SLOP_DIST_SQ = 4;
@@ -79,9 +78,15 @@ LLToolGrab::LLToolGrab( LLToolComposite* composite )
 :	LLTool( std::string("Grab"), composite ),
 	mMode( GRAB_INACTIVE ),
 	mVerticalDragging( FALSE ),
+	mHitLand(FALSE),
+	mLastMouseX(0),
+	mLastMouseY(0),
+	mAccumDeltaX(0),
+	mAccumDeltaY(0),	
 	mHasMoved( FALSE ),
 	mOutsideSlop(FALSE),
 	mDeselectedThisClick(FALSE),
+	mLastFace(0),
 	mSpinGrabbing( FALSE ),
 	mSpinRotation(),
 	mHideBuildHighlight(FALSE)
@@ -135,7 +140,7 @@ BOOL LLToolGrab::handleMouseDown(S32 x, S32 y, MASK mask)
 	if (!gAgent.leftButtonGrabbed())
 	{
 		// can grab transparent objects (how touch event propagates, scripters rely on this)
-		gViewerWindow->pickAsync(x, y, mask, pickCallback, TRUE, TRUE);
+		gViewerWindow->pickAsync(x, y, mask, pickCallback, TRUE);
 	}
 	return TRUE;
 }
@@ -210,22 +215,29 @@ BOOL LLToolGrab::handleObjectHit(const LLPickInfo& info)
 
 	if (!objectp->usePhysics())
 	{
-		// In mouselook, we shouldn't be able to grab non-physical, 
-		// non-touchable objects.  If it has a touch handler, we
-		// do grab it (so llDetectedGrab works), but movement is
-		// blocked on the server side. JC
-		if (gAgent.cameraMouselook() && !script_touch)
+		if (script_touch)
 		{
-			mMode = GRAB_LOCKED;
-			gViewerWindow->hideCursor();
-			gViewerWindow->moveCursorToCenter();
+			mMode = GRAB_NONPHYSICAL;  // if it has a script, use the non-physical grab
 		}
 		else
 		{
-			mMode = GRAB_NONPHYSICAL;
+			// In mouselook, we shouldn't be able to grab non-physical, 
+			// non-touchable objects.  If it has a touch handler, we
+			// do grab it (so llDetectedGrab works), but movement is
+			// blocked on the server side. JC
+			if (gAgent.cameraMouselook())
+			{
+				mMode = GRAB_LOCKED;
+			}
+			else
+			{
+				mMode = GRAB_ACTIVE_CENTER;
+			}
+
+			gViewerWindow->hideCursor();
+			gViewerWindow->moveCursorToCenter();
+			
 		}
-		// Don't bail out here, go on and grab so buttons can get
-		// their "touched" event.
 	}
 	else if( !objectp->permMove() )
 	{
@@ -504,8 +516,8 @@ void LLToolGrab::handleHoverActive(S32 x, S32 y, MASK mask)
 	const F32 RADIANS_PER_PIXEL_X = 0.01f;
 	const F32 RADIANS_PER_PIXEL_Y = 0.01f;
 
-	S32 dx = x - (gViewerWindow->getWindowWidth() / 2);
-	S32 dy = y - (gViewerWindow->getWindowHeight() / 2);
+	S32 dx = x - (gViewerWindow->getWorldViewWidthScaled() / 2);
+	S32 dy = y - (gViewerWindow->getWorldViewHeightScaled() / 2);
 
 	if (dx != 0 || dy != 0)
 	{
@@ -625,10 +637,10 @@ void LLToolGrab::handleHoverActive(S32 x, S32 y, MASK mask)
 			// Handle auto-rotation at screen edge.
 			LLVector3 grab_pos_agent = gAgent.getPosAgentFromGlobal( grab_point_global );
 
-			LLCoordGL grab_center_gl( gViewerWindow->getWindowWidth() / 2, gViewerWindow->getWindowHeight() / 2);
+			LLCoordGL grab_center_gl( gViewerWindow->getWorldViewWidthScaled() / 2, gViewerWindow->getWorldViewHeightScaled() / 2);
 			LLViewerCamera::getInstance()->projectPosAgentToScreen(grab_pos_agent, grab_center_gl);
 
-			const S32 ROTATE_H_MARGIN = gViewerWindow->getWindowWidth() / 20;
+			const S32 ROTATE_H_MARGIN = gViewerWindow->getWorldViewWidthScaled() / 20;
 			const F32 ROTATE_ANGLE_PER_SECOND = 30.f * DEG_TO_RAD;
 			const F32 rotate_angle = ROTATE_ANGLE_PER_SECOND / gFPSClamped;
 			// ...build mode moves camera about focus point
@@ -643,7 +655,7 @@ void LLToolGrab::handleHoverActive(S32 x, S32 y, MASK mask)
 					gAgent.cameraOrbitAround(rotate_angle);
 				}
 			}
-			else if (grab_center_gl.mX > gViewerWindow->getWindowWidth() - ROTATE_H_MARGIN)
+			else if (grab_center_gl.mX > gViewerWindow->getWorldViewWidthScaled() - ROTATE_H_MARGIN)
 			{
 				if (gAgent.getFocusOnAvatar())
 				{
@@ -656,7 +668,7 @@ void LLToolGrab::handleHoverActive(S32 x, S32 y, MASK mask)
 			}
 
 			// Don't move above top of screen or below bottom
-			if ((grab_center_gl.mY < gViewerWindow->getWindowHeight() - 6)
+			if ((grab_center_gl.mY < gViewerWindow->getWorldViewHeightScaled() - 6)
 				&& (grab_center_gl.mY > 24))
 			{
 				// Transmit update to simulator
@@ -878,7 +890,7 @@ void LLToolGrab::handleHoverInactive(S32 x, S32 y, MASK mask)
 
 	// Look for cursor against the edge of the screen
 	// Only works in fullscreen
-	if (gSavedSettings.getBOOL("FullScreen"))
+	if (gSavedSettings.getBOOL("WindowFullScreen"))
 	{
 		if (gAgent.cameraThirdPerson() )
 		{
@@ -887,7 +899,7 @@ void LLToolGrab::handleHoverInactive(S32 x, S32 y, MASK mask)
 				gAgent.yaw(rotate_angle);
 				//gAgent.setControlFlags(AGENT_CONTROL_YAW_POS);
 			}
-			else if (x == (gViewerWindow->getWindowWidth() - 1) )
+			else if (x == (gViewerWindow->getWorldViewWidthScaled() - 1) )
 			{
 				gAgent.yaw(-rotate_angle);
 				//gAgent.setControlFlags(AGENT_CONTROL_YAW_NEG);
@@ -990,7 +1002,7 @@ void LLToolGrab::onMouseCaptureLost()
 			// ...move cursor "naturally", as if it had moved when hidden
 			S32 x = mGrabPick.mMousePt.mX + mAccumDeltaX;
 			S32 y = mGrabPick.mMousePt.mY + mAccumDeltaY;
-			LLUI::setCursorPositionScreen(x, y);
+			LLUI::setMousePositionScreen(x, y);
 		}
 		else if (mHasMoved)
 		{
@@ -1000,13 +1012,13 @@ void LLToolGrab::onMouseCaptureLost()
 			LLCoordGL gl_point;
 			if (LLViewerCamera::getInstance()->projectPosAgentToScreen(grab_point_agent, gl_point))
 			{
-				LLUI::setCursorPositionScreen(gl_point.mX, gl_point.mY);
+				LLUI::setMousePositionScreen(gl_point.mX, gl_point.mY);
 			}
 		}
 		else
 		{
 			// ...move cursor back to click position
-			LLUI::setCursorPositionScreen(mGrabPick.mMousePt.mX, mGrabPick.mMousePt.mY);
+			LLUI::setMousePositionScreen(mGrabPick.mMousePt.mX, mGrabPick.mMousePt.mY);
 		}
 
 		gViewerWindow->showCursor();

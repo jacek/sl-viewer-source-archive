@@ -5,12 +5,8 @@
 	</text_editor>
 	<check_box label="Abilita voice chat" name="enable_voice_check"/>
 	<radio_group name="ear_location">
-		<radio_item name="0">
-			Ascolta voice chat dalla posizione della telecamera.
-		</radio_item>
-		<radio_item name="1">
-			Ascolta voice chat dalla posizione dell&apos;avatar.
-		</radio_item>
+		<radio_item name="0" label="Ascolta voice chat dalla posizione della telecamera." />
+		<radio_item name="1" label="Ascolta voice chat dalla posizione dell&apos;avatar." />
 	</radio_group>
 	<text name="push_to_talk_heading">
 		Premi per parlare

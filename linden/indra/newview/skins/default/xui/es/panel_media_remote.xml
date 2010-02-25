@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <panel name="music_remote">
-	<text type="string" length="6" name="text">
+	<text name="text">
 		Movies
 	</text>
 	<volume_slider name="volume_slider"

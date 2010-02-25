@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,9 +43,10 @@
 
 
 // statics
-BOOL            LLPerfBlock::sStatsEnabled = FALSE;    // Flag for detailed information
+S32	            LLPerfBlock::sStatsFlags = LLPerfBlock::LLSTATS_NO_OPTIONAL_STATS;       // Control what is being recorded
 LLPerfBlock::stat_map_t    LLPerfBlock::sStatMap;    // Map full path string to LLStatTime objects, tracks all active objects
 std::string        LLPerfBlock::sCurrentStatPath = "";    // Something like "/total_time/physics/physics step"
+LLStat::stat_map_t LLStat::sStatList;
 
 //------------------------------------------------------------------------
 // Live config file to trigger stats logging
@@ -62,7 +63,7 @@ public:
     static std::string filename();
     
 protected:
-    /* virtual */ void loadFile();
+    /* virtual */ bool loadFile();
 
 public:
     void init(LLPerfStats* statsp);
@@ -94,12 +95,12 @@ LLStatsConfigFile& LLStatsConfigFile::instance()
 
 /* virtual */
 // Load and parse the stats configuration file
-void LLStatsConfigFile::loadFile()
+bool LLStatsConfigFile::loadFile()
 {
     if (!mStatsp)
     {
         llwarns << "Tries to load performance configure file without initializing LPerfStats" << llendl;
-        return;
+        return false;
     }
     mChanged = true;
     
@@ -113,7 +114,7 @@ void LLStatsConfigFile::loadFile()
             {
                 llinfos << "Performance statistics configuration file ill-formed, not recording statistics" << llendl;
                 mStatsp->setReportPerformanceDuration( 0.f );
-                return;
+                return false;
             }
         }
         else 
@@ -123,12 +124,13 @@ void LLStatsConfigFile::loadFile()
                 llinfos << "Performance statistics configuration file deleted, not recording statistics" << llendl;
                 mStatsp->setReportPerformanceDuration( 0.f );
             }
-            return;
+            return true;
         }
     }
 
     F32 duration = 0.f;
     F32 interval = 0.f;
+	S32 flags = LLPerfBlock::LLSTATS_BASIC_STATS;
 
     const char * w = "duration";
     if (stats_config.has(w))
@@ -140,8 +142,18 @@ void LLStatsConfigFile::loadFile()
     {
         interval = (F32)stats_config[w].asReal();
     } 
+    w = "flags";
+    if (stats_config.has(w))
+    {
+		flags = (S32)stats_config[w].asInteger();
+		if (flags == LLPerfBlock::LLSTATS_NO_OPTIONAL_STATS &&
+			duration > 0)
+		{   // No flags passed in, but have a duration, so reset to basic stats
+			flags = LLPerfBlock::LLSTATS_BASIC_STATS;
+		}
+    } 
 
-    mStatsp->setReportPerformanceDuration( duration );
+    mStatsp->setReportPerformanceDuration( duration, flags );
     mStatsp->setReportPerformanceInterval( interval );
 
     if ( duration > 0 )
@@ -159,6 +171,7 @@ void LLStatsConfigFile::loadFile()
     {
         llinfos << "Performance stats recording turned off" << llendl;
     }
+	return true;
 }
 
 
@@ -252,13 +265,14 @@ void LLPerfStats::dumpIntervalPerformanceStats()
     }
 }
 
-// Set length of performance stat recording
-void    LLPerfStats::setReportPerformanceDuration( F32 seconds )
+// Set length of performance stat recording.  
+// If turning stats on, caller must provide flags
+void    LLPerfStats::setReportPerformanceDuration( F32 seconds, S32 flags /* = LLSTATS_NO_OPTIONAL_STATS */ )
 { 
 	if ( seconds <= 0.f )
 	{
 		mReportPerformanceStatEnd = 0.0;
-		LLPerfBlock::setStatsEnabled( FALSE );
+		LLPerfBlock::setStatsFlags(LLPerfBlock::LLSTATS_NO_OPTIONAL_STATS);		// Make sure all recording is off
 		mFrameStatsFile.close();
 		LLPerfBlock::clearDynamicStats();
 	}
@@ -267,8 +281,8 @@ void    LLPerfStats::setReportPerformanceDuration( F32 seconds )
 		mReportPerformanceStatEnd = LLFrameTimer::getElapsedSeconds() + ((F64) seconds);
 		// Clear failure flag to try and create the log file once
 		mFrameStatsFileFailure = FALSE;
-		LLPerfBlock::setStatsEnabled( TRUE );
 		mSkipFirstFrameStats = TRUE;		// Skip the first report (at the end of this frame)
+		LLPerfBlock::setStatsFlags(flags);
 	}
 }
 
@@ -327,6 +341,7 @@ U64 LLStatAccum::sScaleTimes[NUM_SCALES] =
 LLStatAccum::LLStatAccum(bool useFrameTimer)
 	: mUseFrameTimer(useFrameTimer),
 	  mRunning(FALSE),
+	  mLastTime(0),
 	  mLastSampleValue(0.0),
 	  mLastSampleValid(FALSE)
 {
@@ -347,7 +362,7 @@ void LLStatAccum::reset(U64 when)
 	{
 		mBuckets[i].accum = 0.0;
 		mBuckets[i].endTime = when + sScaleTimes[i];
-		mBuckets[i].lastValid = FALSE;
+		mBuckets[i].lastValid = false;
 	}
 }
 
@@ -395,7 +410,7 @@ void LLStatAccum::sum(F64 value, U64 when)
 			{
 				F64 valueLeft = value * timeLeft / timeSpan;
 
-				bucket.lastValid = TRUE;
+				bucket.lastValid = true;
 				bucket.lastAccum = bucket.accum + (value - valueLeft);
 				bucket.accum = valueLeft;
 				bucket.endTime += timeScale;
@@ -404,7 +419,7 @@ void LLStatAccum::sum(F64 value, U64 when)
 			{
 				U64 timeTail = timeLeft % timeScale;
 
-				bucket.lastValid = TRUE;
+				bucket.lastValid = true;
 				bucket.lastAccum = value * timeScale / timeSpan;
 				bucket.accum = value * timeTail / timeSpan;
 				bucket.endTime += (timeLeft - timeTail) + timeScale;
@@ -609,11 +624,26 @@ LLPerfBlock::LLPerfBlock(LLStatTime* stat ) : mPredefinedStat(stat), mDynamicSta
     }
 }
 
-// Use this constructor for dynamically created LLStatTime objects (not pre-defined) with a multi-part key.
-// These are also turned on or off via the switch passed in
-LLPerfBlock::LLPerfBlock( const char* key1, const char* key2 ) : mPredefinedStat(NULL), mDynamicStat(NULL)
+// Use this constructor for normal, optional LLPerfBlock time slices
+LLPerfBlock::LLPerfBlock( const char* key ) : mPredefinedStat(NULL), mDynamicStat(NULL)
 {
-    if (!sStatsEnabled) return;
+    if ((sStatsFlags & LLSTATS_BASIC_STATS) == 0)
+	{	// These are off unless the base set is enabled
+		return;
+	}
+
+	initDynamicStat(key);
+}
+
+	
+// Use this constructor for dynamically created LLPerfBlock time slices
+// that are only enabled by specific control flags
+LLPerfBlock::LLPerfBlock( const char* key1, const char* key2, S32 flags ) : mPredefinedStat(NULL), mDynamicStat(NULL)
+{
+    if ((sStatsFlags & flags) == 0)
+	{
+		return;
+	}
 
     if (NULL == key2 || strlen(key2) == 0)
     {
@@ -627,10 +657,12 @@ LLPerfBlock::LLPerfBlock( const char* key1, const char* key2 ) : mPredefinedStat
     }
 }
 
+// Set up the result data map if dynamic stats are enabled
 void LLPerfBlock::initDynamicStat(const std::string& key)
 {
     // Early exit if dynamic stats aren't enabled.
-    if (!sStatsEnabled) return;
+    if (sStatsFlags == LLSTATS_NO_OPTIONAL_STATS) 
+		return;
 
     mLastPath = sCurrentStatPath;		// Save and restore current path
     sCurrentStatPath += "/" + key;		// Add key to current path
@@ -723,28 +755,48 @@ void LLPerfBlock::addStatsToLLSDandReset( LLSD & stats,
 LLTimer LLStat::sTimer;
 LLFrameTimer LLStat::sFrameTimer;
 
-LLStat::LLStat(const U32 num_bins, const BOOL use_frame_timer)
+void LLStat::init()
 {
-	llassert(num_bins > 0);
-	U32 i;
-	mUseFrameTimer = use_frame_timer;
+	llassert(mNumBins > 0);
 	mNumValues = 0;
 	mLastValue = 0.f;
 	mLastTime = 0.f;
-	mNumBins = num_bins;
 	mCurBin = (mNumBins-1);
 	mNextBin = 0;
 	mBins      = new F32[mNumBins];
 	mBeginTime = new F64[mNumBins];
 	mTime      = new F64[mNumBins];
 	mDT        = new F32[mNumBins];
-	for (i = 0; i < mNumBins; i++)
+	for (U32 i = 0; i < mNumBins; i++)
 	{
 		mBins[i]      = 0.f;
 		mBeginTime[i] = 0.0;
 		mTime[i]      = 0.0;
 		mDT[i]        = 0.f;
 	}
+
+	if (!mName.empty())
+	{
+		stat_map_t::iterator iter = sStatList.find(mName);
+		if (iter != sStatList.end())
+			llwarns << "LLStat with duplicate name: " << mName << llendl;
+		sStatList.insert(std::make_pair(mName, this));
+	}
+}
+
+LLStat::LLStat(const U32 num_bins, const BOOL use_frame_timer)
+	: mUseFrameTimer(use_frame_timer),
+	  mNumBins(num_bins)
+{
+	init();
+}
+
+LLStat::LLStat(std::string name, U32 num_bins, BOOL use_frame_timer)
+	: mUseFrameTimer(use_frame_timer),
+	  mNumBins(num_bins),
+	  mName(name)
+{
+	init();
 }
 
 LLStat::~LLStat()
@@ -753,6 +805,15 @@ LLStat::~LLStat()
 	delete[] mBeginTime;
 	delete[] mTime;
 	delete[] mDT;
+
+	if (!mName.empty())
+	{
+		// handle multiple entries with the same name
+		stat_map_t::iterator iter = sStatList.find(mName);
+		while (iter != sStatList.end() && iter->second != this)
+			++iter;
+		sStatList.erase(iter);
+	}
 }
 
 void LLStat::reset()

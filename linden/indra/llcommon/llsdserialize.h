@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,14 +36,15 @@
 #define LL_LLSDSERIALIZE_H
 
 #include <iosfwd>
+#include "llpointer.h"
+#include "llrefcount.h"
 #include "llsd.h"
-#include "llmemory.h"
 
 /** 
  * @class LLSDParser
  * @brief Abstract base class for LLSD parsers.
  */
-class LLSDParser : public LLRefCount
+class LL_COMMON_API LLSDParser : public LLRefCount
 {
 protected:
 	/** 
@@ -220,7 +221,7 @@ protected:
  * @class LLSDNotationParser
  * @brief Parser which handles the original notation format for LLSD.
  */
-class LLSDNotationParser : public LLSDParser
+class LL_COMMON_API LLSDNotationParser : public LLSDParser
 {
 protected:
 	/** 
@@ -293,7 +294,7 @@ private:
  * @class LLSDXMLParser
  * @brief Parser which handles XML format LLSD.
  */
-class LLSDXMLParser : public LLSDParser
+class LL_COMMON_API LLSDXMLParser : public LLSDParser
 {
 protected:
 	/** 
@@ -341,7 +342,7 @@ private:
  * @class LLSDBinaryParser
  * @brief Parser which handles binary formatted LLSD.
  */
-class LLSDBinaryParser : public LLSDParser
+class LL_COMMON_API LLSDBinaryParser : public LLSDParser
 {
 protected:
 	/** 
@@ -406,7 +407,7 @@ private:
  * @class LLSDFormatter
  * @brief Abstract base class for formatting LLSD.
  */
-class LLSDFormatter : public LLRefCount
+class LL_COMMON_API LLSDFormatter : public LLRefCount
 {
 protected:
 	/** 
@@ -478,7 +479,7 @@ protected:
  * @class LLSDNotationFormatter
  * @brief Formatter which outputs the original notation format for LLSD.
  */
-class LLSDNotationFormatter : public LLSDFormatter
+class LL_COMMON_API LLSDNotationFormatter : public LLSDFormatter
 {
 protected:
 	/** 
@@ -519,7 +520,7 @@ public:
  * @class LLSDXMLFormatter
  * @brief Formatter which outputs the LLSD as XML.
  */
-class LLSDXMLFormatter : public LLSDFormatter
+class LL_COMMON_API LLSDXMLFormatter : public LLSDFormatter
 {
 protected:
 	/** 
@@ -587,7 +588,7 @@ protected:
  * Map: '{' + 4 byte integer size  every(key + value) + '}'<br>
  *  map keys are serialized as 'k' + 4 byte integer size + string
  */
-class LLSDBinaryFormatter : public LLSDFormatter
+class LL_COMMON_API LLSDBinaryFormatter : public LLSDFormatter
 {
 protected:
 	/** 
@@ -637,9 +638,14 @@ protected:
  *	params << "[{'version':i1}," << LLSDOStreamer<LLSDNotationFormatter>(sd)
  *    << "]";
  *  </code>
+ *
+ * *NOTE - formerly this class inherited from its template parameter Formatter,
+ * but all insnatiations passed in LLRefCount subclasses.  This conflicted with
+ * the auto allocation intended for this class template (demonstrated in the
+ * example above).  -brad
  */
 template <class Formatter>
-class LLSDOStreamer : public Formatter
+class LLSDOStreamer
 {
 public:
 	/** 
@@ -660,7 +666,8 @@ public:
 		std::ostream& str,
 		const LLSDOStreamer<Formatter>& formatter)
 	{
-		formatter.format(formatter.mSD, str, formatter.mOptions);
+		LLPointer<Formatter> f = new Formatter;
+		f->format(formatter.mSD, str, formatter.mOptions);
 		return str;
 	}
 
@@ -676,7 +683,7 @@ typedef LLSDOStreamer<LLSDXMLFormatter>			LLSDXMLStreamer;
  * @class LLSDSerialize
  * @brief Serializer / deserializer for the various LLSD formats
  */
-class LLSDSerialize
+class LL_COMMON_API LLSDSerialize
 {
 public:
 	enum ELLSD_Serialize
@@ -753,6 +760,9 @@ public:
 		LLPointer<LLSDXMLParser> p = new LLSDXMLParser;
 		return p->parse(str, sd, LLSDSerialize::SIZE_UNLIMITED);
 	}
+	// Line oriented parser, 30% faster than fromXML(), but can
+	// only be used when you know you have the complete XML
+	// document available in the stream.
 	static S32 fromXMLDocument(LLSD& sd, std::istream& str)
 	{
 		LLPointer<LLSDXMLParser> p = new LLSDXMLParser();

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -50,7 +50,8 @@
 #include <Carbon/Carbon.h>
 #include "lldir.h"
 #include <signal.h>
-class LLWebBrowserCtrl;		// for LLURLDispatcher
+#include <CoreAudio/CoreAudio.h>	// for systemwide mute
+class LLMediaCtrl;		// for LLURLDispatcher
 
 namespace 
 {
@@ -159,15 +160,7 @@ bool LLAppViewerMacOSX::initParseCommandLine(LLCommandLineParser& clp)
 	clp.addOptionDesc("psn", NULL, 1, "MacOSX process serial number");
 	clp.setCustomParser(parse_psn);
 	
-	// First parse the command line, not often used on the mac.
-	if(clp.parseCommandLine(gArgC, gArgV) == false)
-	{
-		return false;
-	}
-    
-    // Now read in the args from arguments txt.
-    // Succesive calls to clp.parse... will NOT override earlier 
-    // options. 
+    // First read in the args from arguments txt.
     const char* filename = "arguments.txt";
 	llifstream ifs(filename, llifstream::binary);
 	if (!ifs.is_open())
@@ -180,7 +173,14 @@ bool LLAppViewerMacOSX::initParseCommandLine(LLCommandLineParser& clp)
 	{
 		return false;
 	}
-	
+
+	// Then parse the user's command line, so that any --url arg can appear last
+	// Succesive calls to clp.parse... will NOT override earlier options. 
+	if(clp.parseCommandLine(gArgC, gArgV) == false)
+	{
+		return false;
+	}
+    	
 	// Get the user's preferred language string based on the Mac OS localization mechanism.
 	// To add a new localization:
 		// go to the "Resources" section of the project
@@ -188,7 +188,7 @@ bool LLAppViewerMacOSX::initParseCommandLine(LLCommandLineParser& clp)
 		// in the "General" tab, click the "Add Localization" button
 		// create a new localization for the language you're adding
 		// set the contents of the new localization of the file to the string corresponding to our localization
-		//   (i.e. "en-us", "ja", etc.  Use the existing ones as a guide.)
+		//   (i.e. "en", "ja", etc.  Use the existing ones as a guide.)
 	CFURLRef url = CFBundleCopyResourceURL(CFBundleGetMainBundle(), CFSTR("language"), CFSTR("txt"), NULL);
 	char path[MAX_PATH];
 	if(CFURLGetFileSystemRepresentation(url, false, (UInt8 *)path, sizeof(path)))
@@ -291,7 +291,6 @@ static OSStatus CarbonEventHandler(EventHandlerCallRef inHandlerCallRef,
 		if(os_result >= 0 && matching_psn)
 		{
 			sCrashReporterIsRunning = false;
-			QuitApplicationEventLoop();
 		}
     }
     return noErr;
@@ -327,7 +326,7 @@ void LLAppViewerMacOSX::handleCrashReporting(bool reportFreeze)
 			// *NOTE:Mani A better way - make a copy of the data that the crash reporter will send
 			// and let SL go about its business. This way makes the mac work like windows and linux
 			// and is the smallest patch for the issue. 
-			sCrashReporterIsRunning = false;
+			sCrashReporterIsRunning = true;
 			ProcessSerialNumber o_psn;
 
 			static EventHandlerRef sCarbonEventsRef = NULL;
@@ -357,13 +356,15 @@ void LLAppViewerMacOSX::handleCrashReporting(bool reportFreeze)
 			
 			if(os_result >= 0)
 			{	
-				sCrashReporterIsRunning = true;
-			}
-
-			while(sCrashReporterIsRunning)
-			{
-				RunApplicationEventLoop();
-			}
+				EventRecord evt;
+				while(sCrashReporterIsRunning)
+				{
+					while(WaitNextEvent(osMask, &evt, 0, NULL))
+					{
+						// null op!?!
+					}
+				}
+			}	
 
 			// Re-install the apps quit handler.
 			AEInstallEventHandler(kCoreEventClass, 
@@ -442,6 +443,59 @@ std::string LLAppViewerMacOSX::generateSerialNumber()
 	}
 
 	return serial_md5;
+}
+
+static AudioDeviceID get_default_audio_output_device(void)
+{
+	AudioDeviceID device = 0;
+	UInt32 size;
+	OSStatus err;
+	
+	size = sizeof(device);
+	err = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice, &size, &device);
+	if(err != noErr)
+	{
+		LL_DEBUGS("SystemMute") << "Couldn't get default audio output device (0x" << std::hex << err << ")" << LL_ENDL;
+	}
+	
+	return device;
+}
+
+//virtual
+void LLAppViewerMacOSX::setMasterSystemAudioMute(bool new_mute)
+{
+	AudioDeviceID device = get_default_audio_output_device();
+	
+	if(device != 0)
+	{
+		UInt32 mute = new_mute;
+		OSStatus err = AudioDeviceSetProperty(device, NULL, 0, false, kAudioDevicePropertyMute, sizeof(mute), &mute);
+		if(err != noErr)
+		{
+			LL_INFOS("SystemMute") << "Couldn't set audio mute property (0x" << std::hex << err << ")" << LL_ENDL;
+		}
+	}
+}
+
+//virtual
+bool LLAppViewerMacOSX::getMasterSystemAudioMute()
+{
+	// Assume the system isn't muted 
+	UInt32 mute = 0;
+	
+	AudioDeviceID device = get_default_audio_output_device();
+	
+	if(device != 0)
+	{
+		UInt32 size = sizeof(mute);
+		OSStatus err = AudioDeviceGetProperty(device, 0, false, kAudioDevicePropertyMute, &size, &mute);
+		if(err != noErr)
+		{
+			LL_DEBUGS("SystemMute") << "Couldn't get audio mute property (0x" << std::hex << err << ")" << LL_ENDL;
+		}
+	}
+	
+	return (mute != 0);
 }
 
 OSErr AEGURLHandler(const AppleEvent *messagein, AppleEvent *reply, long refIn)

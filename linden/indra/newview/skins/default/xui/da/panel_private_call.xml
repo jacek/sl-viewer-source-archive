@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- All our XML is utf-8 encoded. -->
+<panel name="private_call" title="privat_opkald">
+	<panel name="pc_header" title="pc_header">
+		<text name="user_name">
+			PRIVATE OPKALD
+		</text>
+	</panel>
+	<panel name="control_panel" title="kontrol_panel">
+		<button label="Afslut opkald" name="end_call_btn"/>
+		<text name="user_name">
+			Dig
+		</text>
+		<slider name="volume_slider" tool_tip="Master Volume"/>
+	</panel>
+</panel>

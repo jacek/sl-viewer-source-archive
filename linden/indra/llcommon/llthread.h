@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,17 +33,15 @@
 #ifndef LL_LLTHREAD_H
 #define LL_LLTHREAD_H
 
-#include "llapr.h"
 #include "llapp.h"
-#include "llmemory.h"
-
+#include "llapr.h"
 #include "apr_thread_cond.h"
 
 class LLThread;
 class LLMutex;
 class LLCondition;
 
-class LLThread
+class LL_COMMON_API LLThread
 {
 public:
 	typedef enum e_thread_status
@@ -83,6 +81,7 @@ public:
 	void start(void);
 
 	apr_pool_t *getAPRPool() { return mAPRPoolp; }
+	LLVolatileAPRPool* getLocalAPRFilePool() { return mLocalAPRFilePoolp ; }
 
 private:
 	BOOL				mPaused;
@@ -98,6 +97,11 @@ protected:
 	apr_pool_t			*mAPRPoolp;
 	BOOL				mIsLocalPool;
 	EThreadStatus		mStatus;
+
+	//a local apr_pool for APRFile operations in this thread. If it exists, LLAPRFile::sAPRFilePoolp should not be used.
+	//Note: this pool is used by APRFile ONLY, do NOT use it for any other purposes.
+	//      otherwise it will cause severe memory leaking!!! --bao
+	LLVolatileAPRPool  *mLocalAPRFilePoolp ; 
 
 	void setQuitting();
 	
@@ -125,7 +129,9 @@ protected:
 
 //============================================================================
 
-class LLMutex
+#define MUTEX_DEBUG (LL_DEBUG || LL_RELEASE_WITH_DEBUG_INFO)
+
+class LL_COMMON_API LLMutex
 {
 public:
 	LLMutex(apr_pool_t *apr_poolp); // NULL pool constructs a new pool for the mutex
@@ -139,10 +145,13 @@ protected:
 	apr_thread_mutex_t *mAPRMutexp;
 	apr_pool_t			*mAPRPoolp;
 	BOOL				mIsLocalPool;
+#if MUTEX_DEBUG
+	std::map<U32, BOOL> mIsLocked;
+#endif
 };
 
 // Actually a condition/mutex pair (since each condition needs to be associated with a mutex).
-class LLCondition : public LLMutex
+class LL_COMMON_API LLCondition : public LLMutex
 {
 public:
 	LLCondition(apr_pool_t *apr_poolp); // Defaults to global pool, could use the thread pool as well.
@@ -189,7 +198,7 @@ void LLThread::unlockData()
 
 // see llmemory.h for LLPointer<> definition
 
-class LLThreadSafeRefCount
+class LL_COMMON_API LLThreadSafeRefCount
 {
 public:
 	static void initThreadSafeRefCount(); // creates sMutex
@@ -241,7 +250,7 @@ private:
 
 // Simple responder for self destructing callbacks
 // Pure virtual class
-class LLResponder : public LLThreadSafeRefCount
+class LL_COMMON_API LLResponder : public LLThreadSafeRefCount
 {
 protected:
 	virtual ~LLResponder();

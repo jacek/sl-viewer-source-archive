@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -48,6 +48,7 @@
 #include "llviewercamera.h"
 #include "llviewerwindow.h"
 #include "lldrawable.h"
+#include "llrootview.h"
 
 
 LLToolObjPicker::LLToolObjPicker()
@@ -62,7 +63,7 @@ LLToolObjPicker::LLToolObjPicker()
 // returns TRUE if an object was selected 
 BOOL LLToolObjPicker::handleMouseDown(S32 x, S32 y, MASK mask)
 {
-	LLView* viewp = gViewerWindow->getRootView();
+	LLRootView* viewp = gViewerWindow->getRootView();
 	BOOL handled = viewp->handleMouseDown(x, y, mask);
 
 	mHitObjectID.setNull();
@@ -131,7 +132,7 @@ BOOL LLToolObjPicker::handleHover(S32 x, S32 y, MASK mask)
 
 		cursor = UI_CURSOR_TOOLPICKOBJECT3;
 
-		gViewerWindow->getWindow()->setCursor(cursor);
+		gViewerWindow->setCursor(cursor);
 	}
 	return handled;
 }

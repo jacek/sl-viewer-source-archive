@@ -1,10 +1,10 @@
 /** 
- * @file 
+ * @file llregionpresenceverifier.cpp
  * @brief 
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -30,17 +30,48 @@
  * $/LicenseInfo$
  */
 
+#include "linden_common.h"
+
 #include "llregionpresenceverifier.h"
 #include "llhttpclientinterface.h"
 #include <sstream>
 #include "net.h"
 #include "message.h"
 
+namespace boost
+{
+	void intrusive_ptr_add_ref(LLRegionPresenceVerifier::Response* p)
+	{
+		++p->mReferenceCount;
+	}
+	
+	void intrusive_ptr_release(LLRegionPresenceVerifier::Response* p)
+	{
+		if(p && 0 == --p->mReferenceCount)
+		{
+			delete p;
+		}
+	}
+};
 
-LLRegionPresenceVerifier::RegionResponder::RegionResponder(ResponsePtr data) : mSharedData(data)
+LLRegionPresenceVerifier::Response::~Response()
 {
 }
 
+LLRegionPresenceVerifier::RegionResponder::RegionResponder(const std::string&
+														   uri,
+														   ResponsePtr data,
+														   S32 retry_count) :
+	mUri(uri),
+	mSharedData(data),
+	mRetryCount(retry_count)
+{
+}
+
+//virtual
+LLRegionPresenceVerifier::RegionResponder::~RegionResponder()
+{
+}
 
 void LLRegionPresenceVerifier::RegionResponder::result(const LLSD& content)
 {
@@ -49,50 +80,80 @@ void LLRegionPresenceVerifier::RegionResponder::result(const LLSD& content)
 	LLHost destination(host, port);
 	LLUUID id = content["region_id"];
 
-	llinfos << "Verifying " << destination.getString() << " is region " << id << llendl;
+	lldebugs << "Verifying " << destination.getString() << " is region " << id << llendl;
 
 	std::stringstream uri;
-	uri << "http://" << destination.getString() << "/state/basic";
-	mSharedData->getHttpClient().get(uri.str(), new VerifiedDestinationResponder(mSharedData, content));
+	uri << "http://" << destination.getString() << "/state/basic/";
+	mSharedData->getHttpClient().get(
+		uri.str(),
+		new VerifiedDestinationResponder(mUri, mSharedData, content, mRetryCount));
 }
 
-void LLRegionPresenceVerifier::RegionResponder::completed(
-	U32 status,
-	const std::string& reason,
-	const LLSD& content)
+void LLRegionPresenceVerifier::RegionResponder::error(U32 status,
+													 const std::string& reason)
 {
-	LLHTTPClient::Responder::completed(status, reason, content);
-	
-	mSharedData->onCompletedRegionRequest();
+	// TODO: babbage: distinguish between region presence service and
+	// region verification errors?
+	mSharedData->onRegionVerificationFailed();
 }
 
-
-LLRegionPresenceVerifier::VerifiedDestinationResponder::VerifiedDestinationResponder(ResponsePtr data, const LLSD& content) : mSharedData(data), mContent(content)
+LLRegionPresenceVerifier::VerifiedDestinationResponder::VerifiedDestinationResponder(const std::string& uri, ResponsePtr data, const LLSD& content,
+	S32 retry_count):
+	mUri(uri),
+	mSharedData(data),
+	mContent(content),
+	mRetryCount(retry_count) 
 {
 }
 
-
-
+//virtual
+LLRegionPresenceVerifier::VerifiedDestinationResponder::~VerifiedDestinationResponder()
+{
+}
 
 void LLRegionPresenceVerifier::VerifiedDestinationResponder::result(const LLSD& content)
 {
 	LLUUID actual_region_id = content["region_id"];
 	LLUUID expected_region_id = mContent["region_id"];
 
-	if (mSharedData->checkValidity(content))
+	lldebugs << "Actual region: " << content << llendl;
+	lldebugs << "Expected region: " << mContent << llendl;
+
+	if (mSharedData->checkValidity(content) &&
+		(actual_region_id == expected_region_id))
 	{
 		mSharedData->onRegionVerified(mContent);
 	}
-	else if ((mSharedData->shouldRetry()) && (actual_region_id != expected_region_id)) // If the region is correct, then it means we've deliberately changed the data
+	else if (mRetryCount > 0)
 	{
-		LLSD headers;
-		headers["Cache-Control"] = "no-cache, max-age=0";
-		llinfos << "Requesting region information, get uncached for region " << mSharedData->getRegionUri() << llendl;
-		mSharedData->decrementRetries();
-		mSharedData->getHttpClient().get(mSharedData->getRegionUri(), new RegionResponder(mSharedData), headers);
+		retry();
 	}
 	else
 	{
-		llwarns << "Could not correctly look up region from region presence service. Region: " << mSharedData->getRegionUri() << llendl;
+		llwarns << "Simulator verification failed. Region: " << mUri << llendl;
+		mSharedData->onRegionVerificationFailed();
+	}
+}
+
+void LLRegionPresenceVerifier::VerifiedDestinationResponder::retry()
+{
+	LLSD headers;
+	headers["Cache-Control"] = "no-cache, max-age=0";
+	llinfos << "Requesting region information, get uncached for region "
+			<< mUri << llendl;
+	--mRetryCount;
+	mSharedData->getHttpClient().get(mUri, new RegionResponder(mUri, mSharedData, mRetryCount), headers);
+}
+
+void LLRegionPresenceVerifier::VerifiedDestinationResponder::error(U32 status, const std::string& reason)
+{
+	if(mRetryCount > 0)
+	{
+		retry();
+	}
+	else
+	{
+		llwarns << "Failed to contact simulator for verification. Region: " << mUri << llendl;
+		mSharedData->onRegionVerificationFailed();
 	}
 }

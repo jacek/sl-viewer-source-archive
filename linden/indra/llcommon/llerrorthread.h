@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,7 @@
 
 #include "llthread.h"
 
-class LLErrorThread : public LLThread
+class LL_COMMON_API LLErrorThread : public LLThread
 {
 public:
 	LLErrorThread();

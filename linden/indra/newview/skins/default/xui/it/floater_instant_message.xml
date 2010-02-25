@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(sconosciuto)" name="im_floater" title="(sconosciuto)">
+<floater label="(sconosciuto)" name="im_floater" title="(SCONOSCIUTO)">
 	<string name="ringing">
 		In chiamata...
 	</string>
@@ -10,7 +10,7 @@
 		Connesso, clicca &apos;Fine Chiamata&apos; per riagganciare
 	</string>
 	<string name="hang_up">
-		Chaiamata conclusa
+		Chiamata conclusa
 	</string>
 	<string name="inventory_item_offered">
 		Offerto oggetto dell&apos;inventario
@@ -37,7 +37,7 @@
 	<button label="Chiama" name="start_call_btn"/>
 	<button label="Termina" name="end_call_btn"/>
 	<panel name="speaker_controls">
-		<button label="" name="mute_btn" tool_tip="Muta il voice per questo residente"/>
+		<button label="" name="mute_btn" tool_tip="Blocca voice"/>
 	</panel>
 	<line_editor label="Clicca qui per un instant message" name="chat_editor"/>
 	<button label="Invia" name="send_btn"/>

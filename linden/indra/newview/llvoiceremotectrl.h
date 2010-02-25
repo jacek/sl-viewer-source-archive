@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,19 +40,19 @@ class LLButton;
 class LLVoiceRemoteCtrl : public LLPanel
 {
 public:
-	LLVoiceRemoteCtrl (const std::string& name);
+	LLVoiceRemoteCtrl ();
 	virtual ~LLVoiceRemoteCtrl();
 
 	/*virtual*/ BOOL postBuild();
 	/*virtual*/ void draw();
+	void expandOrCollapse();
 
-	static void onBtnLock(void* user_data);
+	void onBtnLock();
+	void onClickPopupBtn();
+	
 	static void onBtnTalkHeld(void *user_data);
 	static void onBtnTalkReleased(void* user_data);
 	static void onBtnTalkClicked(void* user_data);
-	static void onClickSpeakers(void *user_data);
-	static void onClickPopupBtn(void* user_data);
-	static void onClickVoiceChannel(void* user_data);
 	static void onClickEndCall(void* user_data);
 
 protected:

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,6 +33,7 @@
 #define LL_LLIMAGEDXT_H
 
 #include "llimage.h"
+#include "llpointer.h"
 
 // This class decodes and encodes LL DXT files (which may unclude uncompressed RGB or RGBA mipped data)
 

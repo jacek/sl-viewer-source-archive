@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,9 +35,12 @@
 #define LL_LLFLOATERREGIONINFO_H
 
 #include <vector>
+#include "llassettype.h"
 #include "llfloater.h"
+#include "llhost.h"
 #include "llpanel.h"
 
+class LLDispatcher;
 class LLLineEditor;
 class LLMessageSystem;
 class LLPanelRegionInfo;
@@ -51,6 +54,7 @@ class LLNameListCtrl;
 class LLSliderCtrl;
 class LLSpinCtrl;
 class LLTextBox;
+class LLVFS;
 
 class LLPanelRegionGeneralInfo;
 class LLPanelRegionDebugInfo;
@@ -59,13 +63,13 @@ class LLPanelRegionTerrainInfo;
 class LLPanelEstateInfo;
 class LLPanelEstateCovenant;
 
-class LLFloaterRegionInfo : public LLFloater, public LLFloaterSingleton<LLFloaterRegionInfo>
+class LLFloaterRegionInfo : public LLFloater
 {
-	friend class LLUISingleton<LLFloaterRegionInfo, VisibilityPolicy<LLFloater> >;
+	friend class LLFloaterReg;
 public:
-	~LLFloaterRegionInfo();
 
-	/*virtual*/ void onOpen();
+
+	/*virtual*/ void onOpen(const LLSD& key);
 	/*virtual*/ BOOL postBuild();
 
 	static void processEstateOwnerRequest(LLMessageSystem* msg, void**);
@@ -84,10 +88,14 @@ public:
 	// from LLPanel
 	virtual void refresh();
 	
-	static void requestRegionInfo();
+	void requestRegionInfo();
 
-protected:
+private:
+	
 	LLFloaterRegionInfo(const LLSD& seed);
+	~LLFloaterRegionInfo();
+	
+protected:
 	void refreshFromRegion(LLViewerRegion* region);
 
 	// member data
@@ -103,10 +111,11 @@ protected:
 class LLPanelRegionInfo : public LLPanel
 {
 public:
-	LLPanelRegionInfo() : LLPanel(std::string("Region Info Panel")) {}
-	static void onBtnSet(void* user_data);
-	static void onChangeChildCtrl(LLUICtrl* ctrl, void* user_data);
-	static void onChangeAnything(LLUICtrl* ctrl, void* user_data);
+	LLPanelRegionInfo();
+	
+	void onBtnSet();
+	void onChangeChildCtrl(LLUICtrl* ctrl);
+	void onChangeAnything();
 	static void onChangeText(LLLineEditor* caller, void* user_data);
 	
 	virtual bool refreshFromRegion(LLViewerRegion* region);
@@ -118,12 +127,10 @@ public:
 	void enableButton(const std::string& btn_name, BOOL enable = TRUE);
 	void disableButton(const std::string& btn_name);
 	
+	void onClickManageTelehub();
+	
 protected:
 	void initCtrl(const std::string& name);
-	void initHelpBtn(const std::string& name, const std::string& xml_alert);
-
-	// Callback for all help buttons, data is name of XML alert to show.
-	static void onClickHelp(void* data);
 	
 	// Returns TRUE if update sent and apply button should be
 	// disabled.
@@ -147,6 +154,7 @@ protected:
 
 class LLPanelRegionGeneralInfo : public LLPanelRegionInfo
 {
+	
 public:
 	LLPanelRegionGeneralInfo()
 		:	LLPanelRegionInfo()	{}
@@ -156,16 +164,16 @@ public:
 	
 	// LLPanel
 	virtual BOOL postBuild();
+	
 protected:
 	virtual BOOL sendUpdate();
-	
-	static void onClickKick(void* userdata);
-	static void onKickCommit(const std::vector<std::string>& names, const std::vector<LLUUID>& ids, void* userdata);
+	void onClickKick();
+	void onKickCommit(const std::vector<std::string>& names, const std::vector<LLUUID>& ids);
 	static void onClickKickAll(void* userdata);
 	bool onKickAllCommit(const LLSD& notification, const LLSD& response);
 	static void onClickMessage(void* userdata);
 	bool onMessageCommit(const LLSD& notification, const LLSD& response);
-	static void onClickManageTelehub(void* data);
+
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -184,8 +192,8 @@ public:
 protected:
 	virtual BOOL sendUpdate();
 
-	static void onClickChooseAvatar(void*);
-	static void callbackAvatarID(const std::vector<std::string>& names, const std::vector<LLUUID>& ids, void* data);
+	void onClickChooseAvatar();
+	void callbackAvatarID(const std::vector<std::string>& names, const std::vector<LLUUID>& ids);
 	static void onClickReturn(void *);
 	bool callbackReturn(const LLSD& notification, const LLSD& response);
 	static void onClickTopColliders(void*);
@@ -234,9 +242,9 @@ public:
 protected:
 	virtual BOOL sendUpdate();
 
-	static void onChangeUseEstateTime(LLUICtrl* ctrl, void* user_data);
-	static void onChangeFixedSun(LLUICtrl* ctrl, void* user_data);
-	static void onChangeSunHour(LLUICtrl* ctrl, void*);
+	void onChangeUseEstateTime();
+	void onChangeFixedSun();
+	void onChangeSunHour();
 
 	static void onClickDownloadRaw(void*);
 	static void onClickUploadRaw(void*);
@@ -251,8 +259,8 @@ class LLPanelEstateInfo : public LLPanelRegionInfo
 public:
 	static void initDispatch(LLDispatcher& dispatch);
 	
-	static void onChangeFixedSun(LLUICtrl* ctrl, void* user_data);
-	static void onChangeUseGlobalTime(LLUICtrl* ctrl, void* user_data);
+	void onChangeFixedSun();
+	void onChangeUseGlobalTime();
 	
 	static void onClickEditSky(void* userdata);
 	static void onClickEditSkyHelp(void* userdata);	
@@ -261,17 +269,17 @@ public:
 
 	static void onClickAddAllowedAgent(void* user_data);
 	static void onClickRemoveAllowedAgent(void* user_data);
-	static void onClickAddAllowedGroup(void* user_data);
+		   void onClickAddAllowedGroup();
 	static void onClickRemoveAllowedGroup(void* user_data);
 	static void onClickAddBannedAgent(void* user_data);
 	static void onClickRemoveBannedAgent(void* user_data);
 	static void onClickAddEstateManager(void* user_data);
 	static void onClickRemoveEstateManager(void* user_data);
-	static void onClickKickUser(void* userdata);
+	void onClickKickUser();
 
 	// Group picker callback is different, can't use core methods below
 	bool addAllowedGroup(const LLSD& notification, const LLSD& response);
-	static void addAllowedGroup2(LLUUID id, void* data);
+	void addAllowedGroup2(LLUUID id);
 
 	// Core methods for all above add/remove button clicks
 	static void accessAddCore(U32 operation_flag, const std::string& dialog_name);
@@ -288,7 +296,7 @@ public:
 	// Send the actual EstateOwnerRequest "estateaccessdelta" message
 	static void sendEstateAccessDelta(U32 flags, const LLUUID& agent_id);
 
-	static void onKickUserCommit(const std::vector<std::string>& names, const std::vector<LLUUID>& ids, void* userdata);
+	void onKickUserCommit(const std::vector<std::string>& names, const std::vector<LLUUID>& ids);
 	static void onClickMessageEstate(void* data);
 	bool onMessageCommit(const LLSD& notification, const LLSD& response);
 	
@@ -326,21 +334,9 @@ public:
 	const std::string getOwnerName() const;
 	void setOwnerName(const std::string& name);
 
-	const std::string getAbuseEmailAddress() const;
-	void setAbuseEmailAddress(const std::string& address);
-
 	// If visible from mainland, allowed agent and allowed groups
 	// are ignored, so must disable UI.
 	void setAccessAllowedEnabled(bool enable_agent, bool enable_group, bool enable_ban);
-
-	// this must have the same function signature as
-	// llmessage/llcachename.h:LLCacheNameCallback
-	static void callbackCacheName(
-		const LLUUID& id,
-		const std::string& first,
-		const std::string& last,
-		BOOL is_group,
-		void*);
 
 protected:
 	virtual BOOL sendUpdate();
@@ -396,9 +392,9 @@ public:
 
 	const LLUUID& getCovenantID() const { return mCovenantID; }
 	void setCovenantID(const LLUUID& id) { mCovenantID = id; }
-	const std::string& getEstateName() const;
+	std::string getEstateName() const;
 	void setEstateName(const std::string& name);
-	const std::string& getOwnerName() const;
+	std::string getOwnerName() const;
 	void setOwnerName(const std::string& name);
 	void setCovenantTextEditor(const std::string& text);
 

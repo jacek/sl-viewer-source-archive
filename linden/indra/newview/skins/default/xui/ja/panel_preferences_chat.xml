@@ -1,116 +1,47 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="チャット" name="chat">
-	<text length="1" name="text_box" type="string">
-		チャットのフォント：
-	</text>
 	<radio_group name="chat_font_size">
-		<radio_item length="1" name="radio" type="string">
-			小
-		</radio_item>
-		<radio_item length="1" name="radio2" type="string">
-			中
-		</radio_item>
-		<radio_item length="1" name="radio3" type="string">
-			大
-		</radio_item>
+		<radio_item label="小" name="radio" value="0"/>
+		<radio_item label="中" name="radio2" value="1"/>
+		<radio_item label="大" name="radio3" value="2"/>
 	</radio_group>
-	<text length="1" name="text_box2" type="string">
-		チャット・カラー：
+	<color_swatch label="自分" name="user"/>
+	<text name="text_box1">
+		自分
 	</text>
-	<color_swatch label="自分" name="user" width="56"/>
-	<color_swatch label="その他" name="agent" left_delta="60"/>
+	<color_swatch label="その他" name="agent"/>
+	<text name="text_box2">
+		他人
+	</text>
 	<color_swatch label="IM" name="im"/>
-	<color_swatch label="ｼｽﾃﾑ" name="system"/>
-	<color_swatch label="チャット" name="users"/>
-	<color_swatch label="ｵﾌﾞｼﾞｪｸﾄ" name="objects" width="56"/>
-	<color_swatch label="所有者" name="owner" left_delta="60"/>
-	<color_swatch label="吹出し" name="background"/>
-	<color_swatch label="URL" name="links"/>
-	<text length="1" name="text_box3" type="string">
-		チャット・コンソール：
+	<text name="text_box3">
+		IM
 	</text>
-	<spinner label="フェード" name="fade_chat_time"/>
-	<text length="1" name="text_box4" type="string">
-		（秒後）
+	<color_swatch label="システム" name="system"/>
+	<text name="text_box4">
+		システム
 	</text>
-	<text length="1" name="text_box5" type="string">
-		（行数）
-	</text>
-	<slider label="不透明度" name="console_opacity"/>
-	<text length="1" name="text_box6" type="string">
-		チャット・オプション：
-	</text>
-	<check_box label="全画面幅を使用 (再起動が必要)" name="chat_full_width_check"/>
-	<check_box label="Enterキーを押した後チャット バーを閉じる" name="close_chat_on_return_check"/>
-	<check_box label="チャット中は、いつでも矢印キーでアバターを移動可能" name="arrow_keys_move_avatar_check"/>
-	<check_box label="ローカルチャットにタイムスタンプを表示" name="show_timestamps_check"/>
-	<check_box label="チャット中はタイピング動作のアニメーションを再生" name="play_typing_animation"/>
-	<text length="1" name="text_box7" type="string">
-		チャットの吹き出し：
-	</text>
-	<check_box label="チャットの吹き出しを表示" name="bubble_text_chat"/>
-	<slider label="不透明度" name="bubble_chat_opacity"/>
-	<text length="1" name="text_box8" type="string">
-		スクリプト・エラー：
-	</text>
-	<check_box label="スクリプト・エラーと警告をチャット同様に表示" name="script_errors_as_chat"/>
 	<color_swatch label="エラー" name="script_error"/>
-	<combo_box name="translate_language_combobox">
-		<combo_item length="1" name="System Default Language" type="string">
-			システム・デフォルト
-		</combo_item>
-		<combo_item length="1" name="English" type="string">
-			English (英語)
-		</combo_item>
-		<combo_item length="1" name="Danish" type="string">
-			Dansk (デンマーク語) – ベータ
-		</combo_item>
-		<combo_item length="1" name="Deutsch(German)" type="string">
-			Deutsch (ドイツ語) – ベータ
-		</combo_item>
-		<combo_item length="1" name="Spanish" type="string">
-			Español (スペイン語) – ベータ
-		</combo_item>
-		<combo_item length="1" name="French" type="string">
-			Français (フランス語) – ベータ
-		</combo_item>
-		<combo_item name="Italian">
-			Italiano （イタリア語） - ベータ
-		</combo_item>
-		<combo_item name="Hungarian">
-			Magyar (ハンガリー語) - ベータ
-		</combo_item>
-		<combo_item name="Dutch">
-			Nederlands （オランダ語） - ベータ
-		</combo_item>
-		<combo_item name="Polish">
-			Polski (ポーランド語) - ベータ
-		</combo_item>
-		<combo_item length="1" name="Portugese" type="string">
-			Português (ポルトガル語) – ベータ
-		</combo_item>
-		<combo_item name="Russian">
-			Русский (ロシア語) - ベータ
-		</combo_item>
-		<combo_item name="Turkish">
-			Türkçe （トルコ語） - ベータ
-		</combo_item>
-		<combo_item name="Ukrainian">
-			Українська (ウクライナ語) - ベータ
-		</combo_item>
-		<combo_item length="1" name="Chinese" type="string">
-			中文 (简体) (中国語) - ベータ
-		</combo_item>
-		<combo_item length="1" name="(Japanese)" type="string">
-			日本語 – ベータ
-		</combo_item>
-		<combo_item length="1" name="(Korean)" type="string">
-			한국어 (韓国語) – ベータ
-		</combo_item>
-	</combo_box>
-	<text type="string" length="1" name="text_chat_language">
-		チャット言語:
+	<text name="text_box5">
+		エラー
 	</text>
-	<text type="string" length="1" name="translate_chat" label="翻訳チャット">
+	<color_swatch label="オブジェクト" name="objects"/>
+	<text name="text_box6">
+		オブジェクト
 	</text>
+	<color_swatch label="所有者" name="owner"/>
+	<text name="text_box7">
+		所有者
+	</text>
+	<color_swatch label="URL" name="links"/>
+	<text name="text_box9">
+		URL
+	</text>
+	<check_box initial_value="true" label="チャット中にタイピング動作のアニメーションを再生" name="play_typing_animation"/>
+	<check_box label="オフライン時に受け取った IM をメールで受信" name="send_im_to_email"/>
+	<check_box label="チャット履歴に文字だけで表示する" name="plain_text_chat_history"/>
+	<radio_group name="chat_window" tool_tip="インスタントメッセージを別フローター、または1つのフローターに複数タブで表示します（要再起動）">
+		<radio_item label="別々のウィンドウ" name="radio" value="0"/>
+		<radio_item label="タブ" name="radio2" value="1"/>
+	</radio_group>
 </panel>

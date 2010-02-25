@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,9 +41,9 @@ extern "C" {
 #include "apr_dso.h"
 }
 
-#define DEBUGMSG(...) lldebugs << llformat(__VA_ARGS__) << llendl
-#define INFOMSG(...) llinfos << llformat(__VA_ARGS__) << llendl
-#define WARNMSG(...) llwarns << llformat(__VA_ARGS__) << llendl
+#define DEBUGMSG(...) do { lldebugs << llformat(__VA_ARGS__) << llendl; } while(0)
+#define INFOMSG(...) do { llinfos << llformat(__VA_ARGS__) << llendl; } while(0)
+#define WARNMSG(...) do { llwarns << llformat(__VA_ARGS__) << llendl; } while(0)
 
 #define LL_DBUS_SYM(REQUIRED, DBUSSYM, RTN, ...) RTN (*ll##DBUSSYM)(__VA_ARGS__) = NULL
 #include "llappviewerlinux_api_dbus_syms_raw.inc"

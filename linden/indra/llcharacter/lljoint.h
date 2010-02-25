@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -174,7 +174,7 @@ public:
 
 	void clampRotation(LLQuaternion old_rot, LLQuaternion new_rot);
 
-	virtual BOOL isAnimatable() { return TRUE; }
+	virtual BOOL isAnimatable() const { return TRUE; }
 
 	S32 getJointNum() const { return mJointNum; }
 	void setJointNum(S32 joint_num) { mJointNum = joint_num; }

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -98,11 +98,8 @@ public:
 	BOOL exportLegacyStream(std::ostream& output_stream) const;
 	LLSD asLLSD() const;
 	operator LLSD() const { return asLLSD(); }
-	bool fromLLSD(LLSD& sd, BOOL& has_perm_mask, U32& perm_mask);
+	bool fromLLSD(const LLSD& sd, BOOL& has_perm_mask, U32& perm_mask);
 	BOOL importLegacyStream(std::istream& input_stream, BOOL& has_perm_mask, U32& perm_mask);
-
-	LLXMLNode *exportFileXML() const;
-	BOOL importXML(LLXMLNode* node);
 
 	LLSD packMessage() const;
 	void unpackMessage(LLSD sales);

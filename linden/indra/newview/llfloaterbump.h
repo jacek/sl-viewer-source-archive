@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,16 +42,17 @@ class LLScrollListCtrl;
 class LLFloaterBump 
 : public LLFloater
 {
-public:
-	static void show(void *);
+	friend class LLFloaterReg;
+protected:
+	void add(LLScrollListCtrl* list, LLMeanCollisionData *mcd);
 
-private:
-	LLFloaterBump();
-	virtual ~LLFloaterBump();
-	static void add(LLScrollListCtrl* list, LLMeanCollisionData *mcd);
+public:
+	/*virtual*/ void onOpen(const LLSD& key);
 	
 private:
-	static LLFloaterBump* sInstance;
+	
+	LLFloaterBump(const LLSD& key);
+	virtual ~LLFloaterBump();
 };
 
 #endif

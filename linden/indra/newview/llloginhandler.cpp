@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,9 +40,12 @@
 #include "llurlsimstring.h"
 #include "llviewercontrol.h"		// gSavedSettings
 #include "llviewernetwork.h"		// EGridInfo
+#include "llviewerwindow.h"			// getWindow()
 
 // library includes
 #include "llmd5.h"
+#include "llweb.h"
+#include "llwindow.h"
 
 
 // Must have instance to auto-register with LLCommandDispatcher
@@ -56,7 +59,7 @@ bool LLLoginHandler::parseDirectLogin(std::string url)
 	LLURI uri(url);
 	parse(uri.queryMap());
 
-	if (mWebLoginKey.isNull() ||
+	if (/*mWebLoginKey.isNull() ||*/
 		mFirstName.empty() ||
 		mLastName.empty())
 	{
@@ -71,7 +74,7 @@ bool LLLoginHandler::parseDirectLogin(std::string url)
 
 void LLLoginHandler::parse(const LLSD& queryMap)
 {
-	mWebLoginKey = queryMap["web_login_key"].asUUID();
+	//mWebLoginKey = queryMap["web_login_key"].asUUID();
 	mFirstName = queryMap["first_name"].asString();
 	mLastName = queryMap["last_name"].asString();
 	
@@ -156,22 +159,50 @@ void LLLoginHandler::parse(const LLSD& queryMap)
 	{
 		LLURLSimString::setString(queryMap["region"].asString());
 	}
-	else if (startLocation == "home")
+	else if (!startLocation.empty()) // "last" or "home" or ??? (let LLURLSimString figure it out)
 	{
-		gSavedSettings.setBOOL("LoginLastLocation", FALSE);
-		LLURLSimString::setString(LLStringUtil::null);
-	}
-	else if (startLocation == "last")
-	{
-		gSavedSettings.setBOOL("LoginLastLocation", TRUE);
-		LLURLSimString::setString(LLStringUtil::null);
+		LLURLSimString::setString(startLocation);
 	}
 }
 
 bool LLLoginHandler::handle(const LLSD& tokens,
 							const LLSD& query_map,
 							LLMediaCtrl* web)
-{	
+{
+	if (tokens.size() == 1
+		&& tokens[0].asString() == "show")
+	{
+		// We're using reg-in-client, so show the XUI login widgets
+		LLPanelLogin::showLoginWidgets();
+		return true;
+	}
+
+	if (tokens.size() == 1
+		&& tokens[0].asString() == "reg")
+	{
+		LLWindow* window = gViewerWindow->getWindow();
+		window->incBusyCount();
+		window->setCursor(UI_CURSOR_ARROW);
+
+		// Do this first, as it may be slow and we want to keep something
+		// on the user's screen as long as possible
+		LLWeb::loadURLExternal( "http://join.eniac15.lindenlab.com/" );
+
+		window->decBusyCount();
+		window->setCursor(UI_CURSOR_ARROW);
+
+		// Then hide the window
+		window->minimize();
+		return true;
+	}
+
+	// Make sure window is visible
+	LLWindow* window = gViewerWindow->getWindow();
+	if (window->getMinimized())
+	{
+		window->restore();
+	}
+
 	parse(query_map);
 	
 	//if we haven't initialized stuff yet, this is 
@@ -206,14 +237,15 @@ bool LLLoginHandler::handle(const LLSD& tokens,
 			LLPanelLogin::setFields(mFirstName, mLastName, password);
 		}
 
-		if (mWebLoginKey.isNull())
-		{
-			LLPanelLogin::loadLoginPage();
-		}
-		else
-		{
-			LLStartUp::setStartupState( STATE_LOGIN_CLEANUP );
-		}
+		//if (mWebLoginKey.isNull())
+		//{
+		//	LLPanelLogin::loadLoginPage();
+		//}
+		//else
+		//{
+		//	LLStartUp::setStartupState( STATE_LOGIN_CLEANUP );
+		//}
+		LLStartUp::setStartupState( STATE_LOGIN_CLEANUP );
 	}
 	return true;
 }

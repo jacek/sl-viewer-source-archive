@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,6 @@
 
 #include "llaudiodecodemgr.h"
 
-#include "llvorbisdecode.h"
 #include "llaudioengine.h"
 #include "lllfsthread.h"
 #include "llvfile.h"
@@ -41,10 +40,12 @@
 #include "lldir.h"
 #include "llendianswizzle.h"
 #include "llassetstorage.h"
+#include "llrefcount.h"
+
+#include "llvorbisencode.h"
 
 #include "vorbis/codec.h"
 #include "vorbis/vorbisfile.h"
-#include "llvorbisencode.h"
 
 extern LLAudioEngine *gAudiop;
 
@@ -180,6 +181,8 @@ LLVorbisDecodeState::LLVorbisDecodeState(const LLUUID &uuid, const std::string &
 	mFileHandle = LLLFSThread::nullHandle();
 #endif
 	// No default value for mVF, it's an ogg structure?
+	// Hey, let's zero it anyway, for predictability.
+	memset(&mVF, 0, sizeof(mVF));
 }
 
 LLVorbisDecodeState::~LLVorbisDecodeState()

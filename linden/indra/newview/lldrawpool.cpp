@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -60,7 +60,7 @@ S32 LLDrawPool::sNumDrawPools = 0;
 //=============================
 // Draw Pool Implementation
 //=============================
-LLDrawPool *LLDrawPool::createPool(const U32 type, LLViewerImage *tex0)
+LLDrawPool *LLDrawPool::createPool(const U32 type, LLViewerTexture *tex0)
 {
 	LLDrawPool *poolp = NULL;
 	switch (type)
@@ -129,7 +129,7 @@ LLDrawPool::~LLDrawPool()
 
 }
 
-LLViewerImage *LLDrawPool::getDebugTexture()
+LLViewerTexture *LLDrawPool::getDebugTexture()
 {
 	return NULL;
 }
@@ -244,7 +244,7 @@ void LLFacePool::destroy()
 	}
 }
 
-void LLFacePool::dirtyTextures(const std::set<LLViewerImage*>& textures)
+void LLFacePool::dirtyTextures(const std::set<LLViewerFetchedTexture*>& textures)
 {
 }
 
@@ -279,7 +279,7 @@ S32 LLFacePool::drawLoopSetTex(face_array_t& face_list, S32 stage)
 			 iter != face_list.end(); iter++)
 		{
 			LLFace *facep = *iter;
-			gGL.getTexUnit(stage)->bind(facep->getTexture(), TRUE);
+			gGL.getTexUnit(stage)->bind(facep->getTexture(), TRUE) ;
 			gGL.getTexUnit(0)->activate();
 			res += facep->renderIndexed();
 		}
@@ -293,13 +293,6 @@ void LLFacePool::drawLoop()
 	{
 		drawLoop(mDrawFace);
 	}
-}
-
-void LLFacePool::renderFaceSelected(LLFace *facep, 
-									LLImageGL *image, 
-									const LLColor4 &color,
-									const S32 index_offset, const S32 index_count)
-{
 }
 
 void LLFacePool::enqueue(LLFace* facep)
@@ -330,7 +323,7 @@ void LLFacePool::resetDrawOrders()
 	mDrawFace.resize(0);
 }
 
-LLViewerImage *LLFacePool::getTexture()
+LLViewerTexture *LLFacePool::getTexture()
 {
 	return NULL;
 }
@@ -449,6 +442,7 @@ void LLRenderPass::renderTexture(U32 type, U32 mask)
 
 void LLRenderPass::pushBatches(U32 type, U32 mask, BOOL texture)
 {
+	llpushcallstacks ;
 	for (LLCullResult::drawinfo_list_t::iterator i = gPipeline.beginRenderMap(type); i != gPipeline.endRenderMap(type); ++i)	
 	{
 		LLDrawInfo* pparams = *i;
@@ -481,7 +475,7 @@ void LLRenderPass::pushBatch(LLDrawInfo& params, U32 mask, BOOL texture)
 	{
 		if (params.mTexture.notNull())
 		{
-			gGL.getTexUnit(0)->bind(params.mTexture.get(), TRUE);
+			gGL.getTexUnit(0)->bind(params.mTexture, TRUE) ;
 			if (params.mTextureMatrix)
 			{
 				glMatrixMode(GL_TEXTURE);

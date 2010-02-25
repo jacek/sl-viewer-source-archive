@@ -6,7 +6,7 @@
 
 $LicenseInfo:firstyear=2007&license=mit$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2007-2010, Linden Research, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -90,6 +90,17 @@ all the output, and get the result.
                     child.tochild.close()
         result = child.poll()
         if result != -1:
+            # At this point, the child process has exited and result
+            # is the return value from the process. Between the time
+            # we called select() and poll() the process may have
+            # exited so read all the data left on the child process
+            # stdout and stderr.
+            last = child.fromchild.read()
+            if last:
+                out.append(last)
+            last = child.childerr.read()
+            if last:
+                err.append(last)
             child.tochild.close()
             child.fromchild.close()
             child.childerr.close()

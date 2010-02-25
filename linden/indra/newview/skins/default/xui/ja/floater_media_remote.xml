@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="floater_media_remote" title="メディアリモート">
+	<panel name="media_remote">
+		<panel label="音声とビデオ" name="Volume Panel"/>
+		<button name="end_call_btn" tool_tip="クリックして切ります"/>
+	</panel>
+</floater>

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,8 +36,7 @@
 #include "llbutton.h"
 #include "llresmgr.h"
 #include "llinventory.h"
-#include "llinventoryview.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llagent.h"          // gAgent
 #include "llkeyframemotion.h"
 #include "llfilepicker.h"
@@ -47,51 +46,10 @@
 
 extern LLAgent gAgent;
 
-LLPreviewAnim::LLPreviewAnim(const std::string& name, const LLRect& rect, const std::string& title, const LLUUID& item_uuid, const S32& activate, const LLUUID& object_uuid )	:
-	LLPreview( name, rect, title, item_uuid, object_uuid)
+LLPreviewAnim::LLPreviewAnim(const LLSD& key)
+	: LLPreview( key )
 {
-	LLUICtrlFactory::getInstance()->buildFloater(this,"floater_preview_animation.xml");
-
-	childSetAction("Anim play btn",playAnim,this);
-	childSetAction("Anim audition btn",auditionAnim,this);
-
-	const LLInventoryItem* item = getItem();
-	
-	childSetCommitCallback("desc", LLPreview::onText, this);
-	childSetText("desc", item->getDescription());
-	childSetPrevalidate("desc", &LLLineEditor::prevalidatePrintableNotPipe);
-	
-	setTitle(title);
-
-	if (!getHost())
-	{
-		LLRect curRect = getRect();
-		translate(rect.mLeft - curRect.mLeft, rect.mTop - curRect.mTop);
-	}
-
-	// preload the animation
-	if(item)
-	{
-		gAgent.getAvatarObject()->createMotion(item->getAssetUUID());
-	}
-	
-	switch ( activate ) 
-	{
-		case 1:
-		{
-			playAnim( (void *) this );
-			break;
-		}
-		case 2:
-		{
-			auditionAnim( (void *) this );
-			break;
-		}
-		default:
-		{
-		//do nothing
-		}
-	}
+	//Called from floater reg: LLUICtrlFactory::getInstance()->buildFloater(this,"floater_preview_animation.xml", FALSE);
 }
 
 // static
@@ -104,6 +62,46 @@ void LLPreviewAnim::endAnimCallback( void *userdata )
 	{
 		self->childSetValue("Anim play btn", FALSE);
 		self->childSetValue("Anim audition btn", FALSE);
+	}
+}
+
+// virtual
+BOOL LLPreviewAnim::postBuild()
+{
+	const LLInventoryItem* item = getItem();
+	if(item)
+	{
+		gAgent.getAvatarObject()->createMotion(item->getAssetUUID()); // preload the animation
+		childSetText("desc", item->getDescription());
+	}
+
+	childSetAction("Anim play btn",playAnim, this);
+	childSetAction("Anim audition btn",auditionAnim, this);
+
+	childSetCommitCallback("desc", LLPreview::onText, this);
+	childSetPrevalidate("desc", &LLTextValidate::validateASCIIPrintableNoPipe);
+	
+	return LLPreview::postBuild();
+}
+
+void LLPreviewAnim::activate(e_activation_type type)
+{
+	switch ( type ) 
+	{
+		case PLAY:
+		{
+			playAnim( (void *) this );
+			break;
+		}
+		case AUDITION:
+		{
+			auditionAnim( (void *) this );
+			break;
+		}
+		default:
+		{
+		//do nothing
+		}
 	}
 }
 
@@ -181,6 +179,7 @@ void LLPreviewAnim::auditionAnim( void *userdata )
 	}
 }
 
+// virtual
 void LLPreviewAnim::onClose(bool app_quitting)
 {
 	const LLInventoryItem *item = getItem();
@@ -199,5 +198,4 @@ void LLPreviewAnim::onClose(bool app_quitting)
 			motion->setDeactivateCallback(NULL, (void *)NULL);
 		}
 	}
-	destroy();
 }

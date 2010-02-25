@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="chat floater" title="Chat local">
+<floater name="chat floater" title="CHAT LOCAL">
 	<string name="ringing">
 		Connexion au chat vocal du Monde en cours…
 	</string>
@@ -13,7 +13,7 @@
 		Déconnecté du chat vocal
 	</string>
 	<string name="voice_icon">
-		icn_voice-localchat.tga
+		Unread_IM
 	</string>
 	<string name="IM_logging_string">
 		-- Archivage des IM activé --
@@ -63,27 +63,19 @@
 	<layout_stack name="panels">
 		<layout_panel name="im_contents_panel">
 			<combo_box label="Gestes" name="Gesture">
-				<combo_item name="Gestures">
-					Gestes
-				</combo_item>
+				<combo_box.item label="Gestes" name="Gestures"/>
 			</combo_box>
 			<check_box label="Afficher le texte ignoré" name="show mutes"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Cliquez ici pour voir la liste des participants actifs dans cette session IM."/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Cliquez ici pour voir la liste des participants actifs dans cette session IM"/>
 			<panel name="chat_panel">
 				<string name="gesture_label">
 					Gestes
 				</string>
 				<line_editor label="Cliquer ici pour chatter." name="Chat Editor"/>
 				<flyout_button label="Dire" name="Say" tool_tip="(Entrée)">
-					<flyout_button_item name="shout_item">
-						Crier
-					</flyout_button_item>
-					<flyout_button_item name="say_item">
-						Dire
-					</flyout_button_item>
-					<flyout_button_item name="whisper_item">
-						Chuchoter
-					</flyout_button_item>
+					<flyout_button.item label="Crier" name="shout_item"/>
+					<flyout_button.item label="Dire" name="say_item"/>
+					<flyout_button.item label="Chuchoter" name="whisper_item"/>
 				</flyout_button>
 			</panel>
 		</layout_panel>

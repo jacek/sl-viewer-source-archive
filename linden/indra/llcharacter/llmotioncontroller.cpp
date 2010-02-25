@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -1019,9 +1019,9 @@ bool LLMotionController::isMotionLoading(LLMotion* motion)
 //-----------------------------------------------------------------------------
 // findMotion()
 //-----------------------------------------------------------------------------
-LLMotion* LLMotionController::findMotion(const LLUUID& id)
+LLMotion* LLMotionController::findMotion(const LLUUID& id) const
 {
-	motion_map_t::iterator iter = mAllMotions.find(id);
+	motion_map_t::const_iterator iter = mAllMotions.find(id);
 	if(iter == mAllMotions.end())
 	{
 		return NULL;

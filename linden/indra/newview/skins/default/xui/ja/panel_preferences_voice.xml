@@ -5,12 +5,8 @@
 	</text_editor>
 	<check_box label="ボイスチャットを有効にする" name="enable_voice_check"/>
 	<radio_group name="ear_location">
-		<radio_item name="0">
-			カメラの位置からボイスチャットを聞く。
-		</radio_item>
-		<radio_item name="1">
-			アバターの位置からボイスチャットを聞く。
-		</radio_item>
+		<radio_item name="0" label="カメラの位置からボイスチャットを聞く。" />
+		<radio_item name="1" label="アバターの位置からボイスチャットを聞く。" />
 	</radio_group>
 	<text name="push_to_talk_heading">
 		プッシュ・トゥ・トーク

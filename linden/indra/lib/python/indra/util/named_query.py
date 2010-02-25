@@ -6,7 +6,7 @@
 
 $LicenseInfo:firstyear=2007&license=mit$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2007-2010, Linden Research, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,6 @@ from indra.base import llsd
 from indra.base import config
 
 DEBUG = False
-
 NQ_FILE_SUFFIX = config.get('named-query-file-suffix', '.nq')
 NQ_FILE_SUFFIX_LEN  = len(NQ_FILE_SUFFIX)
 
@@ -60,6 +59,11 @@ def _init_g_named_manager(sql_dir = None):
 
     This function is intended entirely for testing purposes,
     because it's tricky to control the config from inside a test."""
+    global NQ_FILE_SUFFIX
+    NQ_FILE_SUFFIX = config.get('named-query-file-suffix', '.nq')
+    global NQ_FILE_SUFFIX_LEN
+    NQ_FILE_SUFFIX_LEN  = len(NQ_FILE_SUFFIX)
+
     if sql_dir is None:
         sql_dir = config.get('named-query-base-dir')
 
@@ -73,11 +77,11 @@ def _init_g_named_manager(sql_dir = None):
     _g_named_manager = NamedQueryManager(
         os.path.abspath(os.path.realpath(sql_dir)))
 
-def get(name):
+def get(name, schema = None):
     "Get the named query object to be used to perform queries"
     if _g_named_manager is None:
         _init_g_named_manager()
-    return _g_named_manager.get(name)
+    return _g_named_manager.get(name).for_schema(schema)
 
 def sql(connection, name, params):
     # use module-global NamedQuery object to perform default substitution
@@ -290,7 +294,10 @@ class NamedQuery(object):
 
         So, we need a vendor (or extention) for LIKE_STRING. Anyone
         want to write it?"""
-        utf8_value = unicode(value, "utf-8")
+        if isinstance(value, unicode):
+            utf8_value = value
+        else:
+            utf8_value = unicode(value, "utf-8")
         esc_list = []
         remove_chars = set(u"%_")
         for glyph in utf8_value:
@@ -327,6 +334,8 @@ class NamedQuery(object):
 
     def for_schema(self, db_name):
         "Look trough the alternates and return the correct query"
+        if db_name is None:
+            return self
         try:
             return self._alternative[db_name]
         except KeyError, e:
@@ -351,21 +360,21 @@ class NamedQuery(object):
             cursor = connection.cursor(MySQLdb.cursors.DictCursor)
         else:
             cursor = connection.cursor()
-        
-        statement = self.sql(connection, params)
+
+        full_query, params = self._construct_sql(params)
         if DEBUG:
-            print "SQL:", statement
-        rows = cursor.execute(statement)
-        
+            print "SQL:", self.sql(connection, params)
+        rows = cursor.execute(full_query, params)
+
         # *NOTE: the expect_rows argument is a very cheesy way to get some
         # validation on the result set.  If you want to add more expectation
-        # logic, do something more object-oriented and flexible.  Or use an ORM.
+        # logic, do something more object-oriented and flexible. Or use an ORM.
         if(self._return_as_map):
             expect_rows = 1
         if expect_rows is not None and rows != expect_rows:
             cursor.close()
-            raise ExpectationFailed("Statement expected %s rows, got %s.  Sql: %s" % (
-                expect_rows, rows, statement))
+            raise ExpectationFailed("Statement expected %s rows, got %s.  Sql: '%s' %s" % (
+                expect_rows, rows, full_query, params))
 
         # convert to dicts manually if we're not using a dictcursor
         if use_dictcursor:
@@ -391,11 +400,9 @@ class NamedQuery(object):
             return result_set[0]
         return result_set
 
-    def sql(self, connection, params):
-        """ Generates an SQL statement from the named query document
-        and a dictionary of parameters.
-
-        """
+    def _construct_sql(self, params):
+        """ Returns a query string and a dictionary of parameters,
+        suitable for directly passing to the execute() method."""
         self.refresh()
 
         # build the query from the options available and the params
@@ -443,10 +450,23 @@ class NamedQuery(object):
                 new_params[self._build_integer_key(key)] = int(params[key])
         params.update(new_params)
 
+        return full_query, params
+
+    def sql(self, connection, params):
+        """ Generates an SQL statement from the named query document
+        and a dictionary of parameters.
+
+        *NOTE: Only use for debugging, because it uses the
+         non-standard MySQLdb 'literal' method.
+        """
+        if not DEBUG:
+            import warnings
+            warnings.warn("Don't use named_query.sql() when not debugging.  Used on %s" % self._location)
         # do substitution using the mysql (non-standard) 'literal'
         # function to do the escaping.
-        sql = full_query % connection.literal(params)
-        return sql
+        full_query, params = self._construct_sql(params)
+        return full_query % connection.literal(params)
+        
 
     def refresh(self):
         """ Refresh self from the file on the filesystem.

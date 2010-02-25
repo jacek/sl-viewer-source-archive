@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,9 +33,10 @@
 #ifndef LL_MOUSEHANDLER_H
 #define LL_MOUSEHANDLER_H
 
-#include "llstring.h"
+#include "linden_common.h"
+#include "llrect.h"
 
-// Abstract interface.
+// Mostly-abstract interface.
 // Intended for use via multiple inheritance. 
 // A class may have as many interfaces as it likes, but never needs to inherit one more than once.
 
@@ -44,26 +45,35 @@ class LLMouseHandler
 public:
 	LLMouseHandler() {}
 	virtual ~LLMouseHandler() {}
+
 	typedef enum {
 		SHOW_NEVER,
 		SHOW_IF_NOT_BLOCKED,
 		SHOW_ALWAYS,
 	} EShowToolTip;
+
+	typedef enum {
+		CLICK_LEFT,
+		CLICK_MIDDLE,
+		CLICK_RIGHT,
+		CLICK_DOUBLELEFT
+	} EClickType;
+
+	virtual BOOL	handleAnyMouseClick(S32 x, S32 y, MASK mask, EClickType clicktype, BOOL down);
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask) = 0;
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask) = 0;
-	virtual BOOL	handleHover(S32 x, S32 y, MASK mask) = 0;
-	virtual BOOL	handleScrollWheel(S32 x, S32 y, S32 clicks) = 0;
-	virtual BOOL	handleDoubleClick(S32 x, S32 y, MASK mask) = 0;
+	virtual BOOL	handleMiddleMouseDown(S32 x, S32 y, MASK mask) = 0;
+	virtual BOOL	handleMiddleMouseUp(S32 x, S32 y, MASK mask) = 0;
 	virtual BOOL	handleRightMouseDown(S32 x, S32 y, MASK mask) = 0;
 	virtual BOOL	handleRightMouseUp(S32 x, S32 y, MASK mask) = 0;
-	virtual BOOL	handleToolTip(S32 x, S32 y, std::string& msg, LLRect* sticky_rect_screen) = 0;
-	virtual EShowToolTip getShowToolTip() { return SHOW_IF_NOT_BLOCKED; };
-	virtual const std::string& getName() const = 0;
+	virtual BOOL	handleDoubleClick(S32 x, S32 y, MASK mask) = 0;
+
+	virtual BOOL	handleHover(S32 x, S32 y, MASK mask) = 0;
+	virtual BOOL	handleScrollWheel(S32 x, S32 y, S32 clicks) = 0;
+	virtual BOOL	handleToolTip(S32 x, S32 y, MASK mask) = 0;
+	virtual std::string getName() const = 0;
 
 	virtual void	onMouseCaptureLost() = 0;
-
-	// Hack to support LLFocusMgr
-	virtual BOOL isView() const = 0;
 
 	virtual void	screenPointToLocal(S32 screen_x, S32 screen_y, S32* local_x, S32* local_y) const = 0;
 	virtual void	localPointToScreen(S32 local_x, S32 local_y, S32* screen_x, S32* screen_y) const = 0;

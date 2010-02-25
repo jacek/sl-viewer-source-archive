@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,7 @@
 
 #include "llfloaternamedesc.h"
 #include "lldynamictexture.h"
+#include "llpointer.h"
 #include "llquaternion.h"
 
 class LLComboBox;
@@ -43,12 +44,15 @@ class LLViewerJointMesh;
 class LLVOAvatar;
 class LLTextBox;
 class LLVertexBuffer;
+class LLVolume;
 
-class LLImagePreviewSculpted : public LLDynamicTexture
+class LLImagePreviewSculpted : public LLViewerDynamicTexture
 {
- public:
-	LLImagePreviewSculpted(S32 width, S32 height);
+protected:
 	virtual ~LLImagePreviewSculpted();
+
+ public:
+	LLImagePreviewSculpted(S32 width, S32 height);	
 
 	void setPreviewTarget(LLImageRaw *imagep, F32 distance);
 	void setTexture(U32 name) { mTextureName = name; }
@@ -73,11 +77,13 @@ class LLImagePreviewSculpted : public LLDynamicTexture
 };
 
 
-class LLImagePreviewAvatar : public LLDynamicTexture
+class LLImagePreviewAvatar : public LLViewerDynamicTexture
 {
-public:
-	LLImagePreviewAvatar(S32 width, S32 height);
+protected:
 	virtual ~LLImagePreviewAvatar();
+
+public:
+	LLImagePreviewAvatar(S32 width, S32 height);	
 
 	void setPreviewTarget(const std::string& joint_name, const std::string& mesh_name, LLImageRaw* imagep, F32 distance, BOOL male);
 	void setTexture(U32 name) { mTextureName = name; }
@@ -117,7 +123,6 @@ public:
 	BOOL handleScrollWheel(S32 x, S32 y, S32 clicks); 
 
 	static void onMouseCaptureLostImagePreview(LLMouseHandler*);
-	static void setUploadAmount(S32 amount) { sUploadAmount = amount; }
 
 	void clearAllPreviewTextures();
 
@@ -127,15 +132,14 @@ protected:
 	bool			loadImage(const std::string& filename);
 
 	LLPointer<LLImageRaw> mRawImagep;
-	LLImagePreviewAvatar* mAvatarPreview;
-	LLImagePreviewSculpted* mSculptedPreview;
+	LLPointer<LLImagePreviewAvatar> mAvatarPreview;
+	LLPointer<LLImagePreviewSculpted> mSculptedPreview;
 	S32				mLastMouseX;
 	S32				mLastMouseY;
 	LLRect			mPreviewRect;
 	LLRectf			mPreviewImageRect;
-	LLPointer<LLImageGL> mImagep ;
+	LLPointer<LLViewerTexture> mImagep ;
 
-	static S32		sUploadAmount;
 };
 
 #endif  // LL_LLFLOATERIMAGEPREVIEW_H

@@ -7,25 +7,19 @@
 	<button label="Pokaż na Mapie" name="classified_map_btn"/>
 	<button label="Profil" name="classified_profile_btn"/>
 	<combo_box name="classified_mature_check">
-		<combo_item name="select_mature">
-			- Wybierz Treść -
-		</combo_item>
-		<combo_item name="mature">
-			Treść &apos;Mature&apos;
-		</combo_item>
-		<combo_item name="pg">
-			Treść &apos;PG&apos;
-		</combo_item>
+		<combo_box.item name="select_mature" label="- Wybierz Treść -"/>
+		<combo_box.item name="mature" label="Treść &apos;Mature&apos;"/>
+		<combo_box.item name="pg" label="Treść &apos;PG&apos;"/>
 	</combo_box>
 	<combo_box label="" name="classified_category_combo"/>
 	<button label="Aktualizuj" name="classified_update_btn"/>
-	<string name="ad_placed_paid">
-		Od: [DATE], Zapłacono [AMT]l$ za zamieszczenie.
-	</string>
-	<string name="update_txt">
+	<panel.string name="ad_placed_paid">
+		Od: [DATE], Zapłacono [AMT]L$ za zamieszczenie.
+	</panel.string>
+	<panel.string name="update_txt">
 		Aktualizuj
-	</string>
-	<string name="publish_txt">
+	</panel.string>
+	<panel.string name="publish_txt">
 		Zamieść...
-	</string>
+	</panel.string>
 </panel>

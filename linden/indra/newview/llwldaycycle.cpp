@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,10 +33,12 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llwldaycycle.h"
-#include "llsdserialize.h"
-#include "llwlparammanager.h"
 
-#include "llviewerwindow.h"
+#include "llnotificationsutil.h"
+#include "llsdserialize.h"
+#include "llxmlnode.h"
+
+#include "llwlparammanager.h"
 
 #include <map>
 
@@ -85,7 +87,7 @@ void LLWLDayCycle::loadDayCycle(const std::string & fileName)
 				// alert the user
 				LLSD args;
 				args["SKY"] = day_data[i][1].asString();
-				LLNotifications::instance().add("WLMissingSky", args);
+				LLNotificationsUtil::add("WLMissingSky", args);
 				continue;
 			}
 			

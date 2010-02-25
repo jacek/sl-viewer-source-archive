@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -120,6 +120,12 @@ bool LLUrlWhiteList::save ()
 {
 	// build filename for each user
 	std::string resolvedFilename = gDirUtilp->getExpandedFilename ( LL_PATH_PER_SL_ACCOUNT, mFilename );
+
+	if (resolvedFilename.empty())
+	{
+		llinfos << "No per-user dir for saving URL whitelist - presumably not logged in yet.  Skipping." << llendl;
+		return false;
+	}
 
 	// open a file for writing
 	llofstream file ( resolvedFilename );

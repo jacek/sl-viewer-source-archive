@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -74,7 +74,7 @@ namespace tut
 	inline void ensure_memory_matches(const char* msg,const void* actual, U32 actual_len, const void* expected,U32 expected_len)
 	{
 		if((expected_len != actual_len) || 
-			(memcmp(actual, expected, actual_len) != 0))
+			(std::memcmp(actual, expected, actual_len) != 0))
 		{
 			std::stringstream ss;
 			ss << (msg?msg:"") << (msg?": ":"") << "not equal";
@@ -120,6 +120,9 @@ namespace tut
 		const std::vector<U8>& actual, const std::vector<U8>& expected);
 
 	void ensure_equals(const char* msg,
+		const LLSD& actual, const LLSD& expected);
+
+	void ensure_equals(const std::string& msg,
 		const LLSD& actual, const LLSD& expected);
 	
 	void ensure_starts_with(const std::string& msg,

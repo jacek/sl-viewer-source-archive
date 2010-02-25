@@ -1,10 +1,10 @@
 /** 
- * @file 
+ * @file llhttpclientadepter.h
  * @brief 
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 #define LL_HTTPCLIENTADAPTER_H
 
 #include "llhttpclientinterface.h"
-#include "llmemory.h"	// LLSingleton<>
+#include "llsingleton.h"	// LLSingleton<>
 
 class LLHTTPClientAdapter : public LLHTTPClientInterface, public LLSingleton<LLHTTPClientAdapter>
 {

@@ -4,6 +4,7 @@ project(llvfs)
 
 include(00-Common)
 include(LLCommon)
+include(UnixInstall)
 
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
@@ -22,6 +23,7 @@ set(llvfs_HEADER_FILES
     CMakeLists.txt
 
     lldir.h
+    lldirguard.h
     lllfsthread.h
     llpidlock.h
     llvfile.h
@@ -57,10 +59,23 @@ set_source_files_properties(${llvfs_HEADER_FILES}
 list(APPEND llvfs_SOURCE_FILES ${llvfs_HEADER_FILES})
 
 add_library (llvfs ${llvfs_SOURCE_FILES})
-add_dependencies(llvfs prepare)
 
 if (DARWIN)
   include(CMakeFindFrameworks)
   find_library(CARBON_LIBRARY Carbon)
   target_link_libraries(llvfs ${CARBON_LIBRARY})
 endif (DARWIN)
+
+
+# Add tests
+include(LLAddBuildTest)
+# UNIT TESTS
+SET(llvfs_TEST_SOURCE_FILES
+  # none so far
+  )
+LL_ADD_PROJECT_UNIT_TESTS(llvfs "${llvfs_TEST_SOURCE_FILES}")
+
+# INTEGRATION TESTS
+set(test_libs llmath llcommon llvfs ${LLCOMMON_LIBRARIES} ${WINDOWS_LIBRARIES})
+# TODO: Some of these need refactoring to be proper Unit tests rather than Integration tests.
+LL_ADD_INTEGRATION_TEST(lldir "" "${test_libs}")

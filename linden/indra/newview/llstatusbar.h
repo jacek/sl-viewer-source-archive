@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,49 +47,20 @@ class LLUICtrl;
 class LLUUID;
 class LLFrameTimer;
 class LLStatGraph;
-
-// used by LCD screen
-class LLRegionDetails
-{
-public:
-	LLRegionDetails() :
-		mRegionName("Unknown"),
-		mParcelName("Unknown"),
-		mAccessString("Unknown"),
-		mX(0),
-		mY(0),
-		mZ(0),
-		mArea (0),
-		mForSale(FALSE),
-		mOwner("Unknown"),
-		mTraffic(0),
-		mBalance(0),
-		mPing(0)
-	{
-	}
-	std::string mRegionName;
-	std::string	mParcelName;
-	std::string	mAccessString;
-	S32		mX;
-	S32		mY;
-	S32		mZ;
-	S32		mArea;
-	BOOL	mForSale;
-	std::string	mOwner;
-	F32		mTraffic;
-	S32		mBalance;
-	std::string mTime;
-	U32		mPing;
-};
+class LLPanelVolumePulldown;
+class LLPanelNearByMedia;
 
 class LLStatusBar
 :	public LLPanel
 {
 public:
-	LLStatusBar(const std::string& name, const LLRect& rect );
+	LLStatusBar(const LLRect& rect );
 	/*virtual*/ ~LLStatusBar();
 	
 	/*virtual*/ void draw();
+
+	/*virtual*/ BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+	/*virtual*/ BOOL postBuild();
 
 	// MANIPULATORS
 	void		setBalance(S32 balance);
@@ -116,27 +87,32 @@ public:
 	S32 getSquareMetersCredit() const;
 	S32 getSquareMetersCommitted() const;
 	S32 getSquareMetersLeft() const;
-	LLRegionDetails mRegionDetails;
+
+	LLPanelNearByMedia* getNearbyMediaPanel() { return mPanelNearByMedia; }
 
 private:
 	// simple method to setup the part that holds the date
 	void setupDate();
 
-	static void onCommitSearch(LLUICtrl*, void* data);
-	static void onClickSearch(void* data);
+	void onClickBuyCurrency();
+	void onVolumeChanged(const LLSD& newvalue);
+
+	void onMouseEnterVolume();
+	void onMouseEnterNearbyMedia();
+	void onClickScreen(S32 x, S32 y);
 	static void onClickStatGraph(void* data);
 
+	static void onClickMediaToggle(void* data);
+
 private:
-	LLTextBox	*mTextBalance;
 	LLTextBox	*mTextHealth;
 	LLTextBox	*mTextTime;
-
-	LLTextBox*	mTextParcelName;
 
 	LLStatGraph *mSGBandwidth;
 	LLStatGraph *mSGPacketLoss;
 
-	LLButton	*mBtnBuyCurrency;
+	LLButton	*mBtnVolume;
+	LLButton	*mMediaToggle;
 
 	S32				mBalance;
 	S32				mHealth;
@@ -144,7 +120,8 @@ private:
 	S32				mSquareMetersCommitted;
 	LLFrameTimer*	mBalanceTimer;
 	LLFrameTimer*	mHealthTimer;
-	
+	LLPanelVolumePulldown* mPanelVolumePulldown;
+	LLPanelNearByMedia*	mPanelNearByMedia;
 	static std::vector<std::string> sDays;
 	static std::vector<std::string> sMonths;
 	static const U32 MAX_DATE_STRING_LENGTH;

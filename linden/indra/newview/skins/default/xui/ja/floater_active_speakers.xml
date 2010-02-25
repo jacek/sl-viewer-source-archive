@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="active_speakers" title="アクティブ・スピーカー">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="active_speakers" title="近くの発言者">
 	<panel name="active_speakers_panel">
 		<scroll_list name="speakers_list">
-			<column label="名前" name="speaker_name" />
+			<column label="名前" name="speaker_name"/>
 		</scroll_list>
 		<panel name="volume_container">
-			<button label="" name="mute_btn"
-			     tool_tip="この住人のボイスをミュート（消声）します。" />
+			<button label="" name="mute_btn" tool_tip="この住人のボイスをブロックします"/>
 		</panel>
 	</panel>
 </floater>

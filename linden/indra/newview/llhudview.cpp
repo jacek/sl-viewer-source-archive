@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,9 +39,7 @@
 #include "llcoord.h"
 
 // viewer includes
-#include "llagent.h"
 #include "llcallingcard.h"
-#include "llcolorscheme.h"
 #include "llviewercontrol.h"
 #include "llfloaterworldmap.h"
 #include "llworldmapview.h"
@@ -59,11 +57,12 @@ const S32 HUD_ARROW_SIZE = 32;
 LLHUDView::LLHUDView(const LLRect& r)
 {
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_hud.xml");
-	userSetShape(r);
+	setShape(r, true);
 }
 
 LLHUDView::~LLHUDView()
-{ }
+{
+}
 
 // virtual
 void LLHUDView::draw()
@@ -71,20 +70,6 @@ void LLHUDView::draw()
 	LLTracker::drawHUDArrow();
 	LLView::draw();
 }
-
-
-// public
-const LLColor4& LLHUDView::colorFromType(S32 type)
-{
-	switch (type)
-	{
-	case 0:
-		return LLColor4::green;
-	default:
-		return LLColor4::black;
-	}
-}
-
 
 /*virtual*/
 BOOL LLHUDView::handleMouseDown(S32 x, S32 y, MASK mask)

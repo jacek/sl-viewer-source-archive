@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Guarda Info" name="look_info">
+	<panel.string name="not_available">
+		(N\A)
+	</panel.string>
+	<panel.string name="unknown">
+		(sconosciuto)
+	</panel.string>
+	<panel label="Vestiario" name="look_management_panel">
+		<accordion name="look_management_accordion">
+			<accordion_tab name="look_group" title="Vestiario di Gruppo">
+				<panel name="look_info_group_bar">
+					<text name="curr_look_name">
+						Guarda: [GUARDA]
+					</text>
+					<button label="Indossa" name="wear_look_btn"/>
+					<scroll_list name="look_items_list">
+						<scroll_list.columns label="Guarda articolo" name="look_item"/>
+						<scroll_list.columns label="Tipo di articolo del vestiario" name="look_item_sort"/>
+					</scroll_list>
+					<button label="-" name="remove_from_look_btn"/>
+				</panel>
+			</accordion_tab>
+			<accordion_tab name="inventory_group" title="Mio Inventario">
+				<panel name="lower_look_accordion">
+					<panel name="inventory_bar">
+						<text name="inventory_info_text">
+							Mio Inventario
+						</text>
+						<combo_box name="inventory_filter" tool_tip="Mostra solo i caratteri selezionati nell&apos;inventario"/>
+					</panel>
+					<panel name="look_item_filter_bar">
+						<filter_editor label="Filtra gli articoli del vestiario" name="look_item_filter"/>
+					</panel>
+				</panel>
+			</accordion_tab>
+		</accordion>
+	</panel>
+	<panel name="button_bar">
+		<button label="Aggiungi" name="add_item_btn"/>
+		<button label="Rimuovi" name="remove_item_btn"/>
+		<button label="SU" name="up_btn"/>
+		<button label="GIU&apos;" name="down_btn"/>
+	</panel>
+</panel>

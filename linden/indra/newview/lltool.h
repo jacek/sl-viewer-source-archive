@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -55,16 +55,18 @@ public:
 	virtual BOOL isView() const { return FALSE; }
 
 	// Virtual functions inherited from LLMouseHandler
+	virtual BOOL	handleAnyMouseClick(S32 x, S32 y, MASK mask, LLMouseHandler::EClickType clicktype, BOOL down);
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
+	virtual BOOL	handleMiddleMouseDown(S32 x, S32 y, MASK mask);
+	virtual BOOL	handleMiddleMouseUp(S32 x, S32 y, MASK mask);
+
 	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleScrollWheel(S32 x, S32 y, S32 clicks);
 	virtual BOOL	handleDoubleClick(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleRightMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleRightMouseUp(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleToolTip(S32 x, S32 y, std::string& msg, LLRect* sticky_rect_screen);
-
-	virtual EShowToolTip getShowToolTip() { return SHOW_ALWAYS; }; // tools should permit tips even when the mouse is down, as that's pretty normal for tools
+	virtual BOOL	handleToolTip(S32 x, S32 y, MASK mask);
 
 		// Return FALSE to allow context menu to be shown.
 	virtual void	screenPointToLocal(S32 screen_x, S32 screen_y, S32* local_x, S32* local_y) const
@@ -72,7 +74,7 @@ public:
 	virtual void	localPointToScreen(S32 local_x, S32 local_y, S32* screen_x, S32* screen_y) const
 							{ *screen_x = local_x; *screen_y = local_y;	}
 
-	virtual const std::string& getName() const	{ return mName; }
+	virtual std::string getName() const	{ return mName; }
 
 	// New virtual functions
 	virtual LLViewerObject*	getEditingObject()		{ return NULL; }

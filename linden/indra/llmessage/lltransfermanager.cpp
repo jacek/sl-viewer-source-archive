@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -855,6 +855,7 @@ void LLTransferSourceChannel::updateTransfers()
 			break;
 		case LLTS_ERROR:
 			llwarns << "Error in transfer dataCallback!" << llendl;
+			// fall through
 		case LLTS_DONE:
 			// We need to clean up this transfer source.
 			//llinfos << "LLTransferSourceChannel::updateTransfers() " << tsp->getID() << " done" << llendl;
@@ -1195,6 +1196,7 @@ LLTransferTarget::LLTransferTarget(
 	mType(type),
 	mSourceType(source_type),
 	mID(transfer_id),
+	mChannelp(NULL),
 	mGotInfo(FALSE),
 	mSize(0),
 	mLastPacketID(-1)

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2009&license=viewergpl$
  * 
- * Copyright (c) 2009, Linden Research, Inc.
+ * Copyright (c) 2009-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -174,7 +174,7 @@ void LLStreamingAudio_FMOD::update()
 		break;
 	case -3:
 		// failed to open, file not found, perhaps
-		llwarns << "InternetSteam - failed to open" << llendl;
+		llwarns << "InternetStream - failed to open" << llendl;
 		stop();
 		return;
 	case -4:

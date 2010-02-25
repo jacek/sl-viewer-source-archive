@@ -1,12 +1,10 @@
 /** 
  * @file llfloaterevent.h
- * @brief Event information as shown in a floating window from 
- * secondlife:// command handler.
- * Just a wrapper for LLPanelEvent.
+ * @brief Display for events in the finder
  *
- * $LicenseInfo:firstyear=2007&license=viewergpl$
+ * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,25 +34,63 @@
 #define LL_LLFLOATEREVENT_H
 
 #include "llfloater.h"
+#include "lleventinfo.h"
+#include "lluuid.h"
+#include "v3dmath.h"
 
-class LLPanelEvent;
+class LLTextBox;
+class LLTextEditor;
+class LLButton;
+class LLExpandableTextBox;
+class LLMessageSystem;
 
-class LLFloaterEventInfo : public LLFloater
+class LLFloaterEvent : public LLFloater
 {
 public:
-	LLFloaterEventInfo(const std::string& name, const U32 event_id );
-	/*virtual*/ ~LLFloaterEventInfo();
+	LLFloaterEvent(const LLSD& key);
+	/*virtual*/ ~LLFloaterEvent();
 
-	void displayEventInfo(const U32 event_id);
+	/*virtual*/ BOOL postBuild();
+	/*virtual*/ void draw();
 
-	static LLFloaterEventInfo* show(const U32 event_id);
-	
-	static void* createEventDetail(void* userdata);
+	void setEventID(const U32 event_id);
+	void sendEventInfoRequest();
 
-private:
-	U32				mEventID;			// for which event is this window?
-	LLPanelEvent*	mPanelEventp;
+	static void processEventInfoReply(LLMessageSystem *msg, void **);
 
+	U32 getEventID() { return mEventID; }
+
+protected:
+	void resetInfo();
+
+	static void onClickTeleport(void*);
+	static void onClickMap(void*);
+	//static void onClickLandmark(void*);
+	static void onClickCreateEvent(void*);
+	static void onClickNotify(void*);
+	void onClickDeleteEvent();
+
+//	static bool callbackCreateEventWebPage(const LLSD& notification, const LLSD& response);
+
+protected:
+	U32				mEventID;
+	LLEventInfo		mEventInfo;
+
+	LLTextBox*		mTBName;
+	LLTextBox*		mTBCategory;
+	LLTextBox*		mTBDate;
+	LLTextBox*		mTBDuration;
+	LLExpandableTextBox*	mTBDesc;
+
+	LLTextBox*		mTBRunBy;
+	LLTextBox*		mTBLocation;
+	LLTextBox*		mTBCover;
+
+	LLButton*		mTeleportBtn;
+	LLButton*		mMapBtn;
+	LLButton*		mCreateEventBtn;
+	LLButton*		mGodDeleteEventBtn;
+	LLButton*		mNotifyBtn;
 };
 
 #endif // LL_LLFLOATEREVENT_H

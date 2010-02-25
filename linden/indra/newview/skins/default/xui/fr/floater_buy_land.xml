@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="buy land" title="Acheter le terrain">
+<floater name="buy land" title="ACHETER DU TERRAIN">
 	<text name="region_name_label">
 		Région :
 	</text>
@@ -37,10 +37,10 @@
 		Vous devez accepter le règlement du domaine :
 	</text>
 	<text left="470" name="covenant_timestamp_text"/>
-	<text_editor name="covenant_editor">
+	<text_editor name="covenant_editor" left="510">
 		Chargement...
 	</text_editor>
-	<check_box label="J&apos;accepte le règlement ci-dessus." name="agree_covenant"/>
+	<check_box label="J&apos;accepte le règlement ci-dessus." name="agree_covenant" left="510"/>
 	<text name="info_parcel_label">
 		Parcelle :
 	</text>
@@ -51,15 +51,15 @@
 		Taille :
 	</text>
 	<text name="info_size">
-		1024 m²
+		1 024 m²
 	</text>
 	<text name="info_price_label">
 		Prix :
 	</text>
 	<text name="info_price">
 		1500 L$
-		(1,1 L$/m²)
-		vendu avec objets
+(1,1 L$/m²)
+vendu avec objets
 	</text>
 	<text name="info_action" width="380">
 		Si vous achetez ce terrain :
@@ -75,21 +75,26 @@
 		Seuls les membres Premium peuvent posséder du terrain.
 	</text>
 	<combo_box name="account_level">
-		<combo_item name="US$9.95/month,billedmonthly">
-			9,95 US$/mois, facturation mensuelle
-		</combo_item>
-		<combo_item name="US$7.50/month,billedquarterly">
-			7,50 US$/mois, facturation trimestrielle
-		</combo_item>
-		<combo_item name="US$6.00/month,billedannually">
-			6,00 US$/mois, facturation annuelle
-		</combo_item>
+		<combo_box.item label="9,95 US$/mois, facturation mensuelle" name="US$9.95/month,billedmonthly"/>
+		<combo_box.item label="7,50 US$/mois, facturation trimestrielle" name="US$7.50/month,billedquarterly"/>
+		<combo_box.item label="6,00 US$/mois, facturation annuelle" name="US$6.00/month,billedannually"/>
 	</combo_box>
-	<text name="land_use_action">
-		Augmentez vos frais d&apos;occupation de terrain à 40 US$/mois.
-	</text>
+    <text
+     type="string"
+     length="1"
+     follows="top|left"
+     font="SansSerifBig"
+     height="16"
+     layout="topleft"
+     left="72"
+     name="land_use_action"
+     right="500"
+     top="284"
+     width="400">
+        Augmentez vos frais d&apos;occupation de terrain à 40 US$/mois.
+    </text>
 	<text name="land_use_reason">
-		Vous êtes propriétaire de 1 309 m² de terrain. 
+		Vous détenez 1 309 m² de terrain.
 Cette parcelle fait 512 m².
 	</text>
 	<text name="purchase_action">
@@ -105,12 +110,12 @@ Cette parcelle fait 512 m².
 		1000
 	</line_editor>
 	<text name="currency_est">
-		pour environ [AMOUNT2] US$
+		pour environ [LOCAL_AMOUNT]
 	</text>
 	<text name="currency_balance">
 		Vous avez 2 100 L$.
 	</text>
-	<check_box label="Supprimer [AMOUNT] mètres carrés de votre contribution au groupe." name="remove_contribution"/>
+	<check_box label="Enlever [AMOUNT] m² de contribution du groupe." name="remove_contribution"/>
 	<button label="Acheter" name="buy_btn"/>
 	<button label="Annuler" name="cancel_btn"/>
 	<string name="can_resell">
@@ -187,26 +192,26 @@ Sélectionnez une zone plus petite.
 		Avec votre compte, vous pouvez posséder du terrain.
 	</string>
 	<string name="land_holdings">
-		Vous possédez un terrain de [BUYER] m².
+		Vous détenez [BUYER] m² de terrain.
 	</string>
 	<string name="pay_to_for_land">
 		Payez [AMOUNT] L$ à [SELLER] pour ce terrain
 	</string>
 	<string name="buy_for_US">
-		Acheter [AMOUNT] L$ pour environ [AMOUNT2] US$,
+		Achetez [AMOUNT] L$ pour environ [LOCAL_AMOUNT],
 	</string>
 	<string name="parcel_meters">
-		Cette parcelle fait [AMOUNT] m².
+		Cette parcelle fait [AMOUNT] m²
 	</string>
 	<string name="premium_land">
-		Ce terrain est premium et les frais associés sont ceux d&apos;un terrain de [AMOUNT] m².
+		C&apos;est un terrain premium, [AMOUNT] m².
 	</string>
 	<string name="discounted_land">
-		Ce terrain est en solde et les frais associés sont ceux d&apos;un terrain de [AMOUNT] m².
+		Ce terrain est en solde, [AMOUNT] m².
 	</string>
 	<string name="meters_supports_object">
 		[AMOUNT] m²
-peuvent contenir [AMOUNT2] prims
+prend en charge [AMOUNT2] objets
 	</string>
 	<string name="sold_with_objects">
 		vendu avec objets

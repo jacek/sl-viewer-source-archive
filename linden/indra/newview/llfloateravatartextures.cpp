@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,33 +39,19 @@
 #include "lluictrlfactory.h"
 #include "llviewerobjectlist.h"
 #include "llvoavatar.h"
+#include "llagentwearables.h"
 
 using namespace LLVOAvatarDefines;
 
-LLFloaterAvatarTextures::LLFloaterAvatarTextures(const LLUUID& id) : 
-	LLFloater(std::string("avatar_texture_debug")),
-	mID(id)
+LLFloaterAvatarTextures::LLFloaterAvatarTextures(const LLSD& id)
+  : LLFloater(id),
+	mID(id.asUUID())
 {
+// 	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_avatar_textures.xml");
 }
 
 LLFloaterAvatarTextures::~LLFloaterAvatarTextures()
 {
-}
-
-LLFloaterAvatarTextures* LLFloaterAvatarTextures::show(const LLUUID &id)
-{
-
-	LLFloaterAvatarTextures* floaterp = new LLFloaterAvatarTextures(id);
-
-	// Builds and adds to gFloaterView
-	LLUICtrlFactory::getInstance()->buildFloater(floaterp, "floater_avatar_textures.xml");
-
-	gFloaterView->addChild(floaterp);
-	floaterp->open();	/*Flawfinder: ignore*/
-
-	gFloaterView->adjustToFitScreen(floaterp, FALSE);
-
-	return floaterp;
 }
 
 BOOL LLFloaterAvatarTextures::postBuild()
@@ -94,7 +80,26 @@ static void update_texture_ctrl(LLVOAvatar* avatarp,
 								 LLTextureCtrl* ctrl,
 								 ETextureIndex te)
 {
-	LLUUID id = avatarp->getTE(te)->getID();
+	LLUUID id = IMG_DEFAULT_AVATAR;
+	const LLVOAvatarDictionary::TextureEntry* tex_entry = LLVOAvatarDictionary::getInstance()->getTexture(te);
+	if (tex_entry->mIsLocalTexture)
+	{
+		const EWearableType wearable_type = tex_entry->mWearableType;
+		LLWearable *wearable = gAgentWearables.getWearable(wearable_type, 0);
+		if (wearable)
+		{
+			LLLocalTextureObject *lto = wearable->getLocalTextureObject(te);
+			if (lto)
+			{
+				id = lto->getID();
+			}
+		}
+	}
+	else
+	{
+		id = avatarp->getTE(te)->getID();
+	}
+	//id = avatarp->getTE(te)->getID();
 	if (id == IMG_DEFAULT_AVATAR)
 	{
 		ctrl->setImageAssetID(LLUUID::null);
@@ -142,7 +147,7 @@ void LLFloaterAvatarTextures::refresh()
 	}
 	else
 	{
-		setTitle(mTitle + ": INVALID AVATAR (" + mID.asString() + ")");
+		setTitle(mTitle + ": " + getString("InvalidAvatar") + " (" + mID.asString() + ")");
 	}
 }
 
@@ -167,7 +172,32 @@ void LLFloaterAvatarTextures::onClickDump(void* data)
 		const LLTextureEntry* te = avatarp->getTE(i);
 		if (!te) continue;
 
-		llinfos << "Avatar TE " << i << " id " << te->getID() << llendl;
+		if (LLVOAvatar::isIndexLocalTexture((ETextureIndex)i))
+		{
+			LLUUID id = IMG_DEFAULT_AVATAR;
+			EWearableType wearable_type = LLVOAvatarDictionary::getInstance()->getTEWearableType((ETextureIndex)i);
+			LLWearable *wearable = gAgentWearables.getWearable(wearable_type, 0);
+			if (wearable)
+			{
+				LLLocalTextureObject *lto = wearable->getLocalTextureObject(i);
+				if (lto)
+				{
+					id = lto->getID();
+				}
+			}
+			if (id != IMG_DEFAULT_AVATAR)
+			{
+				llinfos << "Avatar TE " << i << " id " << id << llendl;
+			}
+			else
+			{
+				llinfos << "Avatar TE " << i << " id " << "<DEFAULT>" << llendl;
+			}
+		}
+		else
+		{
+			llinfos << "Avatar TE " << i << " id " << te->getID() << llendl;
+		}
 	}
 #endif
 }

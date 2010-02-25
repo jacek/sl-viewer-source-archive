@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,8 +45,25 @@ class LLTextBox;
 class LLDragHandle : public LLView
 {
 public:
-	LLDragHandle(const std::string& name, const LLRect& rect, const std::string& title );
-	virtual ~LLDragHandle() { setTitleBox(NULL); }
+	struct Params 
+	:	public LLInitParam::Block<Params, LLView::Params>
+	{
+		Optional<std::string> label;
+		Optional<LLUIColor> drag_highlight_color;
+		Optional<LLUIColor> drag_shadow_color;
+		
+		Params() 
+		:	label("label"),	
+			drag_highlight_color("drag_highlight_color", LLUIColorTable::instance().getColor("DefaultHighlightLight")),
+			drag_shadow_color("drag_shadow_color", LLUIColorTable::instance().getColor("DefaultShadowDark"))
+		{
+			mouse_opaque(true);
+			follows.flags(FOLLOWS_ALL);
+		}
+	};
+	void initFromParams(const Params&);
+	
+	virtual ~LLDragHandle();
 
 	virtual void setValue(const LLSD& value);
 
@@ -57,25 +74,27 @@ public:
 	void			setTitleVisible(BOOL visible);
 
 	virtual void	setTitle( const std::string& title ) = 0;
-	virtual const std::string&	getTitle() const = 0;
+	virtual std::string	getTitle() const = 0;
 
 	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
 
 protected:
-	LLTextBox*		getTitleBox() const { return mTitleBox; }
-	void			setTitleBox(LLTextBox*);
-
+	LLDragHandle(const Params&);
+	friend class LLUICtrlFactory;
+	
+protected:
+	LLTextBox*		mTitleBox;
+	
 private:
 	S32				mDragLastScreenX;
 	S32				mDragLastScreenY;
 	S32				mLastMouseScreenX;
 	S32				mLastMouseScreenY;
 	LLCoordGL		mLastMouseDir;
-	LLColor4		mDragHighlightColor;
-	LLColor4		mDragShadowColor;
-	LLTextBox*		mTitleBox;
+	LLUIColor		mDragHighlightColor;
+	LLUIColor		mDragShadowColor;
 	S32				mMaxTitleWidth;
 	BOOL			mForeground;
 
@@ -88,11 +107,12 @@ private:
 class LLDragHandleTop
 : public LLDragHandle
 {
+protected:
+	LLDragHandleTop(const Params& p) : LLDragHandle(p) {}
+	friend class LLUICtrlFactory;
 public:
-	LLDragHandleTop(const std::string& name, const LLRect& rect, const std::string& title );
-
 	virtual void	setTitle( const std::string& title );
-	virtual const std::string& getTitle() const;
+	virtual std::string getTitle() const;
 	virtual void	draw();
 	virtual void	reshape(S32 width, S32 height, BOOL called_from_parent = TRUE);
 
@@ -105,11 +125,12 @@ private:
 class LLDragHandleLeft
 : public LLDragHandle
 {
+protected:
+	LLDragHandleLeft(const Params& p) : LLDragHandle(p) {}
+	friend class LLUICtrlFactory;
 public:
-	LLDragHandleLeft(const std::string& name, const LLRect& rect, const std::string& title );
-
 	virtual void	setTitle( const std::string& title );
-	virtual const std::string& getTitle() const;
+	virtual std::string getTitle() const;
 	virtual void	draw();
 	virtual void	reshape(S32 width, S32 height, BOOL called_from_parent = TRUE);
 

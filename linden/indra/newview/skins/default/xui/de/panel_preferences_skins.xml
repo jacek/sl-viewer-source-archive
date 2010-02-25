@@ -4,11 +4,6 @@
 		Wählen Sie eine Benutzeroberfläche aus (erfordert Neustart):
 	</text>
 	<radio_group name="skin_selection">
-		<radio_item name="default">
-			Standard
-		</radio_item>
-		<radio_item name="silver">
-			Silber
-		</radio_item>
+		<radio_item name="default" label="Standard" />
 	</radio_group>
 </panel>

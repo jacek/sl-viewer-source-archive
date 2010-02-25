@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Il Mio Profilo" name="panel_me_profile">
+	<tab_container name="tabs">
+		<panel label="PROFILO" name="panel_profile"/>
+		<panel label="LUOGHI CONSIGLIATI" name="panel_picks"/>
+	</tab_container>
+</panel>

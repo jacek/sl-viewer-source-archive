@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(ukendt)" name="im_floater" title="(ukendt)">
+<floater label="(ukendt)" name="im_floater" title="(UKENDT)">
 	<string name="ringing">
 		Kalder op...
 	</string>
@@ -37,7 +37,7 @@
 	<button label="Opkald" name="start_call_btn" pad_right="7" width="120"/>
 	<button halign="right" label="Afbryd" name="end_call_btn" width="120"/>
 	<panel left_delta="116" name="speaker_controls">
-		<button label="" name="mute_btn" tool_tip="Sluk for lyd"/>
+		<button label="" name="mute_btn" tool_tip="Blokér stemme"/>
 	</panel>
 	<line_editor label="Klik her for at sende privat besked (IM)" name="chat_editor"/>
 	<button label="Send" name="send_btn"/>

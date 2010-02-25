@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,7 +37,7 @@
  * Base class and manager for in-world 2.5D non-interactive objects
  */
 
-#include "llmemory.h"
+#include "llpointer.h"
 
 #include "v4color.h"
 #include "v3math.h"
@@ -75,7 +75,6 @@ public:
 	static void updateAll();
 	static void renderAll();
 	static void renderAllForSelect();
-	static void renderAllForTimer();
 
 	static void cleanupHUDObjects();
 
@@ -107,7 +106,6 @@ protected:
 
 	virtual void render() = 0;
 	virtual void renderForSelect() {};
-	virtual void renderForTimer() {};
 	
 protected:
 	U8				mType;

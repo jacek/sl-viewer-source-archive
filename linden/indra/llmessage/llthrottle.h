@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -83,6 +83,8 @@ public:
 	BOOL	throttleOverflow(S32 throttle_cat, F32 bits);	// I just sent bits, TRUE if that overflowed the channel
 	BOOL	dynamicAdjust();		// Shift bandwidth from idle channels to busy channels, TRUE if adjustment occurred
 	BOOL	setNominalBPS(F32* throttle_vec);				// TRUE if any value was different, resets adjustment system if was different
+
+	S32		getAvailable(S32 throttle_cat);					// Return bits available in the channel
 
 	void packThrottle(LLDataPacker &dp) const;
 	void unpackThrottle(LLDataPacker &dp);

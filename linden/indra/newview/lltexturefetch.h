@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,7 @@
 #include "llcurl.h"
 #include "lltextureinfo.h"
 
-class LLViewerImage;
+class LLViewerTexture;
 class LLTextureFetchWorker;
 class HTTPGetResponder;
 class LLTextureCache;
@@ -73,16 +73,18 @@ public:
 	F32 getTextureBandwidth() { return mTextureBandwidth; }
 	
 	// Debug
+	BOOL isFromLocalCache(const LLUUID& id);
 	S32 getFetchState(const LLUUID& id, F32& decode_progress_p, F32& requested_priority_p,
 					  U32& fetch_priority_p, F32& fetch_dtime_p, F32& request_dtime_p);
 	void dump();
-	S32 getNumRequests() { return mRequestMap.size(); }
-	S32 getNumHTTPRequests() { return mHTTPTextureQueue.size(); }
+	S32 getNumRequests() ;
+	S32 getNumHTTPRequests() ;
 	
 	// Public for access by callbacks
 	void lockQueue() { mQueueMutex.lock(); }
 	void unlockQueue() { mQueueMutex.unlock(); }
 	LLTextureFetchWorker* getWorker(const LLUUID& id);
+	LLTextureFetchWorker* getWorkerAfterLock(const LLUUID& id);
 
 	LLTextureInfo* getTextureInfo() { return &mTextureInfo; }
 	
@@ -91,7 +93,7 @@ protected:
 	void removeFromNetworkQueue(LLTextureFetchWorker* worker, bool cancel);
 	void addToHTTPQueue(const LLUUID& id);
 	void removeFromHTTPQueue(const LLUUID& id);
-	S32 getHTTPQueueSize() { return (S32)mHTTPTextureQueue.size(); }
+	S32 getHTTPQueueSize() { return getNumHTTPRequests(); }
 	void removeRequest(LLTextureFetchWorker* worker, bool cancel);
 	// Called from worker thread (during doWork)
 	void processCurlRequests();	
@@ -110,8 +112,8 @@ public:
 	S32 mBadPacketCount;
 	
 private:
-	LLMutex mQueueMutex;
-	LLMutex mNetworkQueueMutex;
+	LLMutex mQueueMutex;        //to protect mRequestMap only
+	LLMutex mNetworkQueueMutex; //to protect mNetworkQueue, mHTTPTextureQueue and mCancelQueue.
 
 	LLTextureCache* mTextureCache;
 	LLImageDecodeThread* mImageDecodeThread;

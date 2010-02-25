@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,12 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llviewernetwork.h"
+
+#include "llevents.h"
+#include "net.h"
+
 #include "llviewercontrol.h"
+#include "lllogin.h"
 
 struct LLGridData
 {
@@ -155,11 +160,16 @@ LLViewerLogin::LLViewerLogin() :
 {
 }
 
+ LLViewerLogin::~LLViewerLogin() 
+ {
+ }
+
 void LLViewerLogin::setGridChoice(EGridInfo grid)
 {	
 	if(grid < 0 || grid >= GRID_INFO_COUNT)
 	{
 		llerrs << "Invalid grid index specified." << llendl;
+		return;
 	}
 
 	if(mGridChoice != grid || gSavedSettings.getS32("ServerChoice") != grid)
@@ -218,7 +228,7 @@ void LLViewerLogin::setGridChoice(const std::string& grid_name)
 void LLViewerLogin::resetURIs()
 {
     // Clear URIs when picking a new server
-	gSavedSettings.setValue("CmdLineLoginURI", LLSD::emptyArray());
+	gSavedSettings.setLLSD("CmdLineLoginURI", LLSD::emptyArray());
 	gSavedSettings.setString("CmdLineHelperURI", "");
 }
 

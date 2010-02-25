@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,8 @@
 #include "llhost.h"
 #include "lluuid.h"
 #include "llsd.h"
-#include "llmemory.h"
+#include "llrefcount.h"
+#include "llpointer.h"
 #include "v3math.h"
 
 class LLMessageSystem;
@@ -74,6 +75,7 @@ enum EInstantMessage
 	// Group vote
 	// Name is name of person who called vote.
 	// ID is vote ID used for internal tracking
+	// TODO: _DEPRECATED suffix as part of vote removal - DEV-24856
 	IM_GROUP_VOTE = 7,
 
 	// Group message

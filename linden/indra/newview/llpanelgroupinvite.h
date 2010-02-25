@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,10 +39,14 @@ class LLPanelGroupInvite
 : public LLPanel
 {
 public:
-	LLPanelGroupInvite(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupInvite(const LLUUID& group_id);
 	~LLPanelGroupInvite();
 	
 	void addUsers(std::vector<LLUUID>& agent_ids);
+	/**
+	 * this callback is being used to add a user whose fullname isn't been loaded before invoking of addUsers().
+	 */  
+	void addUserCallback(const LLUUID& id, const std::string& first_name, const std::string& last_name);
 	void clear();
 	void update();
 

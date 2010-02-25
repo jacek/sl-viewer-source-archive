@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater label="(ukendt)" name="im_floater" title="(ukendt)">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater label="(ukendt)" name="im_floater" title="(UKENDT)">
 	<string name="ringing">
 		Forbinder til Stemme Chat...
 	</string>
@@ -38,12 +38,11 @@ Hvis ikke du kan finde svaret der, så indtast venligst dit spørgsmål og vent 
 	</string>
 	<layout_stack name="panels">
 		<layout_panel name="im_contents_panel">
-			<button label="Gruppe info" name="group_info_btn" />
-			<button label="Deltag i opkald" name="start_call_btn" width="126" />
-			<button label="Afslut" name="end_call_btn"  width="126" halign="center"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn"
-			     tool_tip="Tryk her for at se/skjule liste med aktive deltagere i denne samtale." />
-			<button label="Send" name="send_btn" />
+			<button label="Gruppe info" name="group_info_btn"/>
+			<button label="Deltag i opkald" name="start_call_btn" width="126"/>
+			<button halign="center" label="Afslut" name="end_call_btn" width="126"/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Klik for at skifte mellem liste med aktive deltager i denne samtale (IM)"/>
+			<button label="Send" name="send_btn"/>
 		</layout_panel>
 	</layout_stack>
 </floater>

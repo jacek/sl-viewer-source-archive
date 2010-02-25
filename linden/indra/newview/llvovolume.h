@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,14 +34,20 @@
 #define LL_LLVOVOLUME_H
 
 #include "llviewerobject.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
+#include "llviewermedia.h"
 #include "llframetimer.h"
-#include "llapr.h"
+#include "m3math.h"		// LLMatrix3
+#include "m4math.h"		// LLMatrix4
 #include <map>
 
 class LLViewerTextureAnim;
 class LLDrawPool;
 class LLSelectNode;
+class LLObjectMediaDataClient;
+class LLObjectMediaNavigateClient;
+
+typedef std::vector<viewer_media_t> media_list_t;
 
 enum LLVolumeInterfaceType
 {
@@ -73,12 +79,14 @@ public:
 // Class which embodies all Volume objects (with pcode LL_PCODE_VOLUME)
 class LLVOVolume : public LLViewerObject
 {
+	LOG_CLASS(LLVOVolume);
 protected:
 	virtual				~LLVOVolume();
 
 public:
 	static		void	initClass();
-	static 		void 	preUpdateGeom();
+	static		void	cleanupClass();
+	static		void	preUpdateGeom();
 	
 	enum 
 	{
@@ -91,6 +99,7 @@ public:
 
 public:
 						LLVOVolume(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp);
+	/*virtual*/ void markDead();		// Override (and call through to parent) to clean up media references
 
 	/*virtual*/ LLDrawable* createDrawable(LLPipeline *pipeline);
 
@@ -105,13 +114,13 @@ public:
 	/*virtual*/ BOOL	isHUDAttachment() const;
 
 				void	generateSilhouette(LLSelectNode* nodep, const LLVector3& view_point);
-	/*virtual*/	void	setParent(LLViewerObject* parent);
+	/*virtual*/	BOOL	setParent(LLViewerObject* parent);
 				S32		getLOD() const							{ return mLOD; }
 	const LLVector3		getPivotPositionAgent() const;
 	const LLMatrix4&	getRelativeXform() const				{ return mRelativeXform; }
 	const LLMatrix3&	getRelativeXformInvTrans() const		{ return mRelativeXformInvTrans; }
 	/*virtual*/	const LLMatrix4	getRenderMatrix() const;
-
+				U32 	getRenderCost(std::set<LLUUID> &textures) const;
 
 	/*virtual*/ BOOL lineSegmentIntersect(const LLVector3& start, const LLVector3& end, 
 										  S32 face = -1,                        // which face to check, -1 = ALL_SIDES
@@ -151,7 +160,8 @@ public:
 
 	/*virtual*/ void	setScale(const LLVector3 &scale, BOOL damped);
 
-	/*virtual*/ void	setTEImage(const U8 te, LLViewerImage *imagep);
+	/*virtual*/ void	setNumTEs(const U8 num_tes);
+	/*virtual*/ void	setTEImage(const U8 te, LLViewerTexture *imagep);
 	/*virtual*/ S32		setTETexture(const U8 te, const LLUUID &uuid);
 	/*virtual*/ S32		setTEColor(const U8 te, const LLColor3 &color);
 	/*virtual*/ S32		setTEColor(const U8 te, const LLColor4 &color);
@@ -169,8 +179,10 @@ public:
 	/*virtual*/ BOOL 	setMaterial(const U8 material);
 
 				void	setTexture(const S32 face);
-
+				S32     getIndexInTex() const {return mIndexInTex ;}
 	/*virtual*/ BOOL	setVolume(const LLVolumeParams &volume_params, const S32 detail, bool unique_volume = false);
+				void	updateSculptTexture();
+				void    setIndexInTex(S32 index) { mIndexInTex = index ;}
 				void	sculpt();
 				void	updateRelativeXform();
 	/*virtual*/ BOOL	updateGeometry(LLDrawable *drawable);
@@ -196,9 +208,18 @@ public:
 	void setLightRadius(F32 radius);
 	void setLightFalloff(F32 falloff);
 	void setLightCutoff(F32 cutoff);
+	void setLightTextureID(LLUUID id);
+	void setSpotLightParams(LLVector3 params);
+
 	BOOL getIsLight() const;
 	LLColor3 getLightBaseColor() const; // not scaled by intensity
 	LLColor3 getLightColor() const; // scaled by intensity
+	LLUUID	getLightTextureID() const;
+	LLVector3 getSpotLightParams() const;
+	void	updateSpotLightPriority();
+	F32		getSpotLightPriority() const;
+
+	LLViewerTexture* getLightTexture();
 	F32 getLightIntensity() const;
 	F32 getLightRadius() const;
 	F32 getLightFalloff() const;
@@ -208,16 +229,61 @@ public:
 	U32 getVolumeInterfaceID() const;
 	virtual BOOL isFlexible() const;
 	virtual BOOL isSculpted() const;
+	virtual BOOL hasLightTexture() const;
+
 	BOOL isVolumeGlobal() const;
 	BOOL canBeFlexible() const;
 	BOOL setIsFlexible(BOOL is_flexible);
-			
+
+    // Functions that deal with media, or media navigation
+    
+    // Update this object's media data with the given media data array
+    // (typically this is only called upon a response from a server request)
+	void updateObjectMediaData(const LLSD &media_data_array, const std::string &media_version);
+    
+    // Bounce back media at the given index to its current URL (or home URL, if current URL is empty)
+	void mediaNavigateBounceBack(U8 texture_index);
+    
+    // Returns whether or not this object has permission to navigate or control 
+	// the given media entry
+	enum MediaPermType {
+		MEDIA_PERM_INTERACT, MEDIA_PERM_CONTROL
+	};
+    bool hasMediaPermission(const LLMediaEntry* media_entry, MediaPermType perm_type);
+    
+	void mediaNavigated(LLViewerMediaImpl *impl, LLPluginClassMedia* plugin, std::string new_location);
+	void mediaEvent(LLViewerMediaImpl *impl, LLPluginClassMedia* plugin, LLViewerMediaObserver::EMediaEvent event);
+
+	// Sync the given media data with the impl and the given te
+	void syncMediaData(S32 te, const LLSD &media_data, bool merge, bool ignore_agent);
+	
+	// Send media data update to the simulator.
+	void sendMediaDataUpdate();
+
+	viewer_media_t getMediaImpl(U8 face_id) const;
+	S32 getFaceIndexWithMediaImpl(const LLViewerMediaImpl* media_impl, S32 start_face_id);
+	F64 getTotalMediaInterest() const;
+   
+	bool hasMedia() const;
+	
+	LLVector3 getApproximateFaceNormal(U8 face_id);
+	
+	// Returns 'true' iff the media data for this object is in flight
+	bool isMediaDataBeingFetched() const;
+	
+	// Returns the "last fetched" media version, or -1 if not fetched yet
+	S32 getLastFetchedMediaVersion() const { return mLastFetchedMediaVersion; }
+	
 protected:
 	S32	computeLODDetail(F32	distance, F32 radius);
 	BOOL calcLOD();
 	LLFace* addFace(S32 face_index);
 	void updateTEData();
 
+	void requestMediaDataUpdate(bool isNew);
+	void cleanUpMediaImpls();
+	void addMediaImpl(LLViewerMediaImpl* media_impl, S32 texture_index) ;
+	void removeMediaImpl(S32 texture_index) ;
 public:
 	LLViewerTextureAnim *mTextureAnimp;
 	U8 mTexAnimMode;
@@ -228,21 +294,29 @@ private:
 	LLFrameTimer mTextureUpdateTimer;
 	S32			mLOD;
 	BOOL		mLODChanged;
-	S32         mSculptLevel;
 	BOOL		mSculptChanged;
+	F32			mSpotLightPriority;
 	LLMatrix4	mRelativeXform;
 	LLMatrix3	mRelativeXformInvTrans;
 	BOOL		mVolumeChanged;
 	F32			mVObjRadius;
 	LLVolumeInterface *mVolumeImpl;
-	LLPointer<LLViewerImage> mSculptTexture;
-	
+	LLPointer<LLViewerFetchedTexture> mSculptTexture;
+	LLPointer<LLViewerFetchedTexture> mLightTexture;
+	media_list_t mMediaImplList;
+	S32			mLastFetchedMediaVersion; // as fetched from the server, starts as -1
+	S32 mIndexInTex;
 	// statics
 public:
 	static F32 sLODSlopDistanceFactor;// Changing this to zero, effectively disables the LOD transition slop 
 	static F32 sLODFactor;				// LOD scale factor
 	static F32 sDistanceFactor;			// LOD distance factor
 		
+	static LLPointer<LLObjectMediaDataClient> sObjectMediaClient;
+	static LLPointer<LLObjectMediaNavigateClient> sObjectMediaNavigateClient;
+
+	static const U32 ARC_TEXTURE_COST = 5;
+
 protected:
 	static S32 sNumLODChanges;
 	

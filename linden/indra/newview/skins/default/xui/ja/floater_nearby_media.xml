@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="近くのメディア">
+	<string name="media_item_count_format">
+		（メディアアイテム %ld ）
+	</string>
+	<string name="empty_item_text">
+		&lt;から&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;メディアがご利用できません&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		区画メディアのオン・オフ切り替え
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? media items)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="近くのメディアすべてのオン・オフを切り替えます"/>
+		</panel>
+		<panel>
+			<button label="区画メディアなし" name="parcel_media_enable_btn" tool_tip="区画メディアのオン・オフを切り替えます"/>
+			<text name="parcel_media_name">
+				&lt;メディアがご利用できません&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="区画メディアを再生します"/>
+			<button name="parcel_media_pause_btn" tool_tip="区画メディアを一時停止します"/>
+			<button name="parcel_media_stop_btn" tool_tip="区画メディアを停止します"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="区画オーディオを再生します"/>
+			<button name="parcel_audio_pause_btn" tool_tip="区画オーディオを一時停止します"/>
+			<button name="parcel_audio_stop_btn" tool_tip="区画オーディオを停止します"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="オン・オフ" name="media_stop_ctrl"/>
+				<scroll_list.columns label="名前" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="メディアが有効です" name="media_enabled_btn" tool_tip="メディアを有効にする" value="true"/>
+			<check_box label="メディアを自動再生する" name="media_auto_play_btn" tool_tip="メディアを自動再生する" value="true"/>
+		</panel>
+	</panel>
+</floater>

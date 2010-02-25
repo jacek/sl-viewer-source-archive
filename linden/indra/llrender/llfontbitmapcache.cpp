@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,13 +37,13 @@
 
 LLFontBitmapCache::LLFontBitmapCache():
 	mNumComponents(0),
-	mMaxCharWidth(0),
-	mMaxCharHeight(0),
 	mBitmapWidth(0),
 	mBitmapHeight(0),
+	mBitmapNum(-1),
+	mMaxCharWidth(0),
+	mMaxCharHeight(0),
 	mCurrentOffsetX(1),
-	mCurrentOffsetY(1),
-	mCurrentBitmapNum(-1)
+	mCurrentOffsetY(1)
 {
 }
 
@@ -64,7 +64,7 @@ void LLFontBitmapCache::init(S32 num_components,
 
 LLImageRaw *LLFontBitmapCache::getImageRaw(U32 bitmap_num) const
 {
-	if ((bitmap_num < 0) || (bitmap_num >= mImageRawVec.size()))
+	if (bitmap_num >= mImageRawVec.size())
 		return NULL;
 
 	return mImageRawVec[bitmap_num];
@@ -72,7 +72,7 @@ LLImageRaw *LLFontBitmapCache::getImageRaw(U32 bitmap_num) const
 
 LLImageGL *LLFontBitmapCache::getImageGL(U32 bitmap_num) const
 {
-	if ((bitmap_num < 0) || (bitmap_num >= mImageGLVec.size()))
+	if (bitmap_num >= mImageGLVec.size())
 		return NULL;
 
 	return mImageGLVec[bitmap_num];
@@ -160,10 +160,10 @@ void LLFontBitmapCache::reset()
 	mImageRawVec.clear();
 	mImageGLVec.clear();
 	
-	mBitmapWidth = 0,
-	mBitmapHeight = 0,
-	mCurrentOffsetX = 0,
-	mCurrentOffsetY = 0,
-	mCurrentBitmapNum = -1;
+	mBitmapWidth = 0;
+	mBitmapHeight = 0;
+	mBitmapNum = -1;
+	mCurrentOffsetX = 1;
+	mCurrentOffsetY = 1;
 }
 

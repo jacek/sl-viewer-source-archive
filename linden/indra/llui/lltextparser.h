@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,24 +43,25 @@ class LLColor4;
 class LLTextParser
 {
 public:
-	enum ConditionType { CONTAINS, MATCHES, STARTS_WITH, ENDS_WITH };
-	enum HighlightType { PART, ALL };
-	enum HighlightPosition { WHOLE, START, MIDDLE, END };
-	enum DialogAction  { ACTION_NONE, ACTION_CLOSE, ACTION_ADD, ACTION_COPY, ACTION_UPDATE };
+	typedef enum e_condition_type { CONTAINS, MATCHES, STARTS_WITH, ENDS_WITH } EConditionType;
+	typedef enum e_highlight_type { PART, ALL } EHighlightType;
+	typedef enum e_highlight_position { WHOLE, START, MIDDLE, END } EHighlightPosition;
+	typedef enum e_dialog_action { ACTION_NONE, ACTION_CLOSE, ACTION_ADD, ACTION_COPY, ACTION_UPDATE } EDialogAction;
 
 	static LLTextParser* getInstance();
 	LLTextParser(){};
 	~LLTextParser();
 
 	S32  findPattern(const std::string &text, LLSD highlight);
-	LLSD parsePartialLineHighlights(const std::string &text,const LLColor4 &color,S32 part=WHOLE, S32 index=0);
+	LLSD parsePartialLineHighlights(const std::string &text,const LLColor4 &color, EHighlightPosition part=WHOLE, S32 index=0);
 	bool parseFullLineHighlights(const std::string &text, LLColor4 *color);
 
 	std::string getFileName();
 	LLSD loadFromDisk();
 	bool saveToDisk(LLSD highlights);
+
 public:
-		LLSD	mHighlights;
+	LLSD	mHighlights;
 private:
 	static LLTextParser* sInstance;
 };

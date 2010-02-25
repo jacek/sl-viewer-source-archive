@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -94,7 +94,7 @@ public:
 	// Get the contents of this preeditor as a LLWString.  If there is an active preedit,
 	// the returned LLWString contains it.
 
-	virtual const LLWString & getWText() const = 0;
+	virtual LLWString getPreeditString() const = 0;
 
 	// Handle a UTF-32 char on this preeditor, i.e., add the character
 	// to the contents.

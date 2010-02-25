@@ -1,39 +1,65 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- Appears unused. JC 2009-09-08 -->
 <panel name="Panel Avatar" width="470">
+	<panel.string name="ShowOnMapNonFriend">
+		Position auf Karte zeigen.
+Deaktiviert, weil zwischen Ihnen
+keine Freundschaft besteht.
+	</panel.string>
+	<panel.string name="ShowOnMapFriendOffline">
+		Position auf Karte zeigen.
+    Deaktiviert, weil nicht online.
+	</panel.string>
+	<panel.string name="ShowOnMapFriendOnline">
+		Position auf Karte zeigen.
+	</panel.string>
+	<panel.string name="TeleportGod">
+		Teleport an Ihre Position erzwingen.
+	</panel.string>
+	<panel.string name="TeleportPrelude">
+		Teleport an Ihre Position anbieten.
+Deaktiviert, bis Sie Orientation Island verlassen.
+	</panel.string>
+	<panel.string name="TeleportNormal">
+		Teleport an Ihre Position anbieten.
+	</panel.string>
+	<panel.string name="Loading">
+		Wird geladen...
+	</panel.string>
 	<tab_container name="tab" width="459">
-		<panel label="2. Leben" name="2nd Life" width="458">
-			<string name="CaptionTextAcctInfo">
+		<panel label="SL" name="2nd Life" width="458">
+			<panel.string name="CaptionTextAcctInfo">
 				[ACCTTYPE]
 [PAYMENTINFO]
 [AGEVERIFICATION]
-			</string>
-			<string name="AcctTypeResident">
+			</panel.string>
+			<panel.string name="AcctTypeResident">
 				Einwohner
-			</string>
-			<string name="AcctTypeTrial">
+			</panel.string>
+			<panel.string name="AcctTypeTrial">
 				Test
-			</string>
-			<string name="AcctTypeCharterMember">
+			</panel.string>
+			<panel.string name="AcctTypeCharterMember">
 				Charta-Mitglied
-			</string>
-			<string name="AcctTypeEmployee">
+			</panel.string>
+			<panel.string name="AcctTypeEmployee">
 				Linden Lab-Mitarbeiter
-			</string>
-			<string name="PaymentInfoUsed">
+			</panel.string>
+			<panel.string name="PaymentInfoUsed">
 				Zahlungsinfo verwendet
-			</string>
-			<string name="PaymentInfoOnFile">
+			</panel.string>
+			<panel.string name="PaymentInfoOnFile">
 				Zahlungsinfo archiviert
-			</string>
-			<string name="NoPaymentInfoOnFile">
+			</panel.string>
+			<panel.string name="NoPaymentInfoOnFile">
 				Keine Zahlungsinfo archiviert
-			</string>
-			<string name="AgeVerified">
+			</panel.string>
+			<panel.string name="AgeVerified">
 				Altersgeprüft
-			</string>
-			<string name="NotAgeVerified">
+			</panel.string>
+			<panel.string name="NotAgeVerified">
 				Nicht altersgeprüft
-			</string>
+			</panel.string>
 			<text name="Name:">
 				Name:
 			</text>
@@ -43,18 +69,17 @@
 			<text name="label">
 				Geboren am:
 			</text>
-			<line_editor name="born" width="161" />
+			<line_editor name="born" width="161"/>
 			<text name="label2">
 				Konto:
 			</text>
-			<view_border name="acct_border" width="161" />
-			<text name="acct" width="161" />
-			<text name="partner_label" tool_tip="Second Life Partner. Weitere Informationen finden Sie auf www.secondlife.com/partner">
+			<view_border name="acct_border" width="161"/>
+			<text name="acct" width="161"/>
+			<text name="partner_label" tool_tip="[SECOND_LIFE]-Partner. Weitere Informationen finden Sie auf www.secondlife.com/partner">
 				Partner:
 			</text>
 			<button label="i" label_selected="i" name="partner_info" tool_tip="Klicken Sie, um das Profil Ihres Partners anzuzeigen"/>
-			<button label="?" label_selected="?" name="partner_help"/>
-			<line_editor name="partner_edit" tool_tip="Second Life Partner. Weitere Informationen finden Sie auf www.secondlife.com/partner" width="161">
+			<line_editor name="partner_edit" tool_tip="[SECOND_LIFE]-Partner. Weitere Informationen finden Sie auf www.secondlife.com/partner" width="161">
 				[FIRST] [LAST]
 			</line_editor>
 			<text name="Photo:">
@@ -64,7 +89,7 @@
 			<text name="Groups:">
 				Gruppen:
 			</text>
-			<scroll_list name="groups" width="361" />
+			<scroll_list name="groups" width="361"/>
 			<text name="About:">
 				Info:
 			</text>
@@ -75,33 +100,23 @@
 			<text name="Give item:">
 				Objekt geben:
 			</text>
-			<view_border name="drop_target_rect" width="449" />
-			<view_border name="drop_target_rect_vis" width="361" />
+			<view_border name="drop_target_rect_vis" width="361"/>
 			<text name="Give inventory" tool_tip="Legen Sie hier Inventarobjekte ab, um Sie dieser Person zu geben." width="361">
 				Inventarobjekt hier ablegen
 			</text>
 			<check_box label="In Suche anzeigen" name="allow_publish" tool_tip="Zusätzliche Profilinformationen wie Beschreibung und Bild in der Suche veröffentlichen."/>
-			<button label="?" label_selected="?" name="?"/>
 			<button label="Orten" label_selected="Orten" name="Find on Map"/>
-			<button label="Teleport anbieten..." label_selected="Teleport anbieten..." name="Offer Teleport..." left_delta="117"/>
-			<button label="Freund hinzufügen..." label_selected="Freund hinzufügen..." name="Add Friend..." left_delta="157"/>
-			<button label="Zahlen..." label_selected="Zahlen..." name="Pay..."/>
-			<button label="Instant Message..." label_selected="Instant Message..." name="Instant Message..." tool_tip="Instant Message (IM)" left_delta="117" />
-			<button label="Stummschalten" label_selected="Stummschalten" name="Mute" left_delta="157"/>
+			<button label="Teleport anbieten..." label_selected="Teleport anbieten..." left_delta="117" name="Offer Teleport..."/>
+			<button label="Freund hinzufügen..." label_selected="Freund hinzufügen..." left_delta="157" name="Add Friend..."/>
+			<button label="Bezahlen..." label_selected="Bezahlen..." name="Pay..."/>
+			<button label="Instant Message..." label_selected="Instant Message..." left_delta="117" name="Instant Message..." tool_tip="Instant Message (IM)"/>
+			<button label="Stummschalten" label_selected="Stummschalten" left_delta="157" name="Mute"/>
 		</panel>
 		<panel label="Web" name="WebProfile" width="458">
-		  <line_editor name="url_edit" width="440" />
-			<flyout_button label="Laden" label_selected="Laden" name="load" tool_tip="Lädt diese Profilseite im integrierten Webbrowser.">
-				<flyout_button_item name="open_item">
-					In externem Browser
-				</flyout_button_item>
-				<flyout_button_item name="home_item">
-					Start URL
-				</flyout_button_item>
-			</flyout_button>
-			<button label="?" label_selected="?" name="web_profile_help"/>
-			<check_box label="Web-Profile automatisch laden" name="auto_load" tool_tip="Ohne Nachfrage ALLE Profil-Webseiten automatisch laden."/>
-			<web_browser name="profile_html" width="440" />
+			<line_editor name="url_edit" width="440"/>
+			<flyout_button label="Laden" label_selected="Laden" name="load" tool_tip="Lädt diese Profilseite im integrierten Webbrowser."/>
+			<check_box label="Web-Profile automatisch laden" name="auto_load" tool_tip="Ohne Nachfrage alle Profil-Webseiten automatisch laden."/>
+			<web_browser name="profile_html" width="440"/>
 		</panel>
 		<panel label="Interessen" name="Interests" width="458">
 			<text name="I Want To:">
@@ -115,7 +130,7 @@
 			<check_box label="Kaufen" name="chk4"/>
 			<check_box label="Verkaufen" name="chk5"/>
 			<check_box label="Anstellen" name="chk7"/>
-			<line_editor name="want_to_edit" width="360" />
+			<line_editor name="want_to_edit" width="360"/>
 			<text name="Skills:">
 				Fähigkeiten:
 			</text>
@@ -125,51 +140,51 @@
 			<check_box label="Modellierung" name="schk3"/>
 			<check_box label="Scripting" name="schk4"/>
 			<check_box label="Benutzerdefinierte Charaktere" name="schk5"/>
-			<line_editor name="skills_edit" width="360" />
+			<line_editor name="skills_edit" width="360"/>
 			<text name="Languages:">
 				Sprachen:
 			</text>
-			<line_editor name="languages_edit" width="360" />
+			<line_editor name="languages_edit" width="360"/>
 		</panel>
 		<panel label="Auswahl" name="Picks" width="458">
 			<text name="Tell everyone about your favorite places in Second Life.">
-				Erzählen Sie von Ihren Lieblingsorten in Second Life.
+				Erzählen Sie allen von Ihren Lieblingsorten in [SECOND_LIFE].
 			</text>
 			<button label="Neu..." label_selected="Neu..." name="New..."/>
 			<button label="Löschen..." label_selected="Löschen..." name="Delete..."/>
-			<tab_container name="picks tab" width="452" />
+			<tab_container name="picks tab" width="452"/>
 			<text name="loading_text">
 				Wird geladen...
 			</text>
 		</panel>
 		<panel label="Anzeige" name="Classified" width="458">
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				Anzeige in Second Life aufgeben.
+				Anzeige in [SECOND_LIFE] aufgeben.
 			</text>
 			<button label="Neu..." label_selected="Neu..." name="New..."/>
 			<button label="Löschen..." label_selected="Löschen..." name="Delete..."/>
-			<tab_container name="classified tab" width="452" />
+			<tab_container name="classified tab" width="452"/>
 			<text name="loading_text">
 				Wird geladen...
 			</text>
 		</panel>
-		<panel label="1. Leben" name="1st Life" width="458">
+		<panel label="Echtes Leben" name="Real World" width="458">
 			<text name="Photo:">
 				Foto:
 			</text>
-			<texture_picker label="" name="img" tool_tip="Klicken Sie hier, um ein Bild auszuwählen"/>
+			<texture_picker label="" name="img" tool_tip="Zum Auswählen eines Bildes hier klicken"/>
 			<text name="Info:">
 				Info:
 			</text>
 			<text name="(250 chars)">
-				250 Zeichen
+				(250 Zeichen)
 			</text>
-			<text_editor name="about" width="370" />
+			<text_editor name="about" width="370"/>
 		</panel>
 		<panel label="Meine Notizen" name="My Notes" width="458">
-			<string name="Loading">
+			<panel.string name="Loading">
 				Wird geladen...
-			</string>
+			</panel.string>
 			<text name="label" width="452">
 				Hier können Sie Notizen über diese Person machen.  Notieren Sie Geschäfte,
 gemeinsame Projekte usw. Nur Sie können diese Notizen sehen.
@@ -180,33 +195,8 @@ Die betreffende Person oder andere können sie nicht sehen.
 	</tab_container>
 	<button label="OK" label_selected="OK" name="OK"/>
 	<button label="Abbrechen" label_selected="Abbrechen" name="Cancel"/>
-	<button label="Hinauswerfen" label_selected="Hinauswerfen" name="Kick" font="SansSerifSmall" width="82" />
+	<button font="SansSerifSmall" label="Hinauswerfen" label_selected="Hinauswerfen" name="Kick" width="82"/>
 	<button label="Einfrieren" label_selected="Einfrieren" name="Freeze" tool_tip="Bewegungen und Chat dieses Einwohners abschalten." width="82"/>
-	<button label="Auftauen" label_selected="Auftauen" name="Unfreeze" tool_tip="Einwohner auftauen" width="82" />
+	<button label="Auftauen" label_selected="Auftauen" name="Unfreeze" tool_tip="Einwohner auftauen" width="82"/>
 	<button label="CSR" label_selected="CSR" name="csr_btn" tool_tip="Öffnet das Kundendiensttool für diesen Einwohner" width="82"/>
-	<string name="ShowOnMapNonFriend">
-		Position auf Karte zeigen.
-Deaktiviert, weil zwischen Ihnen
-keine Freundschaft besteht.
-	</string>
-	<string name="ShowOnMapFriendOffline">
-		Position auf Karte zeigen.
-    Deaktiviert, weil nicht online.
-	</string>
-	<string name="ShowOnMapFriendOnline">
-		Position auf Karte zeigen.
-	</string>
-	<string name="TeleportGod">
-		Teleport an Ihre Position erzwingen.
-	</string>
-	<string name="TeleportPrelude">
-		Teleport an Ihre Position anbieten.
-Deaktiviert, bis Sie Orientation Island verlassen.
-	</string>
-	<string name="TeleportNormal">
-		Teleport an Ihre Position anbieten.
-	</string>
-	<string name="Loading">
-		Wird geladen...
-	</string>
 </panel>

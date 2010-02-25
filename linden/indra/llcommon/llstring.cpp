@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,6 +42,9 @@
 #include <winnls.h> // for WideCharToMultiByte
 #endif
 
+LLFastTimer::DeclareTimer FT_STRING_FORMAT("String Format");
+
+
 std::string ll_safe_string(const char* in)
 {
 	if(in) return std::string(in);
@@ -71,6 +74,24 @@ U8 hex_as_nybble(char hex)
 	return 0; // uh - oh, not hex any more...
 }
 
+bool iswindividual(llwchar elem)
+{   
+	U32 cur_char = (U32)elem;
+	bool result = false;
+	if (0x2E80<= cur_char && cur_char <= 0x9FFF)
+	{
+		result = true;
+	}
+	else if (0xAC00<= cur_char && cur_char <= 0xD7A0 )
+	{
+		result = true;
+	}
+	else if (0xF900<= cur_char && cur_char <= 0xFA60 )
+	{
+		result = true;
+	}
+	return result;
+}
 
 bool _read_file_into_string(std::string& str, const std::string& filename)
 {
@@ -650,6 +671,11 @@ std::string ll_convert_wide_to_string(const wchar_t* in)
 }
 #endif // LL_WINDOWS
 
+long LLStringOps::sPacificTimeOffset = 0;
+long LLStringOps::sLocalTimeOffset = 0;
+bool LLStringOps::sPacificDaylightTime = 0;
+std::map<std::string, std::string> LLStringOps::datetimeToCodes;
+
 S32	LLStringOps::collate(const llwchar* a, const llwchar* b)
 { 
 	#if LL_WINDOWS
@@ -660,6 +686,59 @@ S32	LLStringOps::collate(const llwchar* a, const llwchar* b)
 		return wcscoll(a, b);
 	#endif
 }
+
+void LLStringOps::setupDatetimeInfo (bool daylight)
+{
+	time_t nowT, localT, gmtT;
+	struct tm * tmpT;
+
+	nowT = time (NULL);
+
+	tmpT = localtime (&nowT);
+	localT = mktime (tmpT);
+
+	tmpT = gmtime (&nowT);
+	gmtT = mktime (tmpT);
+
+	sLocalTimeOffset = (long) (gmtT - localT);
+
+
+	sPacificDaylightTime = daylight;
+	sPacificTimeOffset = (sPacificDaylightTime? 7 : 8 ) * 60 * 60;
+
+	datetimeToCodes["wkday"]	= "%a";		// Thu
+	datetimeToCodes["weekday"]	= "%A";		// Thursday
+	datetimeToCodes["year4"]	= "%Y";		// 2009
+	datetimeToCodes["year"]		= "%Y";		// 2009
+	datetimeToCodes["year2"]	= "%y";		// 09
+	datetimeToCodes["mth"]		= "%b";		// Aug
+	datetimeToCodes["month"]	= "%B";		// August
+	datetimeToCodes["mthnum"]	= "%m";		// 08
+	datetimeToCodes["day"]		= "%d";		// 31
+	datetimeToCodes["hour24"]	= "%H";		// 14
+	datetimeToCodes["hour"]		= "%H";		// 14
+	datetimeToCodes["hour12"]	= "%I";		// 02
+	datetimeToCodes["min"]		= "%M";		// 59
+	datetimeToCodes["ampm"]		= "%p";		// AM
+	datetimeToCodes["second"]	= "%S";		// 59
+	datetimeToCodes["timezone"]	= "%Z";		// PST
+}
+
+std::string LLStringOps::getDatetimeCode (std::string key)
+{
+	std::map<std::string, std::string>::iterator iter;
+
+	iter = datetimeToCodes.find (key);
+	if (iter != datetimeToCodes.end())
+	{
+		return iter->second;
+	}
+	else
+	{
+		return std::string("");
+	}
+}
+
 
 namespace LLStringFn
 {
@@ -697,12 +776,12 @@ namespace LLStringFn
 	// https://wiki.lindenlab.com/wiki/Unicode_Guidelines has details on
 	// allowable code points for XML. Specifically, they are:
 	// 0x09, 0x0a, 0x0d, and 0x20 on up.  JC
-	std::string strip_invalid_xml(const std::string& input)
+	std::string strip_invalid_xml(const std::string& instr)
 	{
 		std::string output;
-		output.reserve( input.size() );
-		std::string::const_iterator it = input.begin();
-		while (it != input.end())
+		output.reserve( instr.size() );
+		std::string::const_iterator it = instr.begin();
+		while (it != instr.end())
 		{
 			// Must compare as unsigned for >=
 			// Test most likely match first
@@ -738,6 +817,336 @@ namespace LLStringFn
 	}
 }
 
+////////////////////////////////////////////////////////////
+
+//static
+template<> 
+void LLStringUtil::getTokens(const std::string& instr, std::vector<std::string >& tokens, const std::string& delims)
+{
+	std::string currToken;
+	std::string::size_type begIdx, endIdx;
+
+	begIdx = instr.find_first_not_of (delims);
+	while (begIdx != std::string::npos)
+	{
+		endIdx = instr.find_first_of (delims, begIdx);
+		if (endIdx == std::string::npos)
+		{
+			endIdx = instr.length();
+		}
+
+		currToken = instr.substr(begIdx, endIdx - begIdx);
+		LLStringUtil::trim (currToken);
+		tokens.push_back(currToken);
+		begIdx = instr.find_first_not_of (delims, endIdx);
+	}
+}
+
+template<> 
+LLStringUtil::size_type LLStringUtil::getSubstitution(const std::string& instr, size_type& start, std::vector<std::string>& tokens)
+{
+	const std::string delims (",");
+	
+	// Find the first ]
+	size_type pos2 = instr.find(']', start);
+	if (pos2 == std::string::npos)
+		return std::string::npos;
+
+	// Find the last [ before ]
+	size_type pos1 = instr.find_last_of('[', pos2-1);
+	if (pos1 == std::string::npos || pos1 < start)
+		return std::string::npos;
+	
+	getTokens(std::string(instr,pos1+1,pos2-pos1-1), tokens, delims);
+	start = pos2+1;
+	
+	return pos1;
+}
+
+// static
+template<> 
+bool LLStringUtil::simpleReplacement(std::string &replacement, std::string token, const format_map_t& substitutions)
+{
+	// see if we have a replacement for the bracketed string (without the brackets)
+	// test first using has() because if we just look up with operator[] we get back an
+	// empty string even if the value is missing. We want to distinguish between 
+	// missing replacements and deliberately empty replacement strings.
+	format_map_t::const_iterator iter = substitutions.find(token);
+	if (iter != substitutions.end())
+	{
+		replacement = iter->second;
+		return true;
+	}
+	// if not, see if there's one WITH brackets
+	iter = substitutions.find(std::string("[" + token + "]"));
+	if (iter != substitutions.end())
+	{
+		replacement = iter->second;
+		return true;
+	}
+
+	return false;
+}
+
+// static
+template<> 
+bool LLStringUtil::simpleReplacement(std::string &replacement, std::string token, const LLSD& substitutions)
+{
+	// see if we have a replacement for the bracketed string (without the brackets)
+	// test first using has() because if we just look up with operator[] we get back an
+	// empty string even if the value is missing. We want to distinguish between 
+	// missing replacements and deliberately empty replacement strings.
+	if (substitutions.has(token))
+	{
+		replacement = substitutions[token].asString();
+		return true;
+	}
+	// if not, see if there's one WITH brackets
+	else if (substitutions.has(std::string("[" + token + "]")))
+	{
+		replacement = substitutions[std::string("[" + token + "]")].asString();
+		return true;
+	}
+
+	return false;
+}
+
+// static
+template<> 
+void LLStringUtil::formatNumber(std::string& numStr, std::string decimals)
+{
+	std::stringstream strStream;
+	S32 intDecimals = 0;
+
+	convertToS32 (decimals, intDecimals);
+	if (!sLocale.empty())
+	{
+		strStream.imbue (std::locale(sLocale.c_str()));
+	}
+
+	if (!intDecimals)
+	{
+		S32 intStr;
+
+		if (convertToS32(numStr, intStr))
+		{
+			strStream << intStr;
+			numStr = strStream.str();
+		}
+	}
+	else
+	{
+		F32 floatStr;
+
+		if (convertToF32(numStr, floatStr))
+		{
+			strStream << std::fixed << std::showpoint << std::setprecision(intDecimals) << floatStr;
+			numStr = strStream.str();
+		}
+	}
+}
+
+// static
+template<> 
+bool LLStringUtil::formatDatetime(std::string& replacement, std::string token,
+								  std::string param, S32 secFromEpoch)
+{
+	if (param == "local")   // local
+	{
+		secFromEpoch -= LLStringOps::getLocalTimeOffset();
+	}
+	else if (param != "utc") // slt
+	{
+		secFromEpoch -= LLStringOps::getPacificTimeOffset();
+	}
+		
+	// if never fell into those two ifs above, param must be utc
+	if (secFromEpoch < 0) secFromEpoch = 0;
+
+	LLDate datetime((F64)secFromEpoch);
+	std::string code = LLStringOps::getDatetimeCode (token);
+
+	// special case to handle timezone
+	if (code == "%Z") {
+		if (param == "utc")
+		{
+			replacement = "GMT";
+		}
+		else if (param == "local")
+		{
+			replacement = "";		// user knows their own timezone
+		}
+		else
+		{
+			// "slt" = Second Life Time, which is deprecated.
+			// If not utc or user local time, fallback to Pacific time
+			replacement = LLStringOps::getPacificDaylightTime() ? "PDT" : "PST";
+		}
+		return true;
+	}
+	replacement = datetime.toHTTPDateString(code);
+
+	// *HACK: delete leading zero from hour string in case 'hour12' (code = %I) time format
+	// to show time without leading zero, e.g. 08:16 -> 8:16 (EXT-2738).
+	// We could have used '%l' format instead, but it's not supported by Windows.
+	if(code == "%I" && token == "hour12" && replacement.at(0) == '0')
+	{
+		replacement = replacement.at(1);
+	}
+
+	return !code.empty();
+}
+
+// LLStringUtil::format recogizes the following patterns.
+// All substitutions *must* be encased in []'s in the input string.
+// The []'s are optional in the substitution map.
+// [FOO_123]
+// [FOO,number,precision]
+// [FOO,datetime,format]
+
+
+// static
+template<> 
+S32 LLStringUtil::format(std::string& s, const format_map_t& substitutions)
+{
+	LLFastTimer ft(FT_STRING_FORMAT);
+	S32 res = 0;
+
+	std::string output;
+	std::vector<std::string> tokens;
+
+	std::string::size_type start = 0;
+	std::string::size_type prev_start = 0;
+	std::string::size_type key_start = 0;
+	while ((key_start = getSubstitution(s, start, tokens)) != std::string::npos)
+	{
+		output += std::string(s, prev_start, key_start-prev_start);
+		prev_start = start;
+		
+		bool found_replacement = false;
+		std::string replacement;
+
+		if (tokens.size() == 0)
+		{
+			found_replacement = false;
+		}
+		else if (tokens.size() == 1)
+		{
+			found_replacement = simpleReplacement (replacement, tokens[0], substitutions);
+		}
+		else if (tokens[1] == "number")
+		{
+			std::string param = "0";
+
+			if (tokens.size() > 2) param = tokens[2];
+			found_replacement = simpleReplacement (replacement, tokens[0], substitutions);
+			if (found_replacement) formatNumber (replacement, param);
+		}
+		else if (tokens[1] == "datetime")
+		{
+			std::string param;
+			if (tokens.size() > 2) param = tokens[2];
+			
+			format_map_t::const_iterator iter = substitutions.find("datetime");
+			if (iter != substitutions.end())
+			{
+				S32 secFromEpoch = 0;
+				BOOL r = LLStringUtil::convertToS32(iter->second, secFromEpoch);
+				if (r)
+				{
+					found_replacement = formatDatetime(replacement, tokens[0], param, secFromEpoch);
+				}
+			}
+		}
+
+		if (found_replacement)
+		{
+			output += replacement;
+			res++;
+		}
+		else
+		{
+			// we had no replacement, use the string as is
+			// e.g. "hello [MISSING_REPLACEMENT]" or "-=[Stylized Name]=-"
+			output += std::string(s, key_start, start-key_start);
+		}
+		tokens.clear();
+	}
+	// send the remainder of the string (with no further matches for bracketed names)
+	output += std::string(s, start);
+	s = output;
+	return res;
+}
+
+//static
+template<> 
+S32 LLStringUtil::format(std::string& s, const LLSD& substitutions)
+{
+	LLFastTimer ft(FT_STRING_FORMAT);
+	S32 res = 0;
+
+	if (!substitutions.isMap()) 
+	{
+		return res;
+	}
+
+	std::string output;
+	std::vector<std::string> tokens;
+
+	std::string::size_type start = 0;
+	std::string::size_type prev_start = 0;
+	std::string::size_type key_start = 0;
+	while ((key_start = getSubstitution(s, start, tokens)) != std::string::npos)
+	{
+		output += std::string(s, prev_start, key_start-prev_start);
+		prev_start = start;
+		
+		bool found_replacement = false;
+		std::string replacement;
+
+		if (tokens.size() == 0)
+		{
+			found_replacement = false;
+		}
+		else if (tokens.size() == 1)
+		{
+			found_replacement = simpleReplacement (replacement, tokens[0], substitutions);
+		}
+		else if (tokens[1] == "number")
+		{
+			std::string param = "0";
+
+			if (tokens.size() > 2) param = tokens[2];
+			found_replacement = simpleReplacement (replacement, tokens[0], substitutions);
+			if (found_replacement) formatNumber (replacement, param);
+		}
+		else if (tokens[1] == "datetime")
+		{
+			std::string param;
+			if (tokens.size() > 2) param = tokens[2];
+			
+			S32 secFromEpoch = (S32) substitutions["datetime"].asInteger();
+			found_replacement = formatDatetime (replacement, tokens[0], param, secFromEpoch);
+		}
+
+		if (found_replacement)
+		{
+			output += replacement;
+			res++;
+		}
+		else
+		{
+			// we had no replacement, use the string as is
+			// e.g. "hello [MISSING_REPLACEMENT]" or "-=[Stylized Name]=-"
+			output += std::string(s, key_start, start-key_start);
+		}
+		tokens.clear();
+	}
+	// send the remainder of the string (with no further matches for bracketed names)
+	output += std::string(s, start);
+	s = output;
+	return res;
+}
 
 ////////////////////////////////////////////////////////////
 // Testing

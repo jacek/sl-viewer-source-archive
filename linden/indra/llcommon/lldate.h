@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,7 +46,7 @@
  *
  * The date class represents a point in time after epoch - 1970-01-01.
  */
-class LLDate
+class LL_COMMON_API LLDate
 {
 public:
 	/** 
@@ -84,7 +84,9 @@ public:
 	std::string asString() const;
 	std::string asRFC1123() const;
 	void toStream(std::ostream&) const;
-	void toHTTPDateStream(std::ostream&) const;
+	bool split(S32 *year, S32 *month = NULL, S32 *day = NULL, S32 *hour = NULL, S32 *min = NULL, S32 *sec = NULL) const;
+	std::string toHTTPDateString (std::string fmt) const;
+	static std::string toHTTPDateString (tm * gmt, std::string fmt);
 	/** 
 	 * @brief Set the date from an ISO-8601 string.
 	 *
@@ -99,6 +101,7 @@ public:
 	 */
 	bool fromString(const std::string& iso8601_date);
 	bool fromStream(std::istream&);
+	bool fromYMDHMS(S32 year, S32 month = 1, S32 day = 0, S32 hour = 0, S32 min = 0, S32 sec = 0);
 
 	/** 
 	 * @brief Return the date in seconds since epoch.
@@ -153,14 +156,11 @@ private:
 };
 
 // Helper function to stream out a date
-std::ostream& operator<<(std::ostream& s, const LLDate& date);
+LL_COMMON_API std::ostream& operator<<(std::ostream& s, const LLDate& date);
 
 // Helper function to stream in a date
-std::istream& operator>>(std::istream& s, LLDate& date);
+LL_COMMON_API std::istream& operator>>(std::istream& s, LLDate& date);
 
 
-const static std::string weekdays[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-
-const static std::string months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 #endif // LL_LLDATE_H

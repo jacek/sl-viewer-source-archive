@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,28 +49,29 @@ class LLFriendObserver;
 class LLInventoryModel;
 class LLInventoryObserver;
 class LLItemInfo;
+class LLLineEditor;
 class LLTabContainer;
 
 class LLFloaterWorldMap : public LLFloater
 {
 public:
-	LLFloaterWorldMap();
+	LLFloaterWorldMap(const LLSD& key);
 	virtual ~LLFloaterWorldMap();
+
+	// Prefer this to gFloaterWorldMap
+	static LLFloaterWorldMap* getInstance();
 
 	static void *createWorldMapView(void* data);
 	BOOL postBuild();
 
+	/*virtual*/ void onOpen(const LLSD& key);
 	/*virtual*/ void onClose(bool app_quitting);
 
-	static void show(void*, BOOL center_on_target );
 	static void reloadIcons(void*);
-	static void toggle(void*);
-	static void hide(void*); 
 
 	/*virtual*/ void reshape( S32 width, S32 height, BOOL called_from_parent = TRUE );
 	/*virtual*/ BOOL handleHover(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL handleScrollWheel(S32 x, S32 y, S32 clicks);
-	/*virtual*/ void setVisible(BOOL visible);
 	/*virtual*/ void draw();
 
 	// methods for dealing with inventory. The observe() method is
@@ -111,28 +112,23 @@ public:
 	// teleport to the tracked item, if there is one
 	void			teleport();
 
-private:
-	static void		onPanBtn( void* userdata );
+protected:	
+	void			onGoHome();
 
-	static void		onGoHome(void* data);
+	void			onLandmarkComboPrearrange();
+	void			onLandmarkComboCommit();
 
-	static void		onLandmarkComboPrearrange( LLUICtrl* ctrl, void* data );
-	static void		onLandmarkComboCommit( LLUICtrl* ctrl, void* data );
+	void			onAvatarComboPrearrange();
+	void		    onAvatarComboCommit();
 
-	static void		onAvatarComboPrearrange( LLUICtrl* ctrl, void* data );
-	static void		onAvatarComboCommit( LLUICtrl* ctrl, void* data );
+	void			onComboTextEntry( );
+	void			onSearchTextEntry( LLLineEditor* ctrl );
 
-	static void		onComboTextEntry( LLLineEditor* ctrl, void* data );
-	static void		onSearchTextEntry( LLLineEditor* ctrl, void* data );
-
-	static void		onClearBtn(void*);
-	static void		onFlyBtn(void*);
-	static void		onClickTeleportBtn(void*);
-	static void		onShowTargetBtn(void*);
-	static void		onShowAgentBtn(void*);
-	static void		onCopySLURL(void*);
-
-	static void		onCheckEvents(LLUICtrl* ctrl, void*);
+	void			onClearBtn();
+	void			onClickTeleportBtn();
+	void			onShowTargetBtn();
+	void			onShowAgentBtn();
+	void			onCopySLURL();
 
 	void			centerOnTarget(BOOL animate);
 	void			updateLocation();
@@ -141,7 +137,6 @@ private:
 	void			fly();
 
 	void			buildLandmarkIDLists();
-	static void		onGoToLandmarkDialog(S32 option,void* userdata);
 	void			flyToLandmark();
 	void			teleportToLandmark();
 	void			setLandmarkVisited();
@@ -150,11 +145,10 @@ private:
 	void			flyToAvatar();
 	void			teleportToAvatar();
 
-	static void		updateSearchEnabled( LLUICtrl* ctrl, void* userdata );
-	static void		onLocationFocusChanged( LLFocusableElement* ctrl, void* userdata );
-	static void		onLocationCommit( void* userdata );
-	static void		onCommitLocation( LLUICtrl* ctrl, void* userdata );
-	static void		onCommitSearchResult( LLUICtrl* ctrl, void* userdata );
+	void			updateSearchEnabled();
+	void			onLocationFocusChanged( LLFocusableElement* ctrl );
+	void		    onLocationCommit();
+	void		    onCommitSearchResult();
 
 	void			cacheLandmarkPosition();
 
@@ -167,7 +161,6 @@ private:
 
 	LLDynamicArray<LLUUID>	mLandmarkAssetIDList;
 	LLDynamicArray<LLUUID>	mLandmarkItemIDList;
-	BOOL					mHasLandmarkPosition;
 
 	static const LLUUID	sHomeID;
 
@@ -176,9 +169,12 @@ private:
 	LLFriendObserver* mFriendObserver;
 
 	std::string				mCompletingRegionName;
+	// Local position from trackURL() request, used to select final
+	// position once region lookup complete.
+	LLVector3				mCompletingRegionPos;
+
 	std::string				mLastRegionName;
 	BOOL					mWaitingForTracker;
-	BOOL					mExactMatch;
 
 	BOOL					mIsClosing;
 	BOOL					mSetToUserPosition;

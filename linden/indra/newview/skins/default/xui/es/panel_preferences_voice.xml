@@ -5,12 +5,8 @@
 	</text_editor>
 	<check_box label="Activar el chat de voz" name="enable_voice_check"/>
 	<radio_group name="ear_location">
-		<radio_item name="0">
-			Oír el chat desde la posición de la cámara.
-		</radio_item>
-		<radio_item name="1">
-			Oír el chat desde la posición del avatar.
-		</radio_item>
+		<radio_item name="0" label="Oír el chat desde la posición de la cámara." />
+		<radio_item name="1" label="Oír el chat desde la posición del avatar." />
 	</radio_group>
 	<text name="push_to_talk_heading">
 		Apretar para Hablar

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -71,20 +71,20 @@ public:
 
 	void setPieSlice(S32 pie_slice) { mPieSlice = pie_slice; }	
 	void setVisibleInFirstPerson(BOOL visibility) { mVisibleInFirst = visibility; }
-	BOOL getVisibleInFirstPerson() { return mVisibleInFirst; }
+	BOOL getVisibleInFirstPerson() const { return mVisibleInFirst; }
 	void setGroup(S32 group) { mGroup = group; }
 	void setOriginalPosition(LLVector3 &position);
 	void setAttachmentVisibility(BOOL visible);
 	void setIsHUDAttachment(BOOL is_hud) { mIsHUDAttachment = is_hud; }
-	BOOL getIsHUDAttachment() { return mIsHUDAttachment; }
+	BOOL getIsHUDAttachment() const { return mIsHUDAttachment; }
 
-	BOOL isAnimatable() { return FALSE; }
+	BOOL isAnimatable() const { return FALSE; }
 
-	S32 getGroup() { return mGroup; }
-	S32 getPieSlice() { return mPieSlice; }
-	LLViewerObject *getObject() { return mAttachedObject; }
-	S32	getNumObjects() { return (mAttachedObject ? 1 : 0); }
-	const LLUUID& getItemID() { return mItemID; }
+	S32 getGroup() const { return mGroup; }
+	S32 getPieSlice() const { return mPieSlice; }
+	S32	getNumObjects() const { return mAttachedObjects.size(); }
+
+	void clampObjectPosition();
 
 	//
 	// unique methods
@@ -92,21 +92,27 @@ public:
 	BOOL addObject(LLViewerObject* object);
 	void removeObject(LLViewerObject *object);
 
-	void setupDrawable(LLDrawable* drawable);
-	void clampObjectPosition();
+	// 
+	// attachments operations
+	//
+	BOOL isObjectAttached(const LLViewerObject *viewer_object) const;
+	const LLViewerObject *getAttachedObject(const LLUUID &object_id) const;
+	LLViewerObject *getAttachedObject(const LLUUID &object_id);
+
+	// list of attachments for this joint
+	typedef std::vector<LLViewerObject *> attachedobjs_vec_t;
+	attachedobjs_vec_t mAttachedObjects;
 
 protected:
 	void calcLOD();
-	
-protected:
-	// Backlink only; don't make this an LLPointer.
-	LLViewerObject*	mAttachedObject;
+	void setupDrawable(LLViewerObject *object);
+
+private:
 	BOOL			mVisibleInFirst;
 	LLVector3		mOriginalPos;
 	S32				mGroup;
 	BOOL			mIsHUDAttachment;
 	S32				mPieSlice;
-	LLUUID			mItemID;			// Inventory item id of the attached item (null if not in inventory)
 };
 
 #endif // LL_LLVIEWERJOINTATTACHMENT_H

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -65,11 +65,10 @@ public:
 };
 
 template <class T>
-class LLOctreeTraveler : public LLTreeTraveler<T>
+class LLOctreeTraveler
 {
 public:
-	virtual void traverse(const LLTreeNode<T>* node);
-	virtual void visit(const LLTreeNode<T>* state) { }
+	virtual void traverse(const LLOctreeNode<T>* node);
 	virtual void visit(const LLOctreeNode<T>* branch) = 0;
 };
 
@@ -184,7 +183,6 @@ public:
 		{
 			mMax.mdV[i] = mCenter.mdV[i] + mSize.mdV[i];
 			mMin.mdV[i] = mCenter.mdV[i] - mSize.mdV[i];
-			mCenter.mdV[i] = mCenter.mdV[i];
 		}
 	}
 
@@ -700,19 +698,16 @@ public:
 	}
 };
 
-
 //========================
 //		LLOctreeTraveler
 //========================
 template <class T>
-void LLOctreeTraveler<T>::traverse(const LLTreeNode<T>* tree_node)
+void LLOctreeTraveler<T>::traverse(const LLOctreeNode<T>* node)
 {
-	const LLOctreeNode<T>* node = (const LLOctreeNode<T>*) tree_node;
 	node->accept(this);
 	for (U32 i = 0; i < node->getChildCount(); i++)
 	{
 		traverse(node->getChild(i));
 	}
 }
-
 #endif

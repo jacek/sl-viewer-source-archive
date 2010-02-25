@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -93,13 +93,12 @@ int LLProcessLauncher::launch(void)
 	STARTUPINFOA sinfo;
 	memset(&sinfo, 0, sizeof(sinfo));
 	
-	std::string args = "\"" + mExecutable + "\"";
+	std::string args = mExecutable;
 	for(int i = 0; i < (int)mLaunchArguments.size(); i++)
 	{
 		args += " ";
 		args += mLaunchArguments[i];
 	}
-	LL_INFOS("Plugin") << "Executable: " << mExecutable << " arguments: " << args << LL_ENDL;
 	
 	// So retarded.  Windows requires that the second parameter to CreateProcessA be a writable (non-const) string...
 	char *args2 = new char[args.size() + 1];

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -65,6 +65,12 @@ typedef enum e_chat_audible_level
 	CHAT_AUDIBLE_FULLY = 1
 } EChatAudible;
 
+typedef enum e_chat_style
+{
+	CHAT_STYLE_NORMAL,
+	CHAT_STYLE_IRC
+}EChatStyle;
+
 // A piece of chat
 class LLChat
 {
@@ -73,38 +79,33 @@ public:
 	:	mText(text),
 		mFromName(),
 		mFromID(),
+		mNotifId(),
 		mSourceType(CHAT_SOURCE_AGENT),
 		mChatType(CHAT_TYPE_NORMAL),
 		mAudible(CHAT_AUDIBLE_FULLY),
 		mMuted(FALSE),
 		mTime(0.0),
+		mTimeStr(),
 		mPosAgent(),
-		mURL()
+		mURL(),
+		mChatStyle(CHAT_STYLE_NORMAL),
+		mSessionID()
 	{ }
 	
-	LLChat(const LLChat &chat)
-	:	mText(chat.mText),
-		mFromName(chat.mFromName),
-		mFromID(chat.mFromID),
-		mSourceType(chat.mSourceType),
-		mChatType(chat.mChatType),
-		mAudible(chat.mAudible),
-		mMuted(chat.mMuted),
-		mTime(chat.mTime),
-		mPosAgent(chat.mPosAgent),
-		mURL(chat.mURL)
-	{ }
-
 	std::string		mText;		// UTF-8 line of text
 	std::string		mFromName;	// agent or object name
 	LLUUID			mFromID;	// agent id or object id
+	LLUUID			mNotifId;
 	EChatSourceType	mSourceType;
 	EChatType		mChatType;
 	EChatAudible	mAudible;
 	BOOL			mMuted;		// pass muted chat to maintain list of chatters
 	F64				mTime;		// viewer only, seconds from viewer start
+	std::string		mTimeStr;
 	LLVector3		mPosAgent;
 	std::string		mURL;
+	EChatStyle		mChatStyle;
+	LLUUID			mSessionID;
 };
 
 #endif

@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -74,7 +74,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
-static const S32 EASY_HANDLE_POOL_SIZE		= 5;
+static const U32 EASY_HANDLE_POOL_SIZE		= 5;
 static const S32 MULTI_PERFORM_CALL_REPEAT	= 5;
 static const S32 CURL_REQUEST_TIMEOUT = 30; // seconds
 static const S32 MAX_ACTIVE_REQUEST_COUNT = 100;
@@ -89,6 +89,10 @@ S32 gCurlMultiCount = 0;
 std::vector<LLMutex*> LLCurl::sSSLMutex;
 std::string LLCurl::sCAPath;
 std::string LLCurl::sCAFile;
+// Verify SSL certificates by default (matches libcurl default). The ability
+// to alter this flag is only to allow us to suppress verification if it's
+// broken for some reason.
+bool LLCurl::sSSLVerify = true;
 
 //static
 void LLCurl::setCAPath(const std::string& path)
@@ -100,6 +104,18 @@ void LLCurl::setCAPath(const std::string& path)
 void LLCurl::setCAFile(const std::string& file)
 {
 	sCAFile = file;
+}
+
+//static
+void LLCurl::setSSLVerify(bool verify)
+{
+	sSSLVerify = verify;
+}
+
+//static
+bool LLCurl::getSSLVerify()
+{
+	return sSSLVerify;
 }
 
 //static
@@ -120,7 +136,7 @@ LLCurl::Responder::~Responder()
 }
 
 // virtual
-void LLCurl::Responder::error(
+void LLCurl::Responder::errorWithContent(
 	U32 status,
 	const std::string& reason,
 	const LLSD&)
@@ -131,12 +147,17 @@ void LLCurl::Responder::error(
 // virtual
 void LLCurl::Responder::error(U32 status, const std::string& reason)
 {
-	llinfos << status << ": " << reason << llendl;
+	llinfos << mURL << " [" << status << "]: " << reason << llendl;
 }
 
 // virtual
 void LLCurl::Responder::result(const LLSD& content)
 {
+}
+
+void LLCurl::Responder::setURL(const std::string& url)
+{
+	mURL = url;
 }
 
 // virtual
@@ -148,7 +169,11 @@ void LLCurl::Responder::completedRaw(
 {
 	LLSD content;
 	LLBufferStream istr(channels, buffer.get());
-	LLSDSerialize::fromXML(content, istr);
+	if (!LLSDSerialize::fromXML(content, istr))
+	{
+		llinfos << "Failed to deserialize LLSD. " << mURL << " [" << status << "]: " << reason << llendl;
+	}
+
 	completed(status, reason, content);
 }
 
@@ -161,7 +186,7 @@ void LLCurl::Responder::completed(U32 status, const std::string& reason, const L
 	}
 	else
 	{
-		error(status, reason, content);
+		errorWithContent(status, reason, content);
 	}
 }
 
@@ -456,7 +481,8 @@ void LLCurl::Easy::prepRequest(const std::string& url,
 	setErrorBuffer();
 	setCA();
 
-	setopt(CURLOPT_SSL_VERIFYPEER, true);
+	setopt(CURLOPT_SSL_VERIFYPEER, LLCurl::getSSLVerify());
+	setopt(CURLOPT_SSL_VERIFYHOST, LLCurl::getSSLVerify()? 2 : 0);
 	setopt(CURLOPT_TIMEOUT, CURL_REQUEST_TIMEOUT);
 
 	setoptString(CURLOPT_URL, url);
@@ -1035,4 +1061,3 @@ void LLCurl::cleanupClass()
 #endif
 	curl_global_cleanup();
 }
-

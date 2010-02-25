@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,6 +34,9 @@
 #define LL_LLWINDOWMACOSX_H
 
 #include "llwindow.h"
+#include "llwindowcallbacks.h"
+
+#include "lltimer.h"
 
 #include <Carbon/Carbon.h>
 #include <AGL/agl.h>
@@ -54,6 +57,8 @@ public:
 	/*virtual*/ BOOL getMinimized();
 	/*virtual*/ BOOL getMaximized();
 	/*virtual*/ BOOL maximize();
+	/*virtual*/ void minimize();
+	/*virtual*/ void restore();
 	/*virtual*/ BOOL getFullscreen();
 	/*virtual*/ BOOL getPosition(LLCoordScreen *position);
 	/*virtual*/ BOOL getSize(LLCoordScreen *size);
@@ -103,7 +108,7 @@ public:
 	/*virtual*/ void beforeDialog();
 	/*virtual*/ void afterDialog();
 
-	/*virtual*/ BOOL dialog_color_picker(F32 *r, F32 *g, F32 *b);
+	/*virtual*/ BOOL dialogColorPicker(F32 *r, F32 *g, F32 *b);
 
 	/*virtual*/ void *getPlatformWindow();
 	/*virtual*/ void *getMediaWindow();
@@ -115,8 +120,12 @@ public:
 
 	static std::vector<std::string> getDynamicFallbackFontList();
 
+	// Provide native key event data
+	/*virtual*/ LLSD getNativeKeyData();
+
+
 protected:
-	LLWindowMacOSX(
+	LLWindowMacOSX(LLWindowCallbacks* callbacks,
 		const std::string& title, const std::string& name, int x, int y, int width, int height, U32 flags,
 		BOOL fullscreen, BOOL clearBg, BOOL disable_vsync, BOOL use_gl,
 		BOOL ignore_pixel_depth,
@@ -137,9 +146,6 @@ protected:
 	// Restore the display resolution to its value before we ran the app.
 	BOOL	resetDisplayResolution();
 
-	void	minimize();
-	void	restore();
-
 	BOOL	shouldPostQuit() { return mPostQuit; }
 
 
@@ -158,8 +164,15 @@ protected:
 	void adjustCursorDecouple(bool warpingMouse = false);
 	void fixWindowSize(void);
 	void stopDockTileBounce();
-
-
+	static MASK modifiersToMask(SInt16 modifiers);
+	
+#if LL_OS_DRAGDROP_ENABLED
+	static OSErr dragTrackingHandler(DragTrackingMessage message, WindowRef theWindow,
+									 void * handlerRefCon, DragRef theDrag);
+	static OSErr dragReceiveHandler(WindowRef theWindow, void * handlerRefCon,	DragRef theDrag);
+	OSErr handleDragNDrop(DragRef theDrag, LLWindowCallbacks::DragNDropAction action);
+#endif // LL_OS_DRAGDROP_ENABLED
+	
 	//
 	// Platform specific variables
 	//
@@ -192,11 +205,13 @@ protected:
 	U32			mFSAASamples;
 	BOOL		mForceRebuild;
 	
+	S32			mDragOverrideCursor;
+	
 	F32			mBounceTime;
 	NMRec		mBounceRec;
 	LLTimer		mBounceTimer;
 
-	// Imput method management through Text Service Manager.
+	// Input method management through Text Service Manager.
 	TSMDocumentID	mTSMDocument;
 	BOOL		mLanguageTextInputAllowed;
 	ScriptCode	mTSMScriptCode;
@@ -207,6 +222,7 @@ protected:
 
 	friend class LLWindowManager;
 	static WindowRef sMediaWindow;
+	EventRef 	mRawKeyEvent;
 
 };
 

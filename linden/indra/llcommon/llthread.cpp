@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -72,9 +72,6 @@ void *APR_THREAD_FUNC LLThread::staticRun(apr_thread_t *apr_threadp, void *datap
 	// Set thread state to running
 	threadp->mStatus = RUNNING;
 
-	// Create a thread local APRFile pool.
-	LLVolatileAPRPool::createLocalAPRFilePool();
-
 	// Run the user supplied function
 	threadp->run();
 
@@ -105,12 +102,20 @@ LLThread::LLThread(const std::string& name, apr_pool_t *poolp) :
 		apr_pool_create(&mAPRPoolp, NULL); // Create a subpool for this thread
 	}
 	mRunCondition = new LLCondition(mAPRPoolp);
+
+	mLocalAPRFilePoolp = NULL ;
 }
 
 
 LLThread::~LLThread()
 {
 	shutdown();
+
+	if(mLocalAPRFilePoolp)
+	{
+		delete mLocalAPRFilePoolp ;
+		mLocalAPRFilePoolp = NULL ;
+	}
 }
 
 void LLThread::shutdown()
@@ -286,8 +291,8 @@ LLMutex::LLMutex(apr_pool_t *poolp) :
 
 LLMutex::~LLMutex()
 {
-#if _DEBUG
-	llassert(!isLocked()); // better not be locked!
+#if MUTEX_DEBUG
+	llassert_always(!isLocked()); // better not be locked!
 #endif
 	apr_thread_mutex_destroy(mAPRMutexp);
 	mAPRMutexp = NULL;
@@ -301,10 +306,24 @@ LLMutex::~LLMutex()
 void LLMutex::lock()
 {
 	apr_thread_mutex_lock(mAPRMutexp);
+#if MUTEX_DEBUG
+	// Have to have the lock before we can access the debug info
+	U32 id = LLThread::currentID();
+	if (mIsLocked[id] != FALSE)
+		llerrs << "Already locked in Thread: " << id << llendl;
+	mIsLocked[id] = TRUE;
+#endif
 }
 
 void LLMutex::unlock()
 {
+#if MUTEX_DEBUG
+	// Access the debug info while we have the lock
+	U32 id = LLThread::currentID();
+	if (mIsLocked[id] != TRUE)
+		llerrs << "Not locked in Thread: " << id << llendl;	
+	mIsLocked[id] = FALSE;
+#endif
 	apr_thread_mutex_unlock(mAPRMutexp);
 }
 

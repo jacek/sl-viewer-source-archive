@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,5 +45,20 @@
 	}
 */
 typedef boost::tokenizer<boost::char_separator<char> > boost_tokenizer;
+
+// Useful combiner for boost signals that return a bool (e.g. validation)
+//  returns false if any of the callbacks return false
+struct boost_boolean_combiner
+{
+	typedef bool result_type;
+	template<typename InputIterator>
+	bool operator()(InputIterator first, InputIterator last) const
+	{
+		bool res = true;
+		while (first != last)
+			res &= *first++;
+		return res;
+	}
+};
 
 #endif // LL_LLBOOST_H

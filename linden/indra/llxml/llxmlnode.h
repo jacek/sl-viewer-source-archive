@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 #define LL_LLXMLNODE_H
 
 #ifndef XML_STATIC
-#define XML_STATIC 1
+#define XML_STATIC
 #endif
 #ifdef LL_STANDALONE
 #include <expat.h>
@@ -44,10 +44,11 @@
 #include <map>
 
 #include "indra_constants.h"
-#include "llmemory.h"
-#include "llthread.h"
+#include "llpointer.h"
+#include "llthread.h"		// LLThreadSafeRefCount
 #include "llstring.h"
 #include "llstringtable.h"
+#include "llfile.h"
 
 
 class LLVector3;
@@ -153,9 +154,19 @@ public:
 		LLXMLNodePtr& node,
 		LLXMLNodePtr& update_node);
 	static LLXMLNodePtr replaceNode(LLXMLNodePtr node, LLXMLNodePtr replacement_node);
-	static void writeHeaderToFile(LLFILE *fOut);
-    void writeToFile(LLFILE *fOut, const std::string& indent = std::string());
-    void writeToOstream(std::ostream& output_stream, const std::string& indent = std::string());
+	
+	static bool getLayeredXMLNode(const std::string &xui_filename, LLXMLNodePtr& root,
+								  const std::vector<std::string>& paths);
+	
+	
+	// Write standard XML file header:
+	// <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+	static void writeHeaderToFile(LLFILE *out_file);
+	
+	// Write XML to file with one attribute per line.
+	// XML escapes values as they are written.
+    void writeToFile(LLFILE *out_file, const std::string& indent = std::string(), bool use_type_decorations=true);
+    void writeToOstream(std::ostream& output_stream, const std::string& indent = std::string(), bool use_type_decorations=true);
 
     // Utility
     void findName(const std::string& name, LLXMLNodeList &results);
@@ -207,6 +218,7 @@ public:
     U32 getLength() const { return mLength; }
     U32 getPrecision() const { return mPrecision; }
     const std::string& getValue() const { return mValue; }
+	std::string getSanitizedValue() const;
 	std::string getTextContents() const;
     const LLStringTableEntry* getName() const { return mName; }
 	BOOL hasName(const char* name) const { return mName == gStringTable.checkStringEntry(name); }
@@ -226,6 +238,8 @@ public:
 
 	bool getAttribute(const char* name, LLXMLNodePtr& node, BOOL use_default_if_missing = TRUE);
 	bool getAttribute(const LLStringTableEntry* name, LLXMLNodePtr& node, BOOL use_default_if_missing = TRUE);
+
+	S32 getLineNumber();
 
 	// The following skip over attributes
 	LLXMLNodePtr getFirstChild() const;
@@ -261,6 +275,8 @@ public:
 	void setValue(const std::string& value);
 	void setName(const std::string& name);
 	void setName(LLStringTableEntry* name);
+
+	void setLineNumber(S32 line_number);
 
 	// Escapes " (quot) ' (apos) & (amp) < (lt) > (gt)
 	static std::string escapeXML(const std::string& xml);
@@ -300,6 +316,7 @@ public:
 	U32 mPrecision;				// The number of BITS per array item
 	ValueType mType;			// The value type
 	Encoding mEncoding;			// The value encoding
+	S32 mLineNumber;			// line number in source file, if applicable
 
 	LLXMLNode* mParent;				// The parent node
 	LLXMLChildrenPtr mChildren;		// The child nodes
@@ -312,7 +329,11 @@ public:
 	
 protected:
 	LLStringTableEntry *mName;		// The name of this node
-	std::string mValue;			// The value of this node (use getters/setters only)
+
+	// The value of this node (use getters/setters only)
+	// Values are not XML-escaped in memory
+	// They may contain " (quot) ' (apos) & (amp) < (lt) > (gt)
+	std::string mValue;
 
 	LLXMLNodePtr mDefault;		// Mirror node in the default tree
 

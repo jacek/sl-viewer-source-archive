@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,8 +40,8 @@
 #include "llrender.h"
 #include "llui.h"
 #include "llfontgl.h"
-#include "llimagegl.h"
 #include "lltimer.h"
+#include "lltextbox.h"
 #include "llglheaders.h"
 
 #include "llagent.h"
@@ -50,7 +50,7 @@
 #include "llprogressbar.h"
 #include "llstartup.h"
 #include "llviewercontrol.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerwindow.h"
 #include "llappviewer.h"
 #include "llweb.h"
@@ -68,15 +68,16 @@ const F32 TOTAL_LOGIN_TIME = 10.f;	// seconds, wild guess at time from GL contex
 S32 gLastStartAnimationFrame = 0;	// human-style indexing, first image = 1
 const S32 ANIMATION_FRAMES = 1; //13;
 
-// XUI:translate
-LLProgressView::LLProgressView(const std::string& name, const LLRect &rect) 
-:	LLPanel(name, rect, FALSE),
+// XUI: Translate
+LLProgressView::LLProgressView(const LLRect &rect) 
+:	LLPanel(),
 	mPercentDone( 0.f ),
-	mURLInMessage(false),
-	mMouseDownInActiveArea( false )
+	mMouseDownInActiveArea( false ),
+	mUpdateEvents("LLProgressView")
 {
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_progress.xml");
 	reshape(rect.getWidth(), rect.getHeight());
+	mUpdateEvents.listen("self", boost::bind(&LLProgressView::handleUpdate, this, _1));
 }
 
 BOOL LLProgressView::postBuild()
@@ -84,7 +85,7 @@ BOOL LLProgressView::postBuild()
 	mProgressBar = getChild<LLProgressBar>("login_progress_bar");
 
 	mCancelBtn = getChild<LLButton>("cancel_btn");
-	mCancelBtn->setClickedCallback(  LLProgressView::onCancelButtonClicked );
+	mCancelBtn->setClickedCallback(  LLProgressView::onCancelButtonClicked, NULL );
 	mFadeTimer.stop();
 
 	getChild<LLTextBox>("title_text")->setText(LLStringExplicit(LLAppViewer::instance()->getSecondLifeTitle()));
@@ -146,10 +147,10 @@ void LLProgressView::draw()
 
 	// Paint bitmap if we've got one
 	glPushMatrix();
-	if (gStartImageGL)
+	if (gStartTexture)
 	{
 		LLGLSUIDefault gls_ui;
-		gGL.getTexUnit(0)->bind(gStartImageGL);
+		gGL.getTexUnit(0)->bind(gStartTexture.get());
 		gGL.color4f(1.f, 1.f, 1.f, mFadeTimer.getStarted() ? clamp_rescale(mFadeTimer.getElapsedTimeF32(), 0.f, FADE_IN_TIME, 1.f, 0.f) : 1.f);
 		F32 image_aspect = (F32)gStartImageWidth / (F32)gStartImageHeight;
 		S32 width = getRect().getWidth();
@@ -183,9 +184,10 @@ void LLProgressView::draw()
 		LLPanel::draw();
 		if (mFadeTimer.getElapsedTimeF32() > FADE_IN_TIME)
 		{
-			gFocusMgr.removeTopCtrlWithoutCallback(this);
+			// Fade is complete, release focus
+			gFocusMgr.releaseFocusIfNeeded( this );
 			LLPanel::setVisible(FALSE);
-			gStartImageGL = NULL;
+			gStartTexture = NULL;
 		}
 		return;
 	}
@@ -196,7 +198,7 @@ void LLProgressView::draw()
 
 void LLProgressView::setText(const std::string& text)
 {
-	getChild<LLTextBox>("progress_text")->setWrappedText(LLStringExplicit(text));
+	getChild<LLUICtrl>("progress_text")->setValue(text);
 }
 
 void LLProgressView::setPercent(const F32 percent)
@@ -207,12 +209,7 @@ void LLProgressView::setPercent(const F32 percent)
 void LLProgressView::setMessage(const std::string& msg)
 {
 	mMessage = msg;
-	mURLInMessage = (mMessage.find( "https://" ) != std::string::npos ||
-			 mMessage.find( "http://" ) != std::string::npos ||
-			 mMessage.find( "ftp://" ) != std::string::npos);
-
-	getChild<LLTextBox>("message_text")->setWrappedText(LLStringExplicit(mMessage));
-	getChild<LLTextBox>("message_text")->setHoverActive(mURLInMessage);
+	getChild<LLUICtrl>("message_text")->setValue(mMessage);
 }
 
 void LLProgressView::setCancelButtonVisible(BOOL b, const std::string& label)
@@ -226,7 +223,10 @@ void LLProgressView::setCancelButtonVisible(BOOL b, const std::string& label)
 // static
 void LLProgressView::onCancelButtonClicked(void*)
 {
-	if (gAgent.getTeleportState() == LLAgent::TELEPORT_NONE)
+	// Quitting viewer here should happen only when "Quit" button is pressed while starting up.
+	// Check for startup state is used here instead of teleport state to avoid quitting when
+	// cancel is pressed while teleporting inside region (EXT-4911)
+	if (LLStartUp::getStartupState() < STATE_STARTED)
 	{
 		LLAppViewer::instance()->requestQuit();
 	}
@@ -264,4 +264,27 @@ void LLProgressView::onClickMessage(void* data)
 			LLWeb::loadURLExternal( url_to_open );
 		}
 	}
+}
+
+bool LLProgressView::handleUpdate(const LLSD& event_data)
+{
+	LLSD message = event_data.get("message");
+	LLSD desc = event_data.get("desc");
+	LLSD percent = event_data.get("percent");
+
+	if(message.isDefined())
+	{
+		setMessage(message.asString());
+	}
+
+	if(desc.isDefined())
+	{
+		setText(desc.asString());
+	}
+	
+	if(percent.isDefined())
+	{
+		setPercent(percent.asReal());
+	}
+	return false;
 }

@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -85,7 +85,7 @@ public:
 			return((200 <= status) && (status < 300));
 		}
 		
-		virtual void error(
+		virtual void errorWithContent(
 			U32 status,
 			const std::string& reason,
 			const LLSD& content);
@@ -120,8 +120,14 @@ public:
 			// of the header can be parsed.  In the ::completed call above only the body is contained in the LLSD.
 			virtual void completedHeader(U32 status, const std::string& reason, const LLSD& content);
 
+			// Used internally to set the url for debugging later.
+			void setURL(const std::string& url);
+
 	public: /* but not really -- don't touch this */
 		U32 mReferenceCount;
+
+	private:
+		std::string mURL;
 	};
 	typedef boost::intrusive_ptr<Responder>	ResponderPtr;
 
@@ -152,6 +158,16 @@ public:
 	static const std::string& getCAPath() { return sCAPath; }
 
 	/**
+	 * @ brief Set flag controlling whether to verify HTTPS certs.
+	 */
+	static void setSSLVerify(bool verify);
+
+	/**
+	 * @ brief Get flag controlling whether to verify HTTPS certs.
+	 */
+	static bool getSSLVerify();
+
+	/**
 	 * @ brief Initialize LLCurl class
 	 */
 	static void initClass();
@@ -176,6 +192,7 @@ public:
 private:
 	static std::string sCAPath;
 	static std::string sCAFile;
+	static bool sSSLVerify;
 };
 
 namespace boost

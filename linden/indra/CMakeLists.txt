@@ -1,21 +1,17 @@
+
 # -*- cmake -*-
 
 # cmake_minimum_required should appear before any
 # other commands to guarantee full compatibility
 # with the version specified
 
-cmake_minimum_required(VERSION 2.6.2 FATAL_ERROR)
+# The "cmake -E touch" command was released with 2.4.8.
+cmake_minimum_required(VERSION 2.4.8 FATAL_ERROR)
 
-# Eventually the third-party support modules (cmake/*.cmake) should
-# know the full path to all libraries.  Until that happens we need
-# per-configuration link directory "libraries/<arch>/lib/debug" for
-# Debug and "libraries/<arch>/lib/release" for Release,
-# RelWithDebInfo, and MinSizeRel.  CMake 2.6 does not directly support
-# per-configuration link directory specification.  However, we can set
-# CMP0003 to OLD and link to one library (apr) on a per-configuration
-# basis to convince CMake to add the proper link directory.  This line
-# can be removed when we use full paths for all libraries.
-cmake_policy(SET CMP0003 OLD)
+# This makes cmake 2.6 not complain about version 2.4 compatibility.
+if (COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 OLD)
+endif (COMMAND cmake_policy)
 
 set(ROOT_PROJECT_NAME "SecondLife" CACHE STRING
     "The root project/makefile/solution name. Defaults to SecondLife.")
@@ -25,25 +21,21 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(Variables)
 
-# Load versions now.  Install locations need them.
-include(Versions)
+if (DARWIN)
+  cmake_minimum_required(VERSION 2.6.2 FATAL_ERROR)
+endif (DARWIN)
 
-include(UnixInstall)
-
-if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
       "Build type.  One of: Debug Release RelWithDebInfo" FORCE)
-endif (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+endif (NOT CMAKE_BUILD_TYPE)
 
-# Create a 'prepare' target in which to perform setup actions.  This
-# must be the first target created so other targets can depend on it.
-if(NOT STANDALONE)
-  # We prepare prebuilt binaries when not building standalone.
-  set(prepare_depends ${CMAKE_BINARY_DIR}/prepare/prebuilt)
-endif(NOT STANDALONE)
-add_custom_target(prepare DEPENDS ${prepare_depends})
-
+# For the library installation process;
+# see cmake/Prebuild.cmake for the counterpart code.
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/temp)
+file(WRITE ${CMAKE_BINARY_DIR}/temp/sentinel_installed "0")
 add_subdirectory(cmake)
+
 add_subdirectory(${LIBS_OPEN_PREFIX}llaudio)
 add_subdirectory(${LIBS_OPEN_PREFIX}llcharacter)
 add_subdirectory(${LIBS_OPEN_PREFIX}llcommon)
@@ -58,9 +50,9 @@ add_subdirectory(${LIBS_OPEN_PREFIX}llvfs)
 add_subdirectory(${LIBS_OPEN_PREFIX}llwindow)
 add_subdirectory(${LIBS_OPEN_PREFIX}llxml)
 
-if (EXISTS ${LIBS_CLOSED_DIR}llkdu AND NOT STANDALONE)
+if (EXISTS ${LIBS_CLOSED_DIR}llkdu)
   add_subdirectory(${LIBS_CLOSED_PREFIX}llkdu)
-endif (EXISTS ${LIBS_CLOSED_DIR}llkdu AND NOT STANDALONE)
+endif (EXISTS ${LIBS_CLOSED_DIR}llkdu)
 
 add_subdirectory(${LIBS_OPEN_PREFIX}lscript)
 
@@ -73,6 +65,8 @@ if (VIEWER)
   add_subdirectory(${LIBS_OPEN_PREFIX}llcrashlogger)
   add_subdirectory(${LIBS_OPEN_PREFIX}llplugin)
   add_subdirectory(${LIBS_OPEN_PREFIX}llui)
+  add_subdirectory(${LIBS_OPEN_PREFIX}llxuixml)
+  add_subdirectory(${LIBS_OPEN_PREFIX}viewer_components)
 
   # viewer media plugins
   add_subdirectory(${LIBS_OPEN_PREFIX}media_plugins)
@@ -84,7 +78,8 @@ if (VIEWER)
 
   if (LINUX)
     add_subdirectory(${VIEWER_PREFIX}linux_crash_logger)
-    add_dependencies(viewer linux-crash-logger-strip-target)
+    add_subdirectory(${VIEWER_PREFIX}linux_updater)
+    add_dependencies(viewer linux-crash-logger-strip-target linux-updater)
   elseif (DARWIN)
     add_subdirectory(${VIEWER_PREFIX}mac_crash_logger)
     add_subdirectory(${VIEWER_PREFIX}mac_updater)
@@ -128,29 +123,6 @@ if (SERVER)
   endif (WINDOWS)
 endif (SERVER)
 
-# Configure prebuilt binary download.  This must be done last so that
-# all subdirectories have a chance to list the packages they need.
-if(NOT STANDALONE)
-  # We need scp for proprietary downloads.
-  if(INSTALL_PROPRIETARY)
-    include(FindSCP)
-  endif(INSTALL_PROPRIETARY)
-
-  # The use_prebuilt_binary macro in cmake/Prebuilt.cmake records
-  # packages in the PREBUILT property of the 'prepare' target.
-  get_property(PREBUILT_PACKAGES TARGET prepare PROPERTY PREBUILT)
-
-  # Create a script to download the needed binaries.
-  configure_file(${CMAKE_SOURCE_DIR}/cmake/DownloadPrebuilt.cmake.in
-                 ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake @ONLY)
-
-  # Drive the download script at build time.  Depend on 'install.xml'
-  # to aqcuire new binaries when needed.
-  add_custom_command(
-    COMMENT "Obtaining prebuilt binaries..."
-    OUTPUT ${CMAKE_BINARY_DIR}/prepare/prebuilt
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake
-    DEPENDS ${CMAKE_SOURCE_DIR}/../install.xml
-            ${CMAKE_BINARY_DIR}/DownloadPrebuilt.cmake
-    )
-endif(NOT STANDALONE)
+# Define after the custom viewer and server targets are created so individual
+# apps can add themselves as dependencies
+add_subdirectory(${INTEGRATION_TESTS_PREFIX}integration_tests)

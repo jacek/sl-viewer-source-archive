@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,10 +46,7 @@ public:
 	static void showForGroup(const LLUUID &group_id, std::vector<LLUUID> *agent_ids = NULL);
 
 protected:
-	LLFloaterGroupInvite(const std::string& name,
-						 const LLRect &rect,
-						 const std::string& title,
-						 const LLUUID& group_id = LLUUID::null);
+	LLFloaterGroupInvite(const LLUUID& group_id = LLUUID::null);
 
 	class impl;
 	impl* mImpl;

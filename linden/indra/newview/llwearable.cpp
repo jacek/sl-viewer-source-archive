@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,96 +32,37 @@
 
 #include "llviewerprecompiledheaders.h"
 
-#include "imageids.h"
-#include "llassetstorage.h"
-#include "lldbstrings.h"
-#include "lldir.h"
-#include "llquantize.h"
-
 #include "llagent.h"
-#include "llassetuploadresponders.h"
-#include "llviewerwindow.h"
+#include "llagentwearables.h"
 #include "llfloatercustomize.h"
+#include "lllocaltextureobject.h"
+#include "llnotificationsutil.h"
+#include "llviewertexturelist.h"
 #include "llinventorymodel.h"
-#include "llviewerimagelist.h"
-#include "llviewerinventory.h"
+#include "llinventoryobserver.h"
 #include "llviewerregion.h"
 #include "llvoavatar.h"
+#include "llvoavatarself.h"
+#include "llvoavatardefines.h"
 #include "llwearable.h"
+#include "lldictionary.h"
+#include "lltrans.h"
+#include "lltexlayer.h"
+#include "llvisualparam.h"
+#include "lltexglobalcolor.h"
 
 using namespace LLVOAvatarDefines;
 
 // static
 S32 LLWearable::sCurrentDefinitionVersion = 1;
 
-// static
-const std::string LLWearable::sTypeName[ WT_COUNT+1 ] =
-{
-	"shape",
-	"skin",
-	"hair",
-	"eyes",
-	"shirt",
-	"pants",
-	"shoes",
-	"socks",
-	"jacket",
-	"gloves",
-	"undershirt",
-	"underpants",
-	"skirt",
-	"invalid"
-};
-
-// static
-const std::string LLWearable::sTypeLabel[ WT_COUNT+1 ] =
-{
-	"Shape",
-	"Skin",
-	"Hair",
-	"Eyes",
-	"Shirt",
-	"Pants",
-	"Shoes",
-	"Socks",
-	"Jacket",
-	"Gloves",
-	"Undershirt",
-	"Underpants",
-	"Skirt",
-	"invalid"
-};
-
-
-// static
-LLAssetType::EType LLWearable::typeToAssetType(EWearableType wearable_type)
-{
-	switch( wearable_type )
-	{
-	case WT_SHAPE:
-	case WT_SKIN:
-	case WT_HAIR:
-	case WT_EYES:
-		return LLAssetType::AT_BODYPART;
-	case WT_SHIRT:
-	case WT_PANTS:
-	case WT_SHOES:
-	case WT_SOCKS:
-	case WT_JACKET:
-	case WT_GLOVES:
-	case WT_UNDERSHIRT:
-	case WT_UNDERPANTS:
-	case WT_SKIRT:
-		return LLAssetType::AT_CLOTHING;
-	default:
-		return LLAssetType::AT_NONE;
-	}
-}
-
+// Private local functions
+static std::string terse_F32_to_string(F32 f);
+static std::string asset_id_to_filename(const LLUUID &asset_id);
 
 LLWearable::LLWearable(const LLTransactionID& transaction_id) :
 	mDefinitionVersion(LLWearable::sCurrentDefinitionVersion),
-	mType(WT_SHAPE)
+	mType(WT_INVALID)
 {
 	mTransactionID = transaction_id;
 	mAssetID = mTransactionID.makeAssetID(gAgent.getSecureSessionID());
@@ -129,7 +70,7 @@ LLWearable::LLWearable(const LLTransactionID& transaction_id) :
 
 LLWearable::LLWearable(const LLAssetID& asset_id) :
 	mDefinitionVersion( LLWearable::sCurrentDefinitionVersion ),
-	mType(WT_SHAPE)
+	mType(WT_INVALID)
 {
 	mAssetID = asset_id;
 	mTransactionID.setNull();
@@ -139,56 +80,22 @@ LLWearable::~LLWearable()
 {
 }
 
-
-// static
-EWearableType LLWearable::typeNameToType( const std::string& type_name )
+const std::string& LLWearable::getTypeLabel() const
 {
-	for( S32 i = 0; i < WT_COUNT; i++ )
-	{
-		if( type_name == LLWearable::sTypeName[ i ] )
-		{
-			return (EWearableType)i;
-		}
-	}
-	return WT_INVALID;
+	return LLWearableDictionary::getTypeLabel(mType);
 }
 
-
-std::string terse_F32_to_string( F32 f )
+const std::string& LLWearable::getTypeName() const
 {
-	std::string r = llformat( "%.2f", f );
-
-	// "1.20"  -> "1.2"
-	// "24.00" -> "24."
-	S32 len = r.length();
-	while( len > 0 && '0' == r[len - 1] )
-	{
-		r.erase(len-1, 1);
-		len--;
-	}
-
-	if( '.' == r[len - 1] )
-	{
-		// "24." -> "24"
-		r.erase(len-1, 1);
-	}
-	else
-	if( ('-' == r[0]) && ('0' == r[1]) )
-	{
-		// "-0.59" -> "-.59"
-		r.erase(1, 1);
-	}
-	else
-	if( '0' == r[0] )
-	{
-		// "0.59" -> ".59"
-		r.erase(0, 1);
-	}
-
-	return r;
+	return LLWearableDictionary::getTypeName(mType);
 }
 
-BOOL LLWearable::exportFile( LLFILE* file )
+LLAssetType::EType LLWearable::getAssetType() const
+{
+	return LLWearableDictionary::getAssetType(mType);
+}
+
+BOOL LLWearable::exportFile(LLFILE* file) const
 {
 	// header and version
 	if( fprintf( file, "LLWearable version %d\n", mDefinitionVersion ) < 0 )
@@ -228,17 +135,19 @@ BOOL LLWearable::exportFile( LLFILE* file )
 	}
 
 	// parameters
-	S32 num_parameters = mVisualParamMap.size();
+	S32 num_parameters = mVisualParamIndexMap.size();
 	if( fprintf( file, "parameters %d\n", num_parameters ) < 0 )
 	{
 		return FALSE;
 	}
 
-	for (param_map_t::iterator iter = mVisualParamMap.begin();
-		 iter != mVisualParamMap.end(); ++iter)
+	for (visual_param_index_map_t::const_iterator iter = mVisualParamIndexMap.begin();
+		 iter != mVisualParamIndexMap.end(); 
+		 ++iter)
 	{
 		S32 param_id = iter->first;
-		F32 param_weight = iter->second;
+		const LLVisualParam* param = iter->second;
+		F32 param_weight = param->getWeight();
 		if( fprintf( file, "%d %s\n", param_id, terse_F32_to_string( param_weight ).c_str() ) < 0 )
 		{
 			return FALSE;
@@ -252,21 +161,52 @@ BOOL LLWearable::exportFile( LLFILE* file )
 		return FALSE;
 	}
 	
-	for (te_map_t::iterator iter = mTEMap.begin();
-		 iter != mTEMap.end(); ++iter)
+	for (te_map_t::const_iterator iter = mTEMap.begin(); iter != mTEMap.end(); ++iter)
 	{
 		S32 te = iter->first;
-		LLUUID& image_id = iter->second;
+		const LLUUID& image_id = iter->second->getID();
 		if( fprintf( file, "%d %s\n", te, image_id.asString().c_str()) < 0 )
 		{
 			return FALSE;
 		}
 	}
-
 	return TRUE;
 }
 
 
+void LLWearable::createVisualParams()
+{
+	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	for (LLViewerVisualParam* param = (LLViewerVisualParam*) avatar->getFirstVisualParam(); 
+		 param;
+		 param = (LLViewerVisualParam*) avatar->getNextVisualParam())
+	{
+		if (param->getWearableType() == mType)
+		{
+			addVisualParam(param->cloneParam(this));
+		}
+	}
+
+	// resync driver parameters to point to the newly cloned driven parameters
+	for (visual_param_index_map_t::iterator param_iter = mVisualParamIndexMap.begin(); 
+		 param_iter != mVisualParamIndexMap.end(); 
+		 ++param_iter)
+	{
+		LLVisualParam* param = param_iter->second;
+		LLVisualParam*(LLWearable::*wearable_function)(S32)const = &LLWearable::getVisualParam; 
+		// need this line to disambiguate between versions of LLCharacter::getVisualParam()
+		LLVisualParam*(LLVOAvatarSelf::*avatar_function)(S32)const = &LLVOAvatarSelf::getVisualParam; 
+		param->resetDrivenParams();
+		if(!param->linkDrivenParams(boost::bind(wearable_function,(LLWearable*)this, _1), false))
+		{
+			if( !param->linkDrivenParams(boost::bind(avatar_function,(LLVOAvatarSelf*)avatar,_1 ), true))
+			{
+				llwarns << "could not link driven params for wearable " << getName() << " id: " << param->getID() << llendl;
+				continue;
+			}
+		}
+	}
+}
 
 BOOL LLWearable::importFile( LLFILE* file )
 {
@@ -287,14 +227,20 @@ BOOL LLWearable::importFile( LLFILE* file )
 		return FALSE;
 	}
 
-	if( mDefinitionVersion > LLWearable::sCurrentDefinitionVersion )
+
+	// Temoprary hack to allow wearables with definition version 24 to still load.
+	// This should only affect lindens and NDA'd testers who have saved wearables in 2.0
+	// the extra check for version == 24 can be removed before release, once internal testers
+	// have loaded these wearables again. See hack pt 2 at bottom of function to ensure that
+	// these wearables get re-saved with version definition 22.
+	if( mDefinitionVersion > LLWearable::sCurrentDefinitionVersion && mDefinitionVersion != 24 )
 	{
 		llwarns << "Wearable asset has newer version (" << mDefinitionVersion << ") than XML (" << LLWearable::sCurrentDefinitionVersion << ")" << llendl;
 		return FALSE;
 	}
 
 	// name
-	char next_char = fgetc( file );		/* Flawfinder: ignore */
+	int next_char = fgetc( file );		/* Flawfinder: ignore */
 	if( '\n' == next_char )
 	{
 		// no name
@@ -390,7 +336,7 @@ BOOL LLWearable::importFile( LLFILE* file )
 	}
 	if( 0 <= type && type < WT_COUNT )
 	{
-		mType = (EWearableType)type;
+		setType((EWearableType)type);
 	}
 	else
 	{
@@ -399,7 +345,6 @@ BOOL LLWearable::importFile( LLFILE* file )
 		return FALSE;
 	}
 
-
 	// parameters header
 	S32 num_parameters = 0;
 	fields_read = fscanf( file, "parameters %d\n", &num_parameters );
@@ -407,6 +352,11 @@ BOOL LLWearable::importFile( LLFILE* file )
 	{
 		llwarns << "Bad Wearable asset: missing parameters block" << llendl;
 		return FALSE;
+	}
+
+	if( num_parameters != mVisualParamIndexMap.size() )
+	{
+		llwarns << "Wearable parameter mismatch. Reading in " << num_parameters << " from file, but created " << mVisualParamIndexMap.size() << " from avatar parameters. type: " <<  mType << llendl;
 	}
 
 	// parameters
@@ -421,7 +371,7 @@ BOOL LLWearable::importFile( LLFILE* file )
 			llwarns << "Bad Wearable asset: bad parameter, #" << i << llendl;
 			return FALSE;
 		}
-		mVisualParamMap[param_id] = param_weight;
+		mSavedVisualParamMap[param_id] = param_weight;
 	}
 
 	// textures header
@@ -452,9 +402,25 @@ BOOL LLWearable::importFile( LLFILE* file )
 			llwarns << "Bad Wearable asset: bad texture uuid: " << text_buffer << llendl;
 			return FALSE;
 		}
+		LLUUID id = LLUUID(text_buffer);
+		LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture( id );
+		if( mTEMap.find(te) != mTEMap.end() )
+		{
+			delete mTEMap[te];
+		}
+		if( mSavedTEMap.find(te) != mSavedTEMap.end() )
+		{
+			delete mSavedTEMap[te];
+		}
 
-		mTEMap[te] = LLUUID(text_buffer );
+		LLUUID textureid(text_buffer);
+		mTEMap[te] = new LLLocalTextureObject(image, textureid);
+		mSavedTEMap[te] = new LLLocalTextureObject(image, textureid);
+		createLayers(te);
 	}
+
+	// copy all saved param values to working params
+	revertValues();
 
 	return TRUE;
 }
@@ -463,7 +429,7 @@ BOOL LLWearable::importFile( LLFILE* file )
 // Avatar parameter and texture definitions can change over time.
 // This function returns true if parameters or textures have been added or removed
 // since this wearable was created.
-BOOL LLWearable::isOldVersion()
+BOOL LLWearable::isOldVersion() const
 {
 	LLVOAvatar* avatar = gAgent.getAvatarObject();
 	llassert( avatar );
@@ -491,13 +457,13 @@ BOOL LLWearable::isOldVersion()
 		if( (param->getWearableType() == mType) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
 		{
 			param_count++;
-			if( !is_in_map(mVisualParamMap, param->getID() ) )
+			if( !is_in_map(mVisualParamIndexMap, param->getID() ) )
 			{
 				return TRUE;
 			}
 		}
 	}
-	if( param_count != mVisualParamMap.size() )
+	if( param_count != mVisualParamIndexMap.size() )
 	{
 		return TRUE;
 	}
@@ -506,7 +472,7 @@ BOOL LLWearable::isOldVersion()
 	S32 te_count = 0;
 	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
 	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
 		{
 			te_count++;
 			if( !is_in_map(mTEMap, te ) )
@@ -530,7 +496,7 @@ BOOL LLWearable::isOldVersion()
 // * If parameters or textures have been ADDED since the wearable was created,
 // they are taken to have default values, so we consider the wearable clean
 // only if those values are the same as the defaults.
-BOOL LLWearable::isDirty()
+BOOL LLWearable::isDirty() const
 {
 	LLVOAvatar* avatar = gAgent.getAvatarObject();
 	llassert( avatar );
@@ -544,13 +510,17 @@ BOOL LLWearable::isDirty()
 		param;
 		param = (LLViewerVisualParam*) avatar->getNextVisualParam() )
 	{
-		if( (param->getWearableType() == mType) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
+		if( (param->getWearableType() == mType) 
+			&& (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) 
+			&& !param->getCrossWearable())
 		{
-			F32 weight = get_if_there(mVisualParamMap, param->getID(), param->getDefaultWeight());
-			weight = llclamp( weight, param->getMinWeight(), param->getMaxWeight() );
+			F32 current_weight = getVisualParamWeight(param->getID());
+			current_weight = llclamp( current_weight, param->getMinWeight(), param->getMaxWeight() );
+			F32 saved_weight = get_if_there(mSavedVisualParamMap, param->getID(), param->getDefaultWeight());
+			saved_weight = llclamp( saved_weight, param->getMinWeight(), param->getMaxWeight() );
 			
-			U8 a = F32_to_U8( param->getWeight(), param->getMinWeight(), param->getMaxWeight() );
-			U8 b = F32_to_U8( weight,             param->getMinWeight(), param->getMaxWeight() );
+			U8 a = F32_to_U8( saved_weight, param->getMinWeight(), param->getMaxWeight() );
+			U8 b = F32_to_U8( current_weight, param->getMinWeight(), param->getMaxWeight() );
 			if( a != b  )
 			{
 				return TRUE;
@@ -560,18 +530,27 @@ BOOL LLWearable::isDirty()
 
 	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
 	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
 		{
-			LLViewerImage* avatar_image = avatar->getTEImage( te );
-			if( !avatar_image )
+			te_map_t::const_iterator current_iter = mTEMap.find(te);
+			if(current_iter != mTEMap.end())
 			{
-				llassert( 0 );
-				continue;
-			}
-			const LLUUID& image_id = get_if_there(mTEMap,  te, LLVOAvatar::getDefaultTEImageID((ETextureIndex) te ) );
-			if( avatar_image->getID() != image_id )
-			{
-				return TRUE;
+ 				const LLUUID& current_image_id = current_iter->second->getID();
+				te_map_t::const_iterator saved_iter = mSavedTEMap.find(te);
+				if(saved_iter != mSavedTEMap.end())
+				{
+					const LLUUID& saved_image_id = saved_iter->second->getID();
+					if (saved_image_id != current_image_id)
+					{
+						// saved vs current images are different, wearable is dirty
+						return TRUE;
+					}
+				}
+				else
+				{
+					// image found in current image list but not saved image list
+					return TRUE;
+				}
 			}
 		}
 	}
@@ -597,35 +576,47 @@ void LLWearable::setParamsToDefaults()
 		return;
 	}
 
-	mVisualParamMap.clear();
 	for( LLVisualParam* param = avatar->getFirstVisualParam(); param; param = avatar->getNextVisualParam() )
 	{
 		if( (((LLViewerVisualParam*)param)->getWearableType() == mType ) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
 		{
-			mVisualParamMap[param->getID()] = param->getDefaultWeight();
+			setVisualParamWeight(param->getID(),param->getDefaultWeight(), FALSE);
 		}
 	}
 }
 
 void LLWearable::setTexturesToDefaults()
 {
-	mTEMap.clear();
 	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
 	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
 		{
-			mTEMap[te] = LLVOAvatar::getDefaultTEImageID((ETextureIndex) te );
+			LLUUID id = LLVOAvatarDictionary::getDefaultTextureImageID((ETextureIndex) te);
+			LLViewerFetchedTexture * image = LLViewerTextureManager::getFetchedTexture( id );
+			if( mTEMap.find(te) == mTEMap.end() )
+			{
+				mTEMap[te] = new LLLocalTextureObject(image, id);
+				createLayers(te);
+			}
+			else
+			{
+				// Local Texture Object already created, just set image and UUID
+				LLLocalTextureObject *lto = mTEMap[te];
+				lto->setID(id);
+				lto->setImage(image);
+			}
 		}
 	}
 }
 
 // Updates the user's avatar's appearance
-void LLWearable::writeToAvatar( BOOL set_by_user )
+void LLWearable::writeToAvatar()
 {
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
 	llassert( avatar );
 	if( !avatar )
 	{
+		llerrs << "could not get avatar object to write to for wearable " << this->getName() << llendl;
 		return;
 	}
 
@@ -634,79 +625,56 @@ void LLWearable::writeToAvatar( BOOL set_by_user )
 	// Pull params
 	for( LLVisualParam* param = avatar->getFirstVisualParam(); param; param = avatar->getNextVisualParam() )
 	{
-		if( (((LLViewerVisualParam*)param)->getWearableType() == mType) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
+		// cross-wearable parameters are not authoritative, as they are driven by a different wearable. So don't copy the values to the
+		// avatar object if cross wearable. Cross wearable params get their values from the avatar, they shouldn't write the other way.
+		if( (((LLViewerVisualParam*)param)->getWearableType() == mType) && (!((LLViewerVisualParam*)param)->getCrossWearable()) )
 		{
 			S32 param_id = param->getID();
-			F32 weight = get_if_there(mVisualParamMap, param_id, param->getDefaultWeight());
-			// only animate with user-originated changes
-			if (set_by_user)
-			{
-				param->setAnimationTarget(weight, set_by_user);
-			}
-			else
-			{
-				avatar->setVisualParamWeight( param_id, weight, set_by_user );
-			}
-		}
-	}
+			F32 weight = getVisualParamWeight(param_id);
 
-	// only interpolate with user-originated changes
-	if (set_by_user)
-	{
-		avatar->startAppearanceAnimation(TRUE, TRUE);
+			avatar->setVisualParamWeight( param_id, weight, FALSE );
+		}
 	}
 
 	// Pull texture entries
 	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
 	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
 		{
-			const LLUUID& image_id = get_if_there(mTEMap, te, LLVOAvatar::getDefaultTEImageID((ETextureIndex) te ) );
-			LLViewerImage* image = gImageList.getImage( image_id );
-			avatar->setLocTexTE( te, image, set_by_user );
-		}
-	}
-
-	avatar->updateVisualParams();
-
-	if( gFloaterCustomize )
-	{
-		LLViewerInventoryItem* item;
-		item = (LLViewerInventoryItem*)gInventory.getItem(gAgent.getWearableItem(mType));
-		U32 perm_mask = PERM_NONE;
-		BOOL is_complete = FALSE;
-		if(item)
-		{
-			perm_mask = item->getPermissions().getMaskOwner();
-			is_complete = item->isComplete();
-			if(!is_complete)
+			te_map_t::const_iterator iter = mTEMap.find(te);
+			LLUUID image_id;
+			if(iter != mTEMap.end())
 			{
-				item->fetchFromServer();
+				image_id = iter->second->getID();
 			}
+			else
+			{	
+				image_id = LLVOAvatarDictionary::getDefaultTextureImageID((ETextureIndex) te);
+			}
+			LLViewerTexture* image = LLViewerTextureManager::getFetchedTexture( image_id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE );
+			// MULTI-WEARABLE: replace hard-coded 0
+			avatar->setLocalTextureTE(te, image, 0);
 		}
-		gFloaterCustomize->setWearable(mType, this, perm_mask, is_complete);
-		LLFloaterCustomize::setCurrentWearableType( mType );
 	}
 
 	ESex new_sex = avatar->getSex();
 	if( old_sex != new_sex )
 	{
-		avatar->updateSexDependentLayerSets( set_by_user );
+		avatar->updateSexDependentLayerSets( FALSE );
 	}	
 	
-	avatar->updateMeshTextures();
-
-//	if( set_by_user )
+//	if( upload_bake )
 //	{
 //		gAgent.sendAgentSetAppearance();
 //	}
 }
 
+
 // Updates the user's avatar's appearance, replacing this wearables' parameters and textures with default values.
 // static 
-void LLWearable::removeFromAvatar( EWearableType type, BOOL set_by_user )
+void LLWearable::removeFromAvatar( EWearableType type, BOOL upload_bake )
 {
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
 	llassert( avatar );
 	if( !avatar )
 	{
@@ -728,17 +696,7 @@ void LLWearable::removeFromAvatar( EWearableType type, BOOL set_by_user )
 		if( (((LLViewerVisualParam*)param)->getWearableType() == type) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
 		{
 			S32 param_id = param->getID();
-			avatar->setVisualParamWeight( param_id, param->getDefaultWeight(), set_by_user );
-		}
-	}
-
-	// Pull textures
-	LLViewerImage* image = gImageList.getImage( IMG_DEFAULT_AVATAR );
-	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
-	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == type )
-		{
-			avatar->setLocTexTE( te, image, set_by_user );
+			avatar->setVisualParamWeight( param_id, param->getDefaultWeight(), upload_bake );
 		}
 	}
 
@@ -748,61 +706,19 @@ void LLWearable::removeFromAvatar( EWearableType type, BOOL set_by_user )
 	}
 
 	avatar->updateVisualParams();
-	avatar->updateMeshTextures();
+	avatar->wearableUpdated(type, TRUE);
 
-//	if( set_by_user )
+//	if( upload_bake )
 //	{
 //		gAgent.sendAgentSetAppearance();
 //	}
 }
 
-
-
-// Updates asset from the user's avatar
-void LLWearable::readFromAvatar()
-{
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
-	llassert( avatar );
-	if( !avatar )
-	{
-		return;
-	}
-
-	mDefinitionVersion = LLWearable::sCurrentDefinitionVersion;
-
-	mVisualParamMap.clear();
-	for( LLVisualParam* param = avatar->getFirstVisualParam(); param; param = avatar->getNextVisualParam() )
-	{
-		if( (((LLViewerVisualParam*)param)->getWearableType() == mType) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
-		{
-			mVisualParamMap[param->getID()] = param->getWeight();
-		}
-	}
-
-	mTEMap.clear();
-	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
-	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
-		{
-			LLViewerImage* image = avatar->getTEImage( te );
-			if( image )
-			{
-				mTEMap[te] = image->getID();
-			}
-		}
-	}
-
-	//if( gFloaterCustomize )
-	//{
-	//	mDescription = gFloaterCustomize->getWearableDescription( mType );
-	//}
-}
-
 // Does not copy mAssetID.
 // Definition version is current: removes obsolete enties and creates default values for new ones.
-void LLWearable::copyDataFrom( LLWearable* src )
+void LLWearable::copyDataFrom(const LLWearable* src)
 {
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
 	llassert( avatar );
 	if( !avatar )
 	{
@@ -815,29 +731,395 @@ void LLWearable::copyDataFrom( LLWearable* src )
 	mDescription = src->mDescription;
 	mPermissions = src->mPermissions;
 	mSaleInfo = src->mSaleInfo;
-	mType = src->mType;
 
+	setType(src->mType);
+
+	mSavedVisualParamMap.clear();
 	// Deep copy of mVisualParamMap (copies only those params that are current, filling in defaults where needed)
 	for( LLViewerVisualParam* param = (LLViewerVisualParam*) avatar->getFirstVisualParam(); 
 		param;
 		param = (LLViewerVisualParam*) avatar->getNextVisualParam() )
 	{
-		if( (param->getWearableType() == mType) && (param->getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE ) )
+		if( (param->getWearableType() == mType) )
 		{
 			S32 id = param->getID();
-			F32 weight = get_if_there(src->mVisualParamMap, id, param->getDefaultWeight() );
-			mVisualParamMap[id] = weight;
+			F32 weight = src->getVisualParamWeight(id);
+			mSavedVisualParamMap[id] = weight;
 		}
 	}
 
+	destroyTextures();
 	// Deep copy of mTEMap (copies only those tes that are current, filling in defaults where needed)
 	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
 	{
-		if( LLVOAvatar::getTEWearableType((ETextureIndex) te ) == mType )
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
 		{
-			const LLUUID& image_id = get_if_there(src->mTEMap, te, LLVOAvatar::getDefaultTEImageID((ETextureIndex) te ) );
-			mTEMap[te] = image_id;
+			te_map_t::const_iterator iter = src->mTEMap.find(te);
+			LLUUID image_id;
+			LLViewerFetchedTexture *image = NULL;
+			if(iter != src->mTEMap.end())
+			{
+				image = src->getConstLocalTextureObject(te)->getImage();
+				image_id = src->getConstLocalTextureObject(te)->getID();
+				mTEMap[te] = new LLLocalTextureObject(image, image_id);
+				mSavedTEMap[te] = new LLLocalTextureObject(image, image_id);
+				mTEMap[te]->setBakedReady(src->getConstLocalTextureObject(te)->getBakedReady());
+				mTEMap[te]->setDiscard(src->getConstLocalTextureObject(te)->getDiscard());
+			}
+			else
+			{
+				image_id = LLVOAvatarDictionary::getDefaultTextureImageID((ETextureIndex) te);
+				image = LLViewerTextureManager::getFetchedTexture( image_id );
+				mTEMap[te] = new LLLocalTextureObject(image, image_id);
+				mSavedTEMap[te] = new LLLocalTextureObject(image, image_id);
+			}
+			createLayers(te);
 		}
+	}
+
+	// Probably reduntant, but ensure that the newly created wearable is not dirty by setting current value of params in new wearable
+	// to be the same as the saved values (which were loaded from src at param->cloneParam(this))
+	revertValues();
+}
+
+void LLWearable::setItemID(const LLUUID& item_id)
+{
+	mItemID = item_id;
+}
+
+const LLUUID& LLWearable::getItemID() const
+{
+	return mItemID;
+}
+
+void LLWearable::setType(EWearableType type) 
+{ 
+	mType = type; 
+	createVisualParams();
+}
+
+LLLocalTextureObject* LLWearable::getLocalTextureObject(S32 index)
+{
+	te_map_t::iterator iter = mTEMap.find(index);
+	if( iter != mTEMap.end() )
+	{
+		LLLocalTextureObject* lto = iter->second;
+		return lto;
+	}
+	return NULL;
+}
+
+const LLLocalTextureObject* LLWearable::getConstLocalTextureObject(S32 index) const
+{
+	te_map_t::const_iterator iter = mTEMap.find(index);
+	if( iter != mTEMap.end() )
+	{
+		const LLLocalTextureObject* lto = iter->second;
+		return lto;
+	}
+	return NULL;
+}
+
+void LLWearable::setLocalTextureObject(S32 index, LLLocalTextureObject &lto)
+{
+	if( mTEMap.find(index) != mTEMap.end() )
+	{
+		mTEMap.erase(index);
+	}
+	mTEMap[index] = new LLLocalTextureObject(lto);
+}
+
+
+void LLWearable::addVisualParam(LLVisualParam *param)
+{
+	if( mVisualParamIndexMap[param->getID()] )
+	{
+		delete mVisualParamIndexMap[param->getID()];
+	}
+	param->setIsDummy(FALSE);
+	mVisualParamIndexMap[param->getID()] = param;
+	mSavedVisualParamMap[param->getID()] = param->getDefaultWeight();
+}
+
+void LLWearable::setVisualParams()
+{
+	LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
+
+	for (visual_param_index_map_t::const_iterator iter = mVisualParamIndexMap.begin(); iter != mVisualParamIndexMap.end(); iter++)
+	{
+		S32 id = iter->first;
+		LLVisualParam *wearable_param = iter->second;
+		F32 value = wearable_param->getWeight();
+		avatar->setVisualParamWeight(id, value, FALSE);
+	}
+}
+
+
+void LLWearable::setVisualParamWeight(S32 param_index, F32 value, BOOL upload_bake)
+{
+	if( is_in_map(mVisualParamIndexMap, param_index ) )
+	{
+		LLVisualParam *wearable_param = mVisualParamIndexMap[param_index];
+		wearable_param->setWeight(value, upload_bake);
+	}
+	else
+	{
+		llerrs << "LLWearable::setVisualParam passed invalid parameter index: " << param_index << " for wearable type: " << this->getName() << llendl;
+	}
+}
+
+F32 LLWearable::getVisualParamWeight(S32 param_index) const
+{
+	if( is_in_map(mVisualParamIndexMap, param_index ) )
+	{
+		const LLVisualParam *wearable_param = mVisualParamIndexMap.find(param_index)->second;
+		return wearable_param->getWeight();
+	}
+	else
+	{
+		llwarns << "LLWerable::getVisualParam passed invalid parameter index: "  << param_index << " for wearable type: " << this->getName() << llendl;
+	}
+	return (F32)-1.0;
+}
+
+LLVisualParam* LLWearable::getVisualParam(S32 index) const
+{
+	visual_param_index_map_t::const_iterator iter = mVisualParamIndexMap.find(index);
+	return (iter == mVisualParamIndexMap.end()) ? NULL : iter->second;
+}
+
+
+void LLWearable::getVisualParams(visual_param_vec_t &list)
+{
+	visual_param_index_map_t::iterator iter = mVisualParamIndexMap.begin();
+	visual_param_index_map_t::iterator end = mVisualParamIndexMap.end();
+
+	// add all visual params to the passed-in vector
+	for( ; iter != end; ++iter )
+	{
+		list.push_back(iter->second);
+	}
+}
+
+void LLWearable::animateParams(F32 delta, BOOL upload_bake)
+{
+	for(visual_param_index_map_t::iterator iter = mVisualParamIndexMap.begin();
+		 iter != mVisualParamIndexMap.end();
+		 ++iter)
+	{
+		LLVisualParam *param = (LLVisualParam*) iter->second;
+		param->animate(delta, upload_bake);
+	}
+}
+
+LLColor4 LLWearable::getClothesColor(S32 te) const
+{
+	LLColor4 color;
+	U32 param_name[3];
+	if( LLVOAvatar::teToColorParams( (LLVOAvatarDefines::ETextureIndex)te, param_name ) )
+	{
+		for( U8 index = 0; index < 3; index++ )
+		{
+			color.mV[index] = getVisualParamWeight(param_name[index]);
+		}
+	}
+	return color;
+}
+
+void LLWearable::setClothesColor( S32 te, const LLColor4& new_color, BOOL upload_bake )
+{
+	U32 param_name[3];
+	if( LLVOAvatar::teToColorParams( (LLVOAvatarDefines::ETextureIndex)te, param_name ) )
+	{
+		for( U8 index = 0; index < 3; index++ )
+		{
+			setVisualParamWeight(param_name[index], new_color.mV[index], upload_bake);
+		}
+	}
+}
+
+void LLWearable::revertValues()
+{
+	//update saved settings so wearable is no longer dirty
+	// non-driver params first
+	for (param_map_t::const_iterator iter = mSavedVisualParamMap.begin(); iter != mSavedVisualParamMap.end(); iter++)
+	{
+		S32 id = iter->first;
+		F32 value = iter->second;
+		LLVisualParam *param = getVisualParam(id);
+		if(param &&  !dynamic_cast<LLDriverParam*>(param) )
+		{
+			setVisualParamWeight(id, value, TRUE);
+		}
+	}
+
+	//then driver params
+	for (param_map_t::const_iterator iter = mSavedVisualParamMap.begin(); iter != mSavedVisualParamMap.end(); iter++)
+	{
+		S32 id = iter->first;
+		F32 value = iter->second;
+		LLVisualParam *param = getVisualParam(id);
+		if(param &&  dynamic_cast<LLDriverParam*>(param) )
+		{
+			setVisualParamWeight(id, value, TRUE);
+		}
+	}
+
+	// make sure that saved values are sane
+	for (param_map_t::const_iterator iter = mSavedVisualParamMap.begin(); iter != mSavedVisualParamMap.end(); iter++)
+	{
+		S32 id = iter->first;
+		LLVisualParam *param = getVisualParam(id);
+		if( param )
+		{
+			mSavedVisualParamMap[id] = param->getWeight();
+		}
+	}
+
+	syncImages(mSavedTEMap, mTEMap);
+
+	if( gFloaterCustomize )
+	{
+		gFloaterCustomize->updateScrollingPanelList(TRUE);
+	}
+}
+
+BOOL LLWearable::isOnTop() const
+{ 
+	return (this == gAgentWearables.getTopWearable(mType));
+}
+
+void LLWearable::createLayers(S32 te)
+{
+	LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
+	LLTexLayerSet *layer_set = avatar->getLayerSet((ETextureIndex)te);
+	if( layer_set )
+	{
+		layer_set->cloneTemplates(mTEMap[te], (ETextureIndex)te, this);
+	}
+	else
+	{
+		llerrs << "could not find layerset for LTO in wearable!" << llendl;
+	}
+}
+
+void LLWearable::saveValues()
+{
+	//update saved settings so wearable is no longer dirty
+	mSavedVisualParamMap.clear();
+	for (visual_param_index_map_t::const_iterator iter = mVisualParamIndexMap.begin(); iter != mVisualParamIndexMap.end(); ++iter)
+	{
+		S32 id = iter->first;
+		LLVisualParam *wearable_param = iter->second;
+		F32 value = wearable_param->getWeight();
+		mSavedVisualParamMap[id] = value;
+	}
+
+	// Deep copy of mTEMap (copies only those tes that are current, filling in defaults where needed)
+	syncImages(mTEMap, mSavedTEMap);
+
+	if( gFloaterCustomize )
+	{
+		gFloaterCustomize->updateScrollingPanelList(TRUE);
+	}
+}
+
+void LLWearable::syncImages(te_map_t &src, te_map_t &dst)
+{
+	// Deep copy of src (copies only those tes that are current, filling in defaults where needed)
+	for( S32 te = 0; te < TEX_NUM_INDICES; te++ )
+	{
+		if (LLVOAvatarDictionary::getTEWearableType((ETextureIndex) te) == mType)
+		{
+			te_map_t::const_iterator iter = src.find(te);
+			LLUUID image_id;
+			LLViewerFetchedTexture *image = NULL;
+			LLLocalTextureObject *lto = NULL;
+			if(iter != src.end())
+			{
+				// there's a Local Texture Object in the source image map. Use this to populate the values to store in the destination image map.
+				lto = iter->second;
+				image = lto->getImage();
+				image_id = lto->getID();
+			}
+			else
+			{
+				// there is no Local Texture Object in the source image map. Get defaults values for populating the destination image map.
+				image_id = LLVOAvatarDictionary::getDefaultTextureImageID((ETextureIndex) te);
+				image = LLViewerTextureManager::getFetchedTexture( image_id );
+			}
+
+			if( dst.find(te) != dst.end() )
+			{
+				// there's already an entry in the destination map for the texture. Just update its values.
+				dst[te]->setImage(image);
+				dst[te]->setID(image_id);
+			}
+			else
+			{
+				// no entry found in the destination map, we need to create a new Local Texture Object
+				dst[te] = new LLLocalTextureObject(image, image_id);
+			}
+
+			if( lto )
+			{
+				// If we pulled values from a Local Texture Object in the source map, make sure the proper flags are set in the new (or updated) entry in the destination map.
+				dst[te]->setBakedReady(lto->getBakedReady());
+				dst[te]->setDiscard(lto->getDiscard());
+			}
+		}
+	}
+}
+
+void LLWearable::destroyTextures()
+{
+	for( te_map_t::iterator iter = mTEMap.begin(); iter != mTEMap.end(); ++iter )
+	{
+		LLLocalTextureObject *lto = iter->second;
+		delete lto;
+	}
+	mTEMap.clear();
+	for( te_map_t::iterator iter = mSavedTEMap.begin(); iter != mSavedTEMap.end(); ++iter )
+	{
+		LLLocalTextureObject *lto = iter->second;
+		delete lto;
+	}
+	mSavedTEMap.clear();
+}
+
+void LLWearable::pullCrossWearableValues()
+{
+	// scan through all of the avatar's visual parameters
+	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	for (LLViewerVisualParam* param = (LLViewerVisualParam*) avatar->getFirstVisualParam(); 
+		 param;
+		 param = (LLViewerVisualParam*) avatar->getNextVisualParam())
+	{
+		if( param )
+		{
+			LLDriverParam *driver_param = dynamic_cast<LLDriverParam*>(param);
+			if(driver_param)
+			{
+				// parameter is a driver parameter, have it update its 
+				driver_param->updateCrossDrivenParams(getType());
+			}
+		}
+	}
+}
+
+
+void LLWearable::setLabelUpdated() const
+{ 
+	gInventory.addChangedMask(LLInventoryObserver::LABEL, getItemID());
+}
+
+void LLWearable::refreshName()
+{
+	LLUUID item_id = getItemID();
+	LLInventoryItem* item = gInventory.getItem(item_id);
+	if( item )
+	{
+		mName = item->getName();
 	}
 }
 
@@ -846,15 +1128,12 @@ struct LLWearableSaveData
 	EWearableType mType;
 };
 
-void LLWearable::saveNewAsset()
+void LLWearable::saveNewAsset() const
 {
 //	llinfos << "LLWearable::saveNewAsset() type: " << getTypeName() << llendl;
 	//llinfos << *this << llendl;
 
-	std::string new_asset_id_string;
-	mAssetID.toString(new_asset_id_string);
-	std::string filename;
-	filename = gDirUtilp->getExpandedFilename(LL_PATH_CACHE,new_asset_id_string) + ".wbl";
+	const std::string filename = asset_id_to_filename(mAssetID);
 	LLFILE* fp = LLFile::fopen(filename, "wb");		/* Flawfinder: ignore */
 	BOOL successful_save = FALSE;
 	if(fp && exportFile(fp))
@@ -873,7 +1152,7 @@ void LLWearable::saveNewAsset()
 		
 		LLSD args;
 		args["NAME"] = mName;
-		LLNotifications::instance().add("CannotSaveWearableOutOfSpace", args);
+		LLNotificationsUtil::add("CannotSaveWearableOutOfSpace", args);
 		return;
 	}
 
@@ -886,7 +1165,7 @@ void LLWearable::saveNewAsset()
 		{
 			llinfos << "Update Agent Inventory via capability" << llendl;
 			LLSD body;
-			body["folder_id"] = gInventory.findCategoryUUIDForType(getAssetType());
+			body["folder_id"] = gInventory.findCategoryUUIDForType(LLFolderType::assetToFolderType(getAssetType()));
 			body["asset_type"] = LLAssetType::lookup(getAssetType());
 			body["inventory_type"] = LLInventoryType::lookup(LLInventoryType::IT_WEARABLE);
 			body["name"] = getName();
@@ -909,7 +1188,7 @@ void LLWearable::saveNewAsset()
 void LLWearable::onSaveNewAssetComplete(const LLUUID& new_asset_id, void* userdata, S32 status, LLExtStat ext_status) // StoreAssetData callback (fixed)
 {
 	LLWearableSaveData* data = (LLWearableSaveData*)userdata;
-	const std::string& type_name = LLWearable::typeToTypeName(data->mType);
+	const std::string& type_name = LLWearableDictionary::getTypeName(data->mType);
 	if(0 == status)
 	{
 		// Success
@@ -921,43 +1200,33 @@ void LLWearable::onSaveNewAssetComplete(const LLUUID& new_asset_id, void* userda
 		llwarns << buffer << " Status: " << status << llendl;
 		LLSD args;
 		args["NAME"] = type_name;
-		LLNotifications::instance().add("CannotSaveToAssetStore", args);
+		LLNotificationsUtil::add("CannotSaveToAssetStore", args);
 	}
 
 	// Delete temp file
-	std::string new_asset_id_string;
-	new_asset_id.toString(new_asset_id_string);
-	std::string src_filename;
-	src_filename = gDirUtilp->getExpandedFilename(LL_PATH_CACHE,new_asset_id_string) + ".wbl";
+	const std::string src_filename = asset_id_to_filename(new_asset_id);
 	LLFile::remove(src_filename);
 
 	// delete the context data
 	delete data;
-}
 
-BOOL LLWearable::isMatchedToInventoryItem( LLViewerInventoryItem* item )
-{
-	return 
-		( mName == item->getName() ) &&
-		( mDescription == item->getDescription() ) &&
-		( mPermissions == item->getPermissions() ) &&
-		( mSaleInfo == item->getSaleInfo() );
 }
 
 std::ostream& operator<<(std::ostream &s, const LLWearable &w)
 {
-	s << "wearable " << LLWearable::typeToTypeName( w.mType ) << "\n";
+	s << "wearable " << LLWearableDictionary::getTypeName(w.mType) << "\n";
 	s << "    Name: " << w.mName << "\n";
 	s << "    Desc: " << w.mDescription << "\n";
 	//w.mPermissions
 	//w.mSaleInfo
 
 	s << "    Params:" << "\n";
-	for (LLWearable::param_map_t::const_iterator iter = w.mVisualParamMap.begin();
-		 iter != w.mVisualParamMap.end(); ++iter)
+	for (LLWearable::visual_param_index_map_t::const_iterator iter = w.mVisualParamIndexMap.begin();
+		 iter != w.mVisualParamIndexMap.end(); ++iter)
 	{
 		S32 param_id = iter->first;
-		F32 param_weight = iter->second;
+		LLVisualParam *wearable_param = iter->second;
+		F32 param_weight = wearable_param->getWeight();
 		s << "        " << param_id << " " << param_weight << "\n";
 	}
 
@@ -966,10 +1235,47 @@ std::ostream& operator<<(std::ostream &s, const LLWearable &w)
 		 iter != w.mTEMap.end(); ++iter)
 	{
 		S32 te = iter->first;
-		const LLUUID& image_id = iter->second;
+		const LLUUID& image_id = iter->second->getID();
 		s << "        " << te << " " << image_id << "\n";
 	}
 	return s;
 }
 
 
+std::string terse_F32_to_string(F32 f)
+{
+	std::string r = llformat("%.2f", f);
+	S32 len = r.length();
+
+    // "1.20"  -> "1.2"
+    // "24.00" -> "24."
+	while (len > 0 && ('0' == r[len - 1]))
+	{
+		r.erase(len-1, 1);
+		len--;
+	}
+	if ('.' == r[len - 1])
+	{
+		// "24." -> "24"
+		r.erase(len-1, 1);
+	}
+	else if (('-' == r[0]) && ('0' == r[1]))
+	{
+		// "-0.59" -> "-.59"
+		r.erase(1, 1);
+	}
+	else if ('0' == r[0])
+	{
+		// "0.59" -> ".59"
+		r.erase(0, 1);
+	}
+	return r;
+}
+
+std::string asset_id_to_filename(const LLUUID &asset_id)
+{
+	std::string asset_id_string;
+	asset_id.toString(asset_id_string);
+	std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_CACHE,asset_id_string) + ".wbl";	
+	return filename;
+}

@@ -1,39 +1,64 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- Appears unused. JC 2009-09-08 -->
 <panel name="Panel Avatar" width="470">
+	<panel.string name="ShowOnMapNonFriend">
+		地図上でロケーションを表示します。
+相手とフレンドシップを交わしていないため、表示できません。
+	</panel.string>
+	<panel.string name="ShowOnMapFriendOffline">
+		地図上でロケーションを表示します。
+    相手がオンラインではないため、表示できません。
+	</panel.string>
+	<panel.string name="ShowOnMapFriendOnline">
+		地図上でロケーションを表示します。
+	</panel.string>
+	<panel.string name="TeleportGod">
+		あなたのロケーションに強制テレポート
+	</panel.string>
+	<panel.string name="TeleportPrelude">
+		あなたのロケーションへのテレポートを送ります。
+あなたがオリエンテーション・アイランドを去るまで無効です。
+	</panel.string>
+	<panel.string name="TeleportNormal">
+		あなたのロケーションへのテレポートを送ります。
+	</panel.string>
+	<panel.string name="Loading">
+		ローディング．．．
+	</panel.string>
 	<tab_container name="tab" width="459">
-		<panel label="セカンドライフ" name="2nd Life" width="458">
-			<string name="CaptionTextAcctInfo">
+		<panel label="SL" name="2nd Life" width="458">
+			<panel.string name="CaptionTextAcctInfo">
 				[ACCTTYPE]
 [PAYMENTINFO]
 [AGEVERIFICATION]
-			</string>
-			<string name="AcctTypeResident">
+			</panel.string>
+			<panel.string name="AcctTypeResident">
 				住人
-			</string>
-			<string name="AcctTypeTrial">
+			</panel.string>
+			<panel.string name="AcctTypeTrial">
 				トライアル
-			</string>
-			<string name="AcctTypeCharterMember">
+			</panel.string>
+			<panel.string name="AcctTypeCharterMember">
 				特権メンバー
-			</string>
-			<string name="AcctTypeEmployee">
+			</panel.string>
+			<panel.string name="AcctTypeEmployee">
 				Linden Lab従業員
-			</string>
-			<string name="PaymentInfoUsed">
+			</panel.string>
+			<panel.string name="PaymentInfoUsed">
 				支払い情報登録済
-			</string>
-			<string name="PaymentInfoOnFile">
+			</panel.string>
+			<panel.string name="PaymentInfoOnFile">
 				支払い情報登録済み
-			</string>
-			<string name="NoPaymentInfoOnFile">
+			</panel.string>
+			<panel.string name="NoPaymentInfoOnFile">
 				支払い情報未登録
-			</string>
-			<string name="AgeVerified">
+			</panel.string>
+			<panel.string name="AgeVerified">
 				年齢確認済み
-			</string>
-			<string name="NotAgeVerified">
+			</panel.string>
+			<panel.string name="NotAgeVerified">
 				年齢未確認
-			</string>
+			</panel.string>
 			<text name="Name:">
 				名前：
 			</text>
@@ -43,18 +68,17 @@
 			<text name="label">
 				生年月日：
 			</text>
-			<line_editor name="born" width="161" />
+			<line_editor name="born" width="161"/>
 			<text name="label2">
 				アカウント：
 			</text>
-			<view_border name="acct_border" width="161" />
-			<text name="acct" width="161" />
-			<text name="partner_label" tool_tip="Second Lifeパートナーです。 設定方法の詳細については、www.secondlife.com/partnerを参照してください。">
+			<view_border name="acct_border" width="161"/>
+			<text name="acct" width="161"/>
+			<text name="partner_label" tool_tip="[SECOND_LIFE] パートナー。 設定の仕方は、http://jp.secondlife.com/account/partners.php でご確認ください">
 				パートナー：
 			</text>
-			<button label="i" label_selected="i" name="partner_info" tool_tip="クリックして、パートナーのプロフィールを開けてください。" left_delta="64"/>
-			<button label="?" label_selected="?" name="partner_help"/>
-			<line_editor name="partner_edit" tool_tip="Second Lifeパートナーです。 設定方法の詳細については、www.secondlife.com/partnerを参照してください。" width="161">
+			<button label="i" label_selected="i" left_delta="64" name="partner_info" tool_tip="クリックして、パートナーのプロフィールを開けてください。"/>
+			<line_editor name="partner_edit" tool_tip="[SECOND_LIFE] パートナー。 設定の仕方は、http://jp.secondlife.com/account/partners.php でご確認ください" width="161">
 				[FIRST] [LAST]
 			</line_editor>
 			<text name="Photo:">
@@ -64,7 +88,7 @@
 			<text name="Groups:">
 				グループ：
 			</text>
-			<scroll_list name="groups" width="361" />
+			<scroll_list name="groups" width="361"/>
 			<text name="About:">
 				情報：
 			</text>
@@ -75,33 +99,23 @@
 			<text name="Give item:">
 				品目を贈る：
 			</text>
-			<view_border name="drop_target_rect" width="449" />
-			<view_border name="drop_target_rect_vis" width="361" />
-			<text name="Give inventory" tool_tip="ここに物品目をドロップしてこの人に贈ります" width="361">
+			<view_border name="drop_target_rect_vis" width="361"/>
+			<text name="Give inventory" tool_tip="持ち物アイテムをここにドロップしてこの人に渡します" width="361">
 				持ち物アイテムをここにドロップします
 			</text>
-			<check_box label="検索に表示" name="allow_publish" tool_tip="検索で、詳細やイメージなどさらなるプロフィール情報を公開する。"/>
-			<button label="?" label_selected="?" name="?"/>
+			<check_box label="検索に表示" name="allow_publish" tool_tip="説明や検索の画像などの、詳しいプロフィール情報を公開します"/>
 			<button label="地図上で検索" label_selected="地図上で検索" name="Find on Map"/>
-			<button label="テレポートを送る" label_selected="テレポートを送る" name="Offer Teleport..." left_delta="117"/>
-			<button label="フレンドに追加" label_selected="フレンドに追加" name="Add Friend..." left_delta="157"/>
+			<button label="テレポートを送る" label_selected="テレポートを送る" left_delta="117" name="Offer Teleport..."/>
+			<button label="フレンドに追加" label_selected="フレンドに追加" left_delta="157" name="Add Friend..."/>
 			<button label="支払う" label_selected="支払う" name="Pay..."/>
-			<button label="IMを送る" label_selected="IMを送る" name="Instant Message..." tool_tip="インスタント・メッセージ (IM)" left_delta="117"/>
-			<button label="無視する" label_selected="無視する" name="Mute" left_delta="157"/>
+			<button label="IMを送る" label_selected="IMを送る" left_delta="117" name="Instant Message..." tool_tip="インスタント・メッセージ (IM)"/>
+			<button label="無視する" label_selected="無視する" left_delta="157" name="Mute"/>
 		</panel>
 		<panel label="ウェブ" name="WebProfile" width="458">
-		  <line_editor name="url_edit" width="440" />
-			<flyout_button label="ロード" label_selected="ロード" name="load" tool_tip="プロファイル・ページを内蔵ブラウザーでロードします。">
-				<flyout_button_item name="open_item">
-					内蔵ブラウザ
-				</flyout_button_item>
-				<flyout_button_item name="home_item">
-					ホームURL
-				</flyout_button_item>
-			</flyout_button>
-			<button label="?" label_selected="?" name="web_profile_help"/>
-			<check_box label="ウェブ・プロフィール自動ロード" name="auto_load" tool_tip="プロフィールにあるすべてのウェブ・ページを確認なしで自動的にロードする"/>
-			<web_browser name="profile_html" width="440" />
+			<line_editor name="url_edit" width="440"/>
+			<flyout_button label="ロード" label_selected="ロード" name="load" tool_tip="このプロフィールページを、組み込みWebブラウザでロードします"/>
+			<check_box label="ウェブ・プロフィール自動ロード" name="auto_load" tool_tip="プロフィールのWebページを、確認せずに自動的にロードします"/>
+			<web_browser name="profile_html" width="440"/>
 		</panel>
 		<panel label="興味" name="Interests" width="458">
 			<text name="I Want To:" width="74">
@@ -115,7 +129,7 @@
 			<check_box label="購入" name="chk4"/>
 			<check_box label="販売" name="chk5"/>
 			<check_box label="雇用" name="chk7"/>
-			<line_editor name="want_to_edit" width="360" />
+			<line_editor name="want_to_edit" width="360"/>
 			<text name="Skills:">
 				スキル：
 			</text>
@@ -125,86 +139,63 @@
 			<check_box label="モデル" name="schk3"/>
 			<check_box label="スクリプト" name="schk4"/>
 			<check_box label="キャラクターのカスタム" name="schk5"/>
-			<line_editor name="skills_edit" width="360" />
+			<line_editor name="skills_edit" width="360"/>
 			<text name="Languages:">
 				言語：
 			</text>
-			<line_editor name="languages_edit" width="360" />
+			<line_editor name="languages_edit" width="360"/>
 		</panel>
 		<panel label="ピック" name="Picks" width="458">
-			<tab_container name="picks tab" width="452" />
 			<text name="Tell everyone about your favorite places in Second Life.">
-				Second Lifeのお気入りの場所を皆に教えてください
+				[SECOND_LIFE] のお気に入りの場所を紹介しましょう。
 			</text>
 			<button label="新規..." label_selected="新規..." name="New..."/>
 			<button label="削除..." label_selected="削除..." name="Delete..."/>
+			<tab_container name="picks tab" width="452"/>
 			<text name="loading_text">
 				ロード中．．．
 			</text>
 		</panel>
 		<panel label="広告" name="Classified" width="458">
-			<tab_container name="classified tab" width="452" />
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				SecondLifeのクラシファイドリストに広告を載せます。
+				[SECOND_LIFE] のクラシファイド広告リストに広告を載せましょう。
 			</text>
 			<button label="新規..." label_selected="新規..." name="New..."/>
 			<button label="削除..." label_selected="削除..." name="Delete..."/>
+			<tab_container name="classified tab" width="452"/>
 			<text name="loading_text">
 				ロード中．．．
 			</text>
 		</panel>
-		<panel label="リアルライフ" name="1st Life" width="458">
-			<text_editor name="about" width="370" />
+		<panel label="現実世界" name="Real World" width="458">
 			<text name="Photo:">
 				写真：
 			</text>
-			<texture_picker label="" name="img" tool_tip="写真をクリックして選択"/>
+			<texture_picker label="" name="img" tool_tip="クリックして写真を選択"/>
 			<text name="Info:">
 				情報：
 			</text>
 			<text name="(250 chars)">
-				(250字)
+				（250 字）
 			</text>
+			<text_editor name="about" width="370"/>
 		</panel>
 		<panel label="メモ" name="My Notes" width="458">
-			<text_editor name="notes edit" width="430"/>
-			<string name="Loading">
+			<panel.string name="Loading">
 				ロード中．．．
-			</string>
+			</panel.string>
 			<text name="label" width="452">
 				このスペースには、進行中の取引、共同プロジェクトなどこの人物に関
 わるメモを記録してください。 本人を含めた他人には見ることのできな
-い、あなただけのメモ帳です。</text>
+い、あなただけのメモ帳です。
+			</text>
+			<text_editor name="notes edit" width="430"/>
 		</panel>
 	</tab_container>
 	<button label="OK" label_selected="OK" name="OK"/>
 	<button label="取り消し" label_selected="取り消し" name="Cancel"/>
 	<button label="キック" label_selected="キック" name="Kick"/>
-	<button label="フリーズ" label_selected="フリーズ" name="Freeze" tool_tip="この住人の動きと会話を停止します。"/>
+	<button label="フリーズ" label_selected="フリーズ" name="Freeze" tool_tip="この住人の動きとチャットを停止します"/>
 	<button label="解除" label_selected="解除" name="Unfreeze" tool_tip="住人のフリーズを解除"/>
 	<button label="CSR" label_selected="CSR" name="csr_btn" tool_tip="この住人のカスタマー・サービス・ツールを開きます。"/>
-	<string name="ShowOnMapNonFriend">
-		地図上でロケーションを表示します。
-相手とフレンドシップを交わしていないため、表示できません。
-	</string>
-	<string name="ShowOnMapFriendOffline">
-		地図上でロケーションを表示します。
-    相手がオンラインではないため、表示できません。
-	</string>
-	<string name="ShowOnMapFriendOnline">
-		地図上でロケーションを表示します。
-	</string>
-	<string name="TeleportGod">
-		あなたのロケーションに強制テレポート
-	</string>
-	<string name="TeleportPrelude">
-		あなたのロケーションへのテレポートを送ります。
-あなたがオリエンテーション・アイランドを去るまで無効です。
-	</string>
-	<string name="TeleportNormal">
-		あなたのロケーションへのテレポートを送ります。
-	</string>
-	<string name="Loading">
-		ローディング．．．
-	</string>
 </panel>

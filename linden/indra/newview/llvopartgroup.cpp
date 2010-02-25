@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -139,9 +139,10 @@ LLVector3 LLVOPartGroup::getCameraPosition() const
 	return gAgent.getCameraPositionAgent();
 }
 
+static LLFastTimer::DeclareTimer FTM_UPDATE_PARTICLES("Update Particles");
 BOOL LLVOPartGroup::updateGeometry(LLDrawable *drawable)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_UPDATE_PARTICLES);
+	LLFastTimer ftm(FTM_UPDATE_PARTICLES);
 
 	dirtySpatialGroup();
 	
@@ -152,6 +153,11 @@ BOOL LLVOPartGroup::updateGeometry(LLDrawable *drawable)
 	{
 		drawable->movePartition();
 		group = drawable->getSpatialGroup();
+	}
+
+	if (group && group->isVisible())
+	{
+		dirtySpatialGroup(TRUE);
 	}
 
 	if (!num_parts)
@@ -243,6 +249,12 @@ BOOL LLVOPartGroup::updateGeometry(LLDrawable *drawable)
 		facep->mCenterLocal = part->mPosAgent;
 		facep->setFaceColor(part->mColor);
 		facep->setTexture(part->mImagep);
+			
+		//check if this particle texture is replaced by a parcel media texture.
+		if(part->mImagep.notNull() && part->mImagep->hasParcelMedia()) 
+		{
+			part->mImagep->getParcelMedia()->addMediaToFace(facep) ;
+		}
 
 		mPixelArea = tot_area * pixel_meter_ratio;
 		const F32 area_scale = 10.f; // scale area to increase priority a bit
@@ -352,12 +364,11 @@ U32 LLVOPartGroup::getPartitionType() const
 }
 
 LLParticlePartition::LLParticlePartition()
-: LLSpatialPartition(LLDrawPoolAlpha::VERTEX_DATA_MASK)
+: LLSpatialPartition(LLDrawPoolAlpha::VERTEX_DATA_MASK, TRUE, GL_DYNAMIC_DRAW_ARB)
 {
 	mRenderPass = LLRenderPass::PASS_ALPHA;
 	mDrawableType = LLPipeline::RENDER_TYPE_PARTICLES;
 	mPartitionType = LLViewerRegion::PARTITION_PARTICLE;
-	mBufferUsage = GL_DYNAMIC_DRAW_ARB;
 	mSlopRatio = 0.f;
 	mLODPeriod = 1;
 }
@@ -375,6 +386,7 @@ void LLParticlePartition::addGeometryCount(LLSpatialGroup* group, U32& vertex_co
 
 	mFaceList.clear();
 
+	LLViewerCamera* camera = LLViewerCamera::getInstance();
 	for (LLSpatialGroup::element_iter i = group->getData().begin(); i != group->getData().end(); ++i)
 	{
 		LLDrawable* drawablep = *i;
@@ -404,7 +416,7 @@ void LLParticlePartition::addGeometryCount(LLSpatialGroup* group, U32& vertex_co
 			}
 			
 			count++;
-			facep->mDistance = (facep->mCenterLocal - LLViewerCamera::getInstance()->getOrigin()) * LLViewerCamera::getInstance()->getAtAxis();
+			facep->mDistance = (facep->mCenterLocal - camera->getOrigin()) * camera->getAtAxis();
 			obj->mDepth += facep->mDistance;
 			
 			mFaceList.push_back(facep);
@@ -416,12 +428,15 @@ void LLParticlePartition::addGeometryCount(LLSpatialGroup* group, U32& vertex_co
 	}
 }
 
+static LLFastTimer::DeclareTimer FTM_REBUILD_GRASS_VB("Grass VB");
+static LLFastTimer::DeclareTimer FTM_REBUILD_PARTICLE_VB("Particle VB");
+
 void LLParticlePartition::getGeometry(LLSpatialGroup* group)
 {
 	LLMemType mt(LLMemType::MTYPE_SPACE_PARTITION);
 	LLFastTimer ftm(mDrawableType == LLPipeline::RENDER_TYPE_GRASS ?
-					LLFastTimer::FTM_REBUILD_GRASS_VB :
-					LLFastTimer::FTM_REBUILD_PARTICLE_VB);
+					FTM_REBUILD_GRASS_VB :
+					FTM_REBUILD_PARTICLE_VB);
 
 	std::sort(mFaceList.begin(), mFaceList.end(), LLFace::CompareDistanceGreater());
 
@@ -481,7 +496,9 @@ void LLParticlePartition::getGeometry(LLSpatialGroup* group)
 			U32 end = start + facep->getGeomCount()-1;
 			U32 offset = facep->getIndicesStart();
 			U32 count = facep->getIndicesCount();
-			LLDrawInfo* info = new LLDrawInfo(start,end,count,offset,facep->getTexture(), buffer, fullbright); 
+			LLDrawInfo* info = new LLDrawInfo(start,end,count,offset,facep->getTexture(), 
+				//facep->getTexture(),
+				buffer, fullbright); 
 			info->mExtents[0] = group->mObjectExtents[0];
 			info->mExtents[1] = group->mObjectExtents[1];
 			info->mVSize = vsize;

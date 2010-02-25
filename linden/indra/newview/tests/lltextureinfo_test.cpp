@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,9 +49,6 @@
 // * Do not make any assumption as to how those classes or methods work (i.e. don't copy/paste code)
 // * A simulator for a class can be implemented here. Please comment and document thoroughly.
 
-void send_texture_stats_to_sim(const LLSD &data)
-{
-}
 
 // End Stubbing
 // -------------------------------------------------------------------------------------------
@@ -91,14 +88,14 @@ namespace tut
 	// ---------------------------------------------------------------------------------------
 	// Test the LLTextureInfo
 	// ---------------------------------------------------------------------------------------
-	const U32 upload_byte_threshold = 100 * 1024;
+
 
 	// Test instantiation
 	template<> template<>
 	void textureinfo_object_t::test<1>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 		ensure("have we crashed?", true);
 	}
 
@@ -107,7 +104,7 @@ namespace tut
 	void textureinfo_object_t::test<2>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID nonExistant("3a0efa3b-84dc-4e17-9b8c-79ea028850c1");
 		ensure(!tex_info.has(nonExistant));
@@ -118,7 +115,7 @@ namespace tut
 	void textureinfo_object_t::test<3>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID id("10e65d70-46fd-429f-841a-bf698e9424d3");
 		tex_info.setRequestStartTime(id, 200);
@@ -131,7 +128,7 @@ namespace tut
 	void textureinfo_object_t::test<4>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID nonExistant("3a0efa3b-84dc-4e17-9b8c-79ea028850c1");
 		ensure_equals(tex_info.getRequestStartTime(nonExistant), 0);
@@ -142,7 +139,7 @@ namespace tut
 	void textureinfo_object_t::test<5>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID nonExistant("3a0efa3b-84dc-4e17-9b8c-79ea028850c1");
 		ensure_equals(tex_info.getRequestCompleteTime(nonExistant), 0);
@@ -153,7 +150,7 @@ namespace tut
 	void textureinfo_object_t::test<6>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID id("10e65d70-46fd-429f-841a-bf698e9424d3");
 		tex_info.setRequestSize(id, 600);
@@ -166,7 +163,7 @@ namespace tut
 	void textureinfo_object_t::test<7>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID id("10e65d70-46fd-429f-841a-bf698e9424d3");
 		tex_info.setRequestType(id, LLTextureInfoDetails::REQUEST_TYPE_HTTP);
@@ -179,7 +176,7 @@ namespace tut
 	void textureinfo_object_t::test<8>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID id("10e65d70-46fd-429f-841a-bf698e9424d3");
 		tex_info.setRequestType(id, LLTextureInfoDetails::REQUEST_TYPE_UDP);
@@ -192,7 +189,7 @@ namespace tut
 	void textureinfo_object_t::test<9>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		LLUUID id("10e65d70-46fd-429f-841a-bf698e9424d3");
 		tex_info.setRequestOffset(id, 1234);
@@ -205,7 +202,7 @@ namespace tut
 	void textureinfo_object_t::test<10>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		S32 requestStartTimeOne = 200;
 		S32 requestEndTimeOne = 400;
@@ -243,7 +240,7 @@ namespace tut
 	void textureinfo_object_t::test<11>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		S32 requestStartTimeOne = 200;
 		S32 requestEndTimeOne = 400;
@@ -254,7 +251,8 @@ namespace tut
 		tex_info.setRequestType(id1, LLTextureInfoDetails::REQUEST_TYPE_HTTP);
 		tex_info.setRequestCompleteTimeAndLog(id1, requestEndTimeOne);
 
-		tex_info.resetTextureStatistics();
+		tex_info.getAverages();
+		tex_info.reset();
 		LLSD results = tex_info.getAverages();
 		ensure_equals("is average bits per second correct", results["bits_per_second"].asInteger(), 0);
 		ensure_equals("is total bytes is correct", results["bytes_downloaded"].asInteger(), 0);
@@ -266,7 +264,7 @@ namespace tut
 	void textureinfo_object_t::test<12>()
 	{
 		LLTextureInfo tex_info;
-		tex_info.setUpLogging(true, true, upload_byte_threshold);
+		tex_info.setUpLogging(true, true);
 
 		S32 requestStartTimeOne = 200;
 		S32 requestEndTimeOne = 400;
@@ -283,3 +281,4 @@ namespace tut
 		ensure_equals("map item removed when consumed", tex_info.getTextureInfoMapSize(), 0);
 	}
 }
+

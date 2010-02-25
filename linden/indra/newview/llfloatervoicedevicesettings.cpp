@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,22 +36,24 @@
 #include "llfloatervoicedevicesettings.h"
 
 // Viewer includes
-#include "llagent.h"
 #include "llbutton.h"
 #include "llcombobox.h"
 #include "llfocusmgr.h"
 #include "lliconctrl.h"
-#include "llprefsvoice.h"
 #include "llsliderctrl.h"
 #include "llviewercontrol.h"
 #include "llvoiceclient.h"
-#include "llimpanel.h"
+#include "llvoicechannel.h"
 
 // Library includes (after viewer)
 #include "lluictrlfactory.h"
 
 
+static LLRegisterPanelClassWrapper<LLPanelVoiceDeviceSettings> t_panel_group_general("panel_voice_device_settings");
+
+
 LLPanelVoiceDeviceSettings::LLPanelVoiceDeviceSettings()
+	: LLPanel()
 {
 	mCtrlInputDevices = NULL;
 	mCtrlOutputDevices = NULL;
@@ -83,40 +85,58 @@ BOOL LLPanelVoiceDeviceSettings::postBuild()
 	return TRUE;
 }
 
+// virtual
+void LLPanelVoiceDeviceSettings::handleVisibilityChange ( BOOL new_visibility )
+{
+	if (new_visibility)
+	{
+		initialize();	
+	}
+	else
+	{
+		cleanup();
+		// when closing this window, turn of visiblity control so that 
+		// next time preferences is opened we don't suspend voice
+		gSavedSettings.setBOOL("ShowDeviceSettings", FALSE);
+	}
+}
 void LLPanelVoiceDeviceSettings::draw()
 {
+	refresh();
+
 	// let user know that volume indicator is not yet available
 	bool is_in_tuning_mode = gVoiceClient->inTuningMode();
 	childSetVisible("wait_text", !is_in_tuning_mode);
 
 	LLPanel::draw();
 
-	F32 voice_power = gVoiceClient->tuningGetEnergy();
-	S32 discrete_power = 0;
-
-	if (!is_in_tuning_mode)
-	{
-		discrete_power = 0;
-	}
-	else
-	{
-		discrete_power = llmin(4, llfloor((voice_power / LLVoiceClient::OVERDRIVEN_POWER_LEVEL) * 4.f));
-	}
-	
 	if (is_in_tuning_mode)
 	{
-		for(S32 power_bar_idx = 0; power_bar_idx < 5; power_bar_idx++)
+		const S32 num_bars = 5;
+		F32 voice_power = gVoiceClient->tuningGetEnergy() / LLVoiceClient::OVERDRIVEN_POWER_LEVEL;
+		S32 discrete_power = llmin(num_bars, llfloor(voice_power * (F32)num_bars + 0.1f));
+
+		for(S32 power_bar_idx = 0; power_bar_idx < num_bars; power_bar_idx++)
 		{
 			std::string view_name = llformat("%s%d", "bar", power_bar_idx);
 			LLView* bar_view = getChild<LLView>(view_name);
 			if (bar_view)
 			{
+				gl_rect_2d(bar_view->getRect(), LLColor4::grey, TRUE);
+
+				LLColor4 color;
 				if (power_bar_idx < discrete_power)
 				{
-					LLColor4 color = (power_bar_idx >= 3) ? gSavedSettings.getColor4("OverdrivenColor") : gSavedSettings.getColor4("SpeakingColor");
-					gl_rect_2d(bar_view->getRect(), color, TRUE);
+					color = (power_bar_idx >= 3) ? LLUIColorTable::instance().getColor("OverdrivenColor") : LLUIColorTable::instance().getColor("SpeakingColor");
 				}
-				gl_rect_2d(bar_view->getRect(), LLColor4::grey, FALSE);
+				else
+				{
+					color = LLUIColorTable::instance().getColor("PanelFocusBackgroundColor");
+				}
+
+				LLRect color_rect = bar_view->getRect();
+				color_rect.stretch(-1);
+				gl_rect_2d(color_rect, color, TRUE);
 			}
 		}
 	}
@@ -240,7 +260,7 @@ void LLPanelVoiceDeviceSettings::refresh()
 	}	
 }
 
-void LLPanelVoiceDeviceSettings::onOpen()
+void LLPanelVoiceDeviceSettings::initialize()
 {
 	mInputDevice = gSavedSettings.getString("VoiceInputAudioDevice");
 	mOutputDevice = gSavedSettings.getString("VoiceOutputAudioDevice");
@@ -255,9 +275,12 @@ void LLPanelVoiceDeviceSettings::onOpen()
 	LLVoiceChannel::suspend();
 }
 
-void LLPanelVoiceDeviceSettings::onClose(bool app_quitting)
+void LLPanelVoiceDeviceSettings::cleanup()
 {
-	gVoiceClient->tuningStop();
+	if (gVoiceClient)
+	{
+		gVoiceClient->tuningStop();
+	}
 	LLVoiceChannel::resume();
 }
 
@@ -284,34 +307,37 @@ void LLPanelVoiceDeviceSettings::onCommitOutputDevice(LLUICtrl* ctrl, void* user
 //
 
 LLFloaterVoiceDeviceSettings::LLFloaterVoiceDeviceSettings(const LLSD& seed)
-	: LLFloater(std::string("floater_device_settings")),
+	: LLFloater(seed),
 	  mDevicePanel(NULL)
 {
 	mFactoryMap["device_settings"] = LLCallbackMap(createPanelVoiceDeviceSettings, this);
 	// do not automatically open singleton floaters (as result of getInstance())
-	BOOL no_open = FALSE;
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_device_settings.xml", &mFactoryMap, no_open);
+//	BOOL no_open = FALSE;
+//	Called from floater reg:  LLUICtrlFactory::getInstance()->buildFloater(this, "floater_device_settings.xml", no_open);	
+}
+BOOL LLFloaterVoiceDeviceSettings::postBuild()
+{
 	center();
+	return TRUE;
 }
 
-void LLFloaterVoiceDeviceSettings::onOpen()
+// virtual
+void LLFloaterVoiceDeviceSettings::onOpen(const LLSD& key)
 {
 	if(mDevicePanel)
 	{
-		mDevicePanel->onOpen();
+		mDevicePanel->initialize();
 	}
-
-	LLFloater::onOpen();
 }
 
-void LLFloaterVoiceDeviceSettings::onClose(bool app_quitting)
+// virtual
+void LLFloaterVoiceDeviceSettings::onClose(bool app_settings)
 {
 	if(mDevicePanel)
 	{
-		mDevicePanel->onClose(app_quitting);
+		mDevicePanel->apply();
+		mDevicePanel->cleanup();
 	}
-
-	setVisible(FALSE);
 }
 
 void LLFloaterVoiceDeviceSettings::apply()

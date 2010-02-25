@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,27 +35,31 @@
 
 #include "llcontrol.h"
 #include "llfloater.h"
-#include "lltexteditor.h"
 
-class LLFloaterSettingsDebug : public LLFloater
+class LLFloaterSettingsDebug 
+:	public LLFloater
 {
+	friend class LLFloaterReg;
+
 public:
-	LLFloaterSettingsDebug();
-	virtual ~LLFloaterSettingsDebug();
 
 	virtual BOOL postBuild();
 	virtual void draw();
 
 	void updateControl(LLControlVariable* control);
 
-	static void show(void*);
-	static void onSettingSelect(LLUICtrl* ctrl, void* user_data);
-	static void onCommitSettings(LLUICtrl* ctrl, void* user_data);
-	static void onClickDefault(void* user_data);
+	void onSettingSelect(LLUICtrl* ctrl);
+	void onCommitSettings();
+	void onClickDefault();
 
+private:
+	// key - selects which settings to show, one of:
+	// "all", "base", "account", "skin"
+	LLFloaterSettingsDebug(const LLSD& key);
+	virtual ~LLFloaterSettingsDebug();
+	
 protected:
-	static LLFloaterSettingsDebug* sInstance;
-	LLTextEditor* mComment;
+	class LLTextEditor* mComment;
 };
 
 #endif //LLFLOATERDEBUGSETTINGS_H

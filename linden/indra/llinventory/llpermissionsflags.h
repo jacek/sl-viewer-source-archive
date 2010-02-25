@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,9 +32,6 @@
 #ifndef LL_LLPERMISSIONSFLAGS_H
 #define LL_LLPERMISSIONSFLAGS_H
 
-// llpermissionsflags.h
-// Copyright 2002, Linden Research, Inc.
-//
 // Flags for various permissions bits.
 // Shared between viewer and simulator.
 

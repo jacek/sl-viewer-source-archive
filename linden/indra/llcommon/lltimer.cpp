@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -552,62 +552,6 @@ void microsecondsToTimecodeString(U64 current_time, std::string& tcstring)
 void secondsToTimecodeString(F32 current_time, std::string& tcstring)
 {
 	microsecondsToTimecodeString((U64)((F64)(SEC_TO_MICROSEC*current_time)), tcstring);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-//
-//		LLEventTimer Implementation
-//
-//////////////////////////////////////////////////////////////////////////////
-
-std::list<LLEventTimer*> LLEventTimer::sActiveList;
-
-LLEventTimer::LLEventTimer(F32 period)
-: mEventTimer()
-{
-	mPeriod = period;
-	sActiveList.push_back(this);
-}
-
-LLEventTimer::LLEventTimer(const LLDate& time)
-: mEventTimer()
-{
-	mPeriod = (F32)(time.secondsSinceEpoch() - LLDate::now().secondsSinceEpoch());
-	sActiveList.push_back(this);
-}
-
-
-LLEventTimer::~LLEventTimer() 
-{
-	sActiveList.remove(this);
-}
-
-void LLEventTimer::updateClass() 
-{
-	std::list<LLEventTimer*> completed_timers;
-	for (std::list<LLEventTimer*>::iterator iter = sActiveList.begin(); iter != sActiveList.end(); ) 
-	{
-		LLEventTimer* timer = *iter++;
-		F32 et = timer->mEventTimer.getElapsedTimeF32();
-		if (timer->mEventTimer.getStarted() && et > timer->mPeriod) {
-			timer->mEventTimer.reset();
-			if ( timer->tick() )
-			{
-				completed_timers.push_back( timer );
-			}
-		}
-	}
-
-	if ( completed_timers.size() > 0 )
-	{
-		for (std::list<LLEventTimer*>::iterator completed_iter = completed_timers.begin(); 
-			 completed_iter != completed_timers.end(); 
-			 completed_iter++ ) 
-		{
-			delete *completed_iter;
-		}
-	}
 }
 
 

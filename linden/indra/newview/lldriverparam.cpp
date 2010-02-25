@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,6 +36,10 @@
 
 #include "llfasttimer.h"
 #include "llvoavatar.h"
+#include "llvoavatarself.h"
+#include "llagent.h"
+#include "llwearable.h"
+#include "llagentwearables.h"
 
 //-----------------------------------------------------------------------------
 // LLDriverParamInfo
@@ -100,12 +104,70 @@ BOOL LLDriverParamInfo::parseXml(LLXmlTreeNode* node)
 	return TRUE;
 }
 
+//virtual 
+void LLDriverParamInfo::toStream(std::ostream &out)
+{
+	LLViewerVisualParamInfo::toStream(out);
+	out << "driver" << "\t";
+	out << mDrivenInfoList.size() << "\t";
+	for (entry_info_list_t::iterator iter = mDrivenInfoList.begin(); iter != mDrivenInfoList.end(); iter++)
+	{
+		LLDrivenEntryInfo driven = *iter;
+		out << driven.mDrivenID << "\t";
+	}
+
+	out << std::endl;
+
+	LLVOAvatarSelf *avatar = gAgent.getAvatarObject();
+	if(avatar)
+	{
+		for (entry_info_list_t::iterator iter = mDrivenInfoList.begin(); iter != mDrivenInfoList.end(); iter++)
+		{
+			LLDrivenEntryInfo driven = *iter;
+			LLViewerVisualParam *param = (LLViewerVisualParam*)avatar->getVisualParam(driven.mDrivenID);
+			if (param)
+			{
+				param->getInfo()->toStream(out);
+				if (param->getWearableType() != mWearableType)
+				{
+					if(param->getCrossWearable())
+					{
+						out << "cross-wearable" << "\t";
+					}
+					else
+					{
+						out << "ERROR!" << "\t";
+					}
+				}
+				else
+				{
+					out << "valid" << "\t";
+				}
+			}
+			else
+			{
+				llwarns << "could not get parameter " << driven.mDrivenID << " from avatar " << avatar << " for driver parameter " << getID() << llendl;
+			}
+			out << std::endl;
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------
 // LLDriverParam
 //-----------------------------------------------------------------------------
 
-LLDriverParam::LLDriverParam(LLVOAvatar *avatarp)
-	: mCurrentDistortionParam( NULL ), mAvatarp(avatarp)
+LLDriverParam::LLDriverParam(LLVOAvatar *avatarp) : 
+	mCurrentDistortionParam( NULL ), 
+	mAvatarp(avatarp), 
+	mWearablep(NULL)
+{
+}
+
+LLDriverParam::LLDriverParam(LLWearable *wearablep) : 
+	mCurrentDistortionParam( NULL ), 
+	mAvatarp(NULL), 
+	mWearablep(wearablep)
 {
 }
 
@@ -122,27 +184,48 @@ BOOL LLDriverParam::setInfo(LLDriverParamInfo *info)
 	mID = info->mID;
 
 	setWeight(getDefaultWeight(), FALSE );
-	
-	LLDriverParamInfo::entry_info_list_t::iterator iter;
-	mDriven.reserve(getInfo()->mDrivenInfoList.size());
-	for (iter = getInfo()->mDrivenInfoList.begin(); iter != getInfo()->mDrivenInfoList.end(); iter++)
+
+	return TRUE;
+}
+
+void LLDriverParam::setWearable(LLWearable *wearablep)
+{
+	if (wearablep)
 	{
-		LLDrivenEntryInfo *driven_info = &(*iter);
-		S32 driven_id = driven_info->mDrivenID;
-		LLViewerVisualParam* param = (LLViewerVisualParam*)mAvatarp->getVisualParam( driven_id );
-		if (param)
+		mWearablep = wearablep;
+		mAvatarp = NULL;
+	}
+}
+
+void LLDriverParam::setAvatar(LLVOAvatar *avatarp)
+{
+	if (avatarp)
+	{
+		mWearablep = NULL;
+		mAvatarp = avatarp;
+	}
+}
+
+/*virtual*/ LLViewerVisualParam* LLDriverParam::cloneParam(LLWearable* wearable) const
+{
+	LLDriverParam *new_param;
+	if (wearable)
+	{
+		new_param = new LLDriverParam(wearable);
+	}
+	else
+	{
+		if (mWearablep)
 		{
-			mDriven.push_back(LLDrivenEntry( param, driven_info ));
+			new_param = new LLDriverParam(mWearablep);
 		}
 		else
 		{
-			llerrs << "<driven> Unable to resolve driven parameter: " << driven_id << llendl;
-			mInfo = NULL;
-			return FALSE;
+			new_param = new LLDriverParam(mAvatarp);
 		}
 	}
-	
-	return TRUE;
+	*new_param = *this;
+	return new_param;
 }
 
 #if 0 // obsolete
@@ -160,7 +243,7 @@ BOOL LLDriverParam::parseData(LLXmlTreeNode* node)
 }
 #endif
 
-void LLDriverParam::setWeight(F32 weight, BOOL set_by_user)
+void LLDriverParam::setWeight(F32 weight, BOOL upload_bake)
 {
 	F32 min_weight = getMinWeight();
 	F32 max_weight = getMaxWeight();
@@ -218,8 +301,8 @@ void LLDriverParam::setWeight(F32 weight, BOOL set_by_user)
 				{
 					driven_weight = driven_min;
 				}
-
-				driven->mParam->setWeight( driven_weight, set_by_user );
+				
+				setDrivenWeight(driven,driven_weight,upload_bake);
 				continue;
 			}
 			else 
@@ -243,13 +326,13 @@ void LLDriverParam::setWeight(F32 weight, BOOL set_by_user)
 					driven_weight = driven_min;
 				}
 
-				driven->mParam->setWeight( driven_weight, set_by_user );
+				setDrivenWeight(driven,driven_weight,upload_bake);
 				continue;
 			}
 		}
 
 		driven_weight = getDrivenWeight(driven, mCurWeight);
-		driven->mParam->setWeight( driven_weight, set_by_user );
+		setDrivenWeight(driven,driven_weight,upload_bake);
 	}
 }
 
@@ -349,6 +432,12 @@ const LLVector3*	LLDriverParam::getNextDistortion(U32 *index, LLPolyMesh **poly_
 		}
 	}
 
+	llassert(driven);
+	if (!driven)
+	{
+		return NULL; // shouldn't happen, but...
+	}
+
 	// We're already in the middle of a param's distortions, so get the next one.
 	const LLVector3* v = driven->mParam->getNextDistortion( index, poly_mesh );
 	if( (!v) && (iter != mDriven.end()) )
@@ -373,9 +462,9 @@ const LLVector3*	LLDriverParam::getNextDistortion(U32 *index, LLPolyMesh **poly_
 //-----------------------------------------------------------------------------
 // setAnimationTarget()
 //-----------------------------------------------------------------------------
-void LLDriverParam::setAnimationTarget( F32 target_value, BOOL set_by_user )
+void LLDriverParam::setAnimationTarget( F32 target_value, BOOL upload_bake )
 {
-	LLVisualParam::setAnimationTarget(target_value, set_by_user);
+	LLVisualParam::setAnimationTarget(target_value, upload_bake);
 
 	for( entry_list_t::iterator iter = mDriven.begin(); iter != mDriven.end(); iter++ )
 	{
@@ -384,16 +473,16 @@ void LLDriverParam::setAnimationTarget( F32 target_value, BOOL set_by_user )
 
 		// this isn't normally necessary, as driver params handle interpolation of their driven params
 		// but texture params need to know to assume their final value at beginning of interpolation
-		driven->mParam->setAnimationTarget(driven_weight, set_by_user);
+		driven->mParam->setAnimationTarget(driven_weight, upload_bake);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // stopAnimating()
 //-----------------------------------------------------------------------------
-void LLDriverParam::stopAnimating(BOOL set_by_user)
+void LLDriverParam::stopAnimating(BOOL upload_bake)
 {
-	LLVisualParam::stopAnimating(set_by_user);
+	LLVisualParam::stopAnimating(upload_bake);
 
 	for( entry_list_t::iterator iter = mDriven.begin(); iter != mDriven.end(); iter++ )
 	{
@@ -401,6 +490,82 @@ void LLDriverParam::stopAnimating(BOOL set_by_user)
 		driven->mParam->setAnimating(FALSE);
 	}
 }
+
+/*virtual*/ 
+BOOL LLDriverParam::linkDrivenParams(visual_param_mapper mapper, BOOL only_cross_params)
+{
+	BOOL success = TRUE;
+	LLDriverParamInfo::entry_info_list_t::iterator iter;
+	for (iter = getInfo()->mDrivenInfoList.begin(); iter != getInfo()->mDrivenInfoList.end(); ++iter)
+	{
+		LLDrivenEntryInfo *driven_info = &(*iter);
+		S32 driven_id = driven_info->mDrivenID;
+
+		// check for already existing links. Do not overwrite.
+		BOOL found = FALSE;
+		for (entry_list_t::iterator driven_iter = mDriven.begin(); driven_iter != mDriven.end() && !found; ++driven_iter)
+		{
+			if (driven_iter->mInfo->mDrivenID == driven_id)
+			{
+				found = TRUE;
+			}
+		}
+
+		if (!found)
+		{
+			LLViewerVisualParam* param = (LLViewerVisualParam*)mapper(driven_id);
+			bool push = param && (!only_cross_params || param->getCrossWearable());
+			if (push)
+			{
+				mDriven.push_back(LLDrivenEntry( param, driven_info ));
+			}
+			else
+			{
+				success = FALSE;
+			}
+		}
+	}
+	
+	return success;	
+}
+
+void LLDriverParam::resetDrivenParams()
+{
+	mDriven.clear();
+	mDriven.reserve(getInfo()->mDrivenInfoList.size());
+}
+
+void LLDriverParam::updateCrossDrivenParams(EWearableType driven_type)
+{
+	bool needs_update = (getWearableType()==driven_type);
+
+	// if the driver has a driven entry for the passed-in wearable type, we need to refresh the value
+	for( entry_list_t::iterator iter = mDriven.begin(); iter != mDriven.end(); iter++ )
+	{
+		LLDrivenEntry* driven = &(*iter);
+		if (driven && driven->mParam && driven->mParam->getCrossWearable() && driven->mParam->getWearableType() == driven_type)
+		{
+			needs_update = true;
+		}
+	}
+
+
+	if (needs_update)
+	{
+		EWearableType driver_type = (EWearableType)getWearableType();
+		
+		// If we've gotten here, we've added a new wearable of type "type"
+		// Thus this wearable needs to get updates from the driver wearable.
+		// The call to setVisualParamWeight seems redundant, but is necessary
+		// as the number of driven wearables has changed since the last update. -Nyx
+		LLWearable *wearable = gAgentWearables.getTopWearable(driver_type);
+		if (wearable)
+		{
+			wearable->setVisualParamWeight(mID, wearable->getVisualParamWeight(mID), false);
+		}
+	}
+}
+
 
 //-----------------------------------------------------------------------------
 // getDrivenWeight()
@@ -457,4 +622,20 @@ F32 LLDriverParam::getDrivenWeight(const LLDrivenEntry* driven, F32 input_weight
 	}
 
 	return driven_weight;
+}
+
+void LLDriverParam::setDrivenWeight(LLDrivenEntry *driven, F32 driven_weight, bool upload_bake)
+{
+	LLVOAvatarSelf *avatar_self = gAgent.getAvatarObject();
+	if(mWearablep && 
+	   driven->mParam->getCrossWearable() &&
+	   mWearablep->isOnTop())
+	{
+		// call setWeight through LLVOAvatarSelf so other wearables can be updated with the correct values
+		avatar_self->setVisualParamWeight( (LLVisualParam*)driven->mParam, driven_weight, upload_bake );
+	}
+	else
+	{
+		driven->mParam->setWeight( driven_weight, upload_bake );
+	}
 }

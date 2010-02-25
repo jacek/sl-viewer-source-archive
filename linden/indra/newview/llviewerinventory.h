@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,12 @@
 #include "llframetimer.h"
 #include "llwearable.h"
 
+#include <boost/signals2.hpp>	// boost::signals2::trackable
+
+class LLFolderView;
+class LLFolderBridge;
+class LLViewerInventoryCategory;
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Class LLViewerInventoryItem
 //
@@ -44,15 +50,35 @@
 // their inventory.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class LLViewerInventoryItem : public LLInventoryItem
+class LLViewerInventoryItem : public LLInventoryItem, public boost::signals2::trackable
 {
 public:
 	typedef LLDynamicArray<LLPointer<LLViewerInventoryItem> > item_array_t;
 	
 protected:
 	~LLViewerInventoryItem( void ); // ref counted
+	BOOL extractSortFieldAndDisplayName(S32* sortField, std::string* displayName) const { return extractSortFieldAndDisplayName(mName, sortField, displayName); }
+	mutable std::string mDisplayName;
 	
 public:
+	virtual LLAssetType::EType getType() const;
+	virtual const LLUUID& getAssetUUID() const;
+	virtual const std::string& getName() const;
+	virtual S32 getSortField() const;
+	virtual void setSortField(S32 sortField);
+	virtual const LLPermissions& getPermissions() const;
+	virtual const LLUUID& getCreatorUUID() const;
+	virtual const std::string& getDescription() const;
+	virtual const LLSaleInfo& getSaleInfo() const;
+	virtual LLInventoryType::EType getInventoryType() const;
+	virtual bool isWearableType() const;
+	virtual EWearableType getWearableType() const;
+	virtual U32 getFlags() const;
+	virtual time_t getCreationDate() const;
+	virtual U32 getCRC32() const; // really more of a checksum.
+
+	static BOOL extractSortFieldAndDisplayName(const std::string& name, S32* sortField, std::string* displayName);
+
 	// construct a complete viewer inventory item
 	LLViewerInventoryItem(const LLUUID& uuid, const LLUUID& parent_uuid,
 						  const LLPermissions& permissions,
@@ -125,7 +151,20 @@ public:
 	};
 	LLTransactionID getTransactionID() const { return mTransactionID; }
 	
-protected:
+	bool getIsBrokenLink() const; // true if the baseitem this points to doesn't exist in memory.
+	LLViewerInventoryItem *getLinkedItem() const;
+	LLViewerInventoryCategory *getLinkedCategory() const;
+	
+	// Checks the items permissions (for owner, group, or everyone) and returns true if all mask bits are set.
+	bool checkPermissionsSet(PermissionMask mask) const;
+
+	// callback
+	void onCallingCardNameLookup(const LLUUID& id, const std::string& first_name, const std::string& last_name);
+
+	// If this is a broken link, try to fix it and any other identical link.
+	BOOL regenerateLink();
+
+public:
 	BOOL mIsComplete;
 	LLTransactionID mTransactionID;
 };
@@ -149,7 +188,7 @@ protected:
 	
 public:
 	LLViewerInventoryCategory(const LLUUID& uuid, const LLUUID& parent_uuid,
-							  LLAssetType::EType preferred_type,
+							  LLFolderType::EType preferred_type,
 							  const std::string& name,
 							  const LLUUID& owner_id);
 	LLViewerInventoryCategory(const LLUUID& owner_id);
@@ -184,7 +223,8 @@ public:
 	// other than cacheing.
 	bool exportFileLocal(LLFILE* fp) const;
 	bool importFileLocal(LLFILE* fp);
-
+	void determineFolderType();
+	void changeType(LLFolderType::EType new_folder_type);
 protected:
 	LLUUID mOwnerID;
 	S32 mVersion;
@@ -199,6 +239,11 @@ public:
 };
 
 class WearOnAvatarCallback : public LLInventoryCallback
+{
+	void fire(const LLUUID& inv_item);
+};
+
+class ModifiedCOFCallback : public LLInventoryCallback
 {
 	void fire(const LLUUID& inv_item);
 };
@@ -230,6 +275,18 @@ public:
 	void fire(const LLUUID& inv_item);
 };
 
+class AddFavoriteLandmarkCallback : public LLInventoryCallback
+{
+public:
+	AddFavoriteLandmarkCallback() : mTargetLandmarkId(LLUUID::null) {}
+	void setTargetLandmarkId(const LLUUID& target_uuid) { mTargetLandmarkId = target_uuid; }
+
+private:
+	void fire(const LLUUID& inv_item);
+
+	LLUUID mTargetLandmarkId;
+};
+
 // misc functions
 //void inventory_reliable_callback(void**, S32 status);
 
@@ -253,6 +310,7 @@ extern LLInventoryCallbackManager gInventoryCallbacks;
 
 #define NOT_WEARABLE (EWearableType)0
 
+// *TODO: Find a home for these
 void create_inventory_item(const LLUUID& agent_id, const LLUUID& session_id,
 						   const LLUUID& parent, const LLTransactionID& transaction_id,
 						   const std::string& name,
@@ -260,6 +318,8 @@ void create_inventory_item(const LLUUID& agent_id, const LLUUID& session_id,
 						   LLInventoryType::EType inv_type, EWearableType wtype,
 						   U32 next_owner_perm,
 						   LLPointer<LLInventoryCallback> cb);
+
+void create_inventory_callingcard(const LLUUID& avatar_id, const LLUUID& parent = LLUUID::null, LLPointer<LLInventoryCallback> cb=NULL);
 
 /**
  * @brief Securely create a new inventory item by copying from another.
@@ -270,6 +330,14 @@ void copy_inventory_item(
 	const LLUUID& item_id,
 	const LLUUID& parent_id,
 	const std::string& new_name,
+	LLPointer<LLInventoryCallback> cb);
+
+void link_inventory_item(
+	const LLUUID& agent_id,
+	const LLUUID& item_id,
+	const LLUUID& parent_id,
+	const std::string& new_name,
+	const LLAssetType::EType asset_type,
 	LLPointer<LLInventoryCallback> cb);
 
 void move_inventory_item(
@@ -285,5 +353,10 @@ void copy_inventory_from_notecard(const LLUUID& object_id,
 								  const LLInventoryItem *src,
 								  U32 callback_id = 0);
 
+
+void menu_create_inventory_item(LLFolderView* folder,
+								LLFolderBridge* bridge,
+								const LLSD& userdata,
+								const LLUUID& default_parent_uuid = LLUUID::null);
 
 #endif // LL_LLVIEWERINVENTORY_H

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,29 +33,85 @@
 #ifndef LLFLOATERCAMERA_H
 #define LLFLOATERCAMERA_H
 
-#include "llfloater.h"
+#include "lltransientdockablefloater.h"
 
 class LLJoystickCameraRotate;
 class LLJoystickCameraZoom;
 class LLJoystickCameraTrack;
+class LLFloaterReg;
+class LLPanelCameraZoom;
+
+enum ECameraControlMode
+{
+	CAMERA_CTRL_MODE_ORBIT,
+	CAMERA_CTRL_MODE_PAN,
+	CAMERA_CTRL_MODE_FREE_CAMERA,
+	CAMERA_CTRL_MODE_AVATAR_VIEW
+};
 
 class LLFloaterCamera
-	:	public LLFloater,
-		public LLFloaterSingleton<LLFloaterCamera>
+	:	public LLTransientDockableFloater
 {
-	friend class LLUISingleton<LLFloaterCamera, VisibilityPolicy<LLFloater> >;
-	
-private:
-	LLFloaterCamera(const LLSD& val);
-	~LLFloaterCamera() {};
-	
-	/*virtual*/ void onOpen();
-	/*virtual*/ void onClose(bool app_quitting);
+	friend class LLFloaterReg;
 	
 public:
+
+	/* whether in free camera mode */
+	static bool inFreeCameraMode();
+	/* callback for camera presets changing */
+	static void onClickCameraPresets(const LLSD& param);
+
+	static void onLeavingMouseLook();
+
+	/** resets current camera mode to orbit mode */
+	static void resetCameraMode();
+
+	/* determines actual mode and updates ui */
+	void update();
+	
+	virtual void onOpen(const LLSD& key);
+	virtual void onClose(bool app_quitting);
+
 	LLJoystickCameraRotate* mRotate;
-	LLJoystickCameraZoom*	mZoom;
+	LLPanelCameraZoom*	mZoom;
 	LLJoystickCameraTrack*	mTrack;
+
+private:
+
+	LLFloaterCamera(const LLSD& val);
+	~LLFloaterCamera() {};
+
+	/* return instance if it exists - created by LLFloaterReg */
+	static LLFloaterCamera* findInstance();
+
+	/*virtual*/ BOOL postBuild();
+
+	ECameraControlMode determineMode();
+
+	/* whether in avatar view (first person) mode */
+	bool inAvatarViewMode();
+
+	/* resets to the previous mode */
+	void toPrevMode();
+
+	/* sets a new mode and performs related actions */
+	void switchMode(ECameraControlMode mode);
+
+	/* sets a new mode preserving previous one and updates ui*/
+	void setMode(ECameraControlMode mode);
+
+	/* updates the state (UI) according to the current mode */
+	void updateState();
+
+	void onClickBtn(ECameraControlMode mode);
+	void assignButton2Mode(ECameraControlMode mode, const std::string& button_name);
+	
+
+	BOOL mClosed;
+	ECameraControlMode mPrevMode;
+	ECameraControlMode mCurrMode;
+	std::map<ECameraControlMode, LLButton*> mMode2Button;
+
 };
 
 #endif

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,6 @@
 #include "patch_dct.h"
 #include "llviewerregion.h"
 #include "llframetimer.h"
-#include "llagent.h"
 #include "llsurface.h"
 
 LLVLManager gVLManager;

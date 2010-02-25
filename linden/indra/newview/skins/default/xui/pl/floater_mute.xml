@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="mute floater" title="Lista Wyciszonych Rezydentów i Obiektów" short_title="Wyciszone Osoby">
+<floater name="mute floater" title="LISTA WYCISZONYCH REZYDENTÓW I OBIEKTÓW" short_title="WYCISZONE OSOBY">
 	<scroll_list name="mutes" tool_tip="Lista wyciszonych Rezydentów" />
 	<button label="Wycisz Rezydenta..." label_selected="Wycisz Rezydenta..."
 	     name="Mute resident..."

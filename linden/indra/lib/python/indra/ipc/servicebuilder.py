@@ -5,7 +5,7 @@
 
 $LicenseInfo:firstyear=2007&license=mit$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2007-2010, Linden Research, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,12 @@ except:
     pass
 
 _g_builder = None
+def _builder():
+    global _g_builder
+    if _g_builder is None:
+        _g_builder = ServiceBuilder()
+    return _g_builder
+
 def build(name, context={}, **kwargs):
     """ Convenience method for using a global, singleton, service builder.  Pass arguments either via a dict or via python keyword arguments, or both!
 
@@ -55,6 +61,11 @@ def build(name, context={}, **kwargs):
     if _g_builder is None:
         _g_builder = ServiceBuilder()
     return _g_builder.buildServiceURL(name, context, **kwargs)
+
+def build_path(name, context={}, **kwargs):
+    context = context.copy()  # shouldn't modify the caller's dictionary
+    context.update(kwargs)
+    return _builder().buildPath(name, context)
 
 class ServiceBuilder(object):
     def __init__(self, services_definition = services_config):
@@ -73,11 +84,20 @@ class ServiceBuilder(object):
                 continue
             if isinstance(service_builder, dict):
                 # We will be constructing several builders
-                for name, builder in service_builder.items():
+                for name, builder in service_builder.iteritems():
                     full_builder_name = service['name'] + '-' + name
                     self.builders[full_builder_name] = builder
             else:
                 self.builders[service['name']] = service_builder
+
+    def buildPath(self, name, context):
+        """\
+        @brief given the environment on construction, return a service path.
+        @param name The name of the service.
+        @param context A dict of name value lookups for the service.
+        @returns Returns the 
+        """
+        return russ.format(self.builders[name], context)
 
     def buildServiceURL(self, name, context={}, **kwargs):
         """\
@@ -108,7 +128,7 @@ def on_in(query_name, host_key, schema_key):
     @param schema_key Logical name of destination schema.  Will
         be looked up in indra.xml.
     """
-    host_name = config.get(host_key)
-    schema_name = config.get(schema_key)
-    return '/'.join( ('on', host_name, 'in', schema_name, query_name.lstrip('/')) )
+    return "on/config:%s/in/config:%s/%s" % (host_key.strip('/'),
+                                             schema_key.strip('/'),
+                                             query_name.lstrip('/'))
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(sconosciuto)" name="im_floater" title="(sconosciuto)">
+<floater label="(sconosciuto)" name="im_floater" title="(SCONOSCIUTO)">
 	<string name="ringing">
 		In connessione alla voice chat...
 	</string>
@@ -41,7 +41,7 @@
 			<button label="Informazioni sul gruppo" name="group_info_btn" width="146"/>
 			<button label="Unisciti alla chiamata" left_delta="151" name="start_call_btn" width="160"/>
 			<button label="Termina la chiamata" name="end_call_btn" width="160"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Clicca qui per vedere/nascondere l&apos;elenco dei partecipanti attivi in questa sessione IM."/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Clicca qui per attivare una lista di partecipanti attivi in questa sessione IM"/>
 			<button label="Invia" name="send_btn"/>
 		</layout_panel>
 	</layout_stack>

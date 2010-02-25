@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -50,8 +50,9 @@
 #include "llstatusbar.h"
 #include "lleconomy.h"
 #include "llviewerwindow.h"
-#include "llfloaterdirectory.h"
-#include "llfloatergroupinfo.h"
+#include "llpanelgroup.h"
+#include "llgroupactions.h"
+#include "llnotificationsutil.h"
 #include "lluictrlfactory.h"
 #include <boost/regex.hpp>
 
@@ -676,9 +677,12 @@ void LLGroupMgrGroupData::sendRoleChanges()
 				break;
 			}
 			case RC_UPDATE_ALL:
+				// fall through
 			case RC_UPDATE_POWERS:
 				need_power_recalc = true;
+				// fall through
 			case RC_UPDATE_DATA:
+				// fall through
 			default: 
 			{
 				LLGroupRoleData* group_role_data = (*role_it).second;
@@ -757,7 +761,16 @@ void LLGroupMgr::clearGroupData(const LLUUID& group_id)
 
 void LLGroupMgr::addObserver(LLGroupMgrObserver* observer) 
 { 
-	mObservers.insert(std::pair<LLUUID, LLGroupMgrObserver*>(observer->getID(), observer));
+	if( observer->getID() != LLUUID::null )
+		mObservers.insert(std::pair<LLUUID, LLGroupMgrObserver*>(observer->getID(), observer));
+}
+
+void LLGroupMgr::addObserver(const LLUUID& group_id, LLParticularGroupObserver* observer)
+{
+	if(group_id.notNull() && observer)
+	{
+		mParticularObservers[group_id].insert(observer);
+	}
 }
 
 void LLGroupMgr::removeObserver(LLGroupMgrObserver* observer)
@@ -782,6 +795,23 @@ void LLGroupMgr::removeObserver(LLGroupMgrObserver* observer)
 	}
 }
 
+void LLGroupMgr::removeObserver(const LLUUID& group_id, LLParticularGroupObserver* observer)
+{
+	if(group_id.isNull() || !observer)
+	{
+		return;
+	}
+
+    observer_map_t::iterator obs_it = mParticularObservers.find(group_id);
+    if(obs_it == mParticularObservers.end())
+        return;
+
+    obs_it->second.erase(observer);
+
+    if (obs_it->second.size() == 0)
+    	mParticularObservers.erase(obs_it);
+}
+
 LLGroupMgrGroupData* LLGroupMgr::getGroupData(const LLUUID& id)
 {
 	group_map_t::iterator gi = mGroups.find(id);
@@ -803,7 +833,12 @@ static void formatDateString(std::string &date_string)
 	const regex expression("([0-9]{1,2})/([0-9]{1,2})/([0-9]{4})");
 	if (regex_match(date_string.c_str(), result, expression))
 	{
-		date_string = result[3]+"/"+result[1]+"/"+result[2];
+		std::string year = result[3];
+		std::string month = result[1];
+		std::string day = result[2];
+
+		// ISO 8601 date format
+		date_string = llformat("%02s/%02s/%04s", month.c_str(), day.c_str(), year.c_str());
 	}
 }
 
@@ -1205,7 +1240,7 @@ void LLGroupMgr::processEjectGroupMemberReply(LLMessageSystem* msg, void ** data
 	// If we had a failure, the group panel needs to be updated.
 	if (!success)
 	{
-		LLFloaterGroupInfo::refreshGroup(group_id);
+		LLGroupActions::refresh(group_id);
 	}
 }
 
@@ -1225,9 +1260,7 @@ void LLGroupMgr::processJoinGroupReply(LLMessageSystem* msg, void ** data)
 
 		LLGroupMgr::getInstance()->clearGroupData(group_id);
 		// refresh the floater for this group, if any.
-		LLFloaterGroupInfo::refreshGroup(group_id);
-		// refresh the group panel of the search window, if necessary.
-		LLFloaterDirectory::refreshGroup(group_id);
+		LLGroupActions::refresh(group_id);
 	}
 }
 
@@ -1247,9 +1280,7 @@ void LLGroupMgr::processLeaveGroupReply(LLMessageSystem* msg, void ** data)
 
 		LLGroupMgr::getInstance()->clearGroupData(group_id);
 		// close the floater for this group, if any.
-		LLFloaterGroupInfo::closeGroup(group_id);
-		// refresh the group panel of the search window, if necessary.
-		LLFloaterDirectory::refreshGroup(group_id);
+		LLGroupActions::closeGroup(group_id);
 	}
 }
 
@@ -1283,15 +1314,17 @@ void LLGroupMgr::processCreateGroupReply(LLMessageSystem* msg, void ** data)
 
 		gAgent.mGroups.push_back(gd);
 
-		LLFloaterGroupInfo::closeCreateGroup();
-		LLFloaterGroupInfo::showFromUUID(group_id,"roles_tab");
+		LLPanelGroup::refreshCreatedGroup(group_id);
+		//FIXME
+		//LLFloaterGroupInfo::closeCreateGroup();
+		//LLFloaterGroupInfo::showFromUUID(group_id,"roles_tab");
 	}
 	else
 	{
-		// *TODO:translate
+		// *TODO: Translate
 		LLSD args;
 		args["MESSAGE"] = message;
-		LLNotifications::instance().add("UnableToCreateGroup", args);
+		LLNotificationsUtil::add("UnableToCreateGroup", args);
 	}
 }
 
@@ -1317,15 +1350,33 @@ void LLGroupMgr::notifyObservers(LLGroupChange gc)
 {
 	for (group_map_t::iterator gi = mGroups.begin(); gi != mGroups.end(); ++gi)
 	{
+		LLUUID group_id = gi->first;
 		if (gi->second->mChanged)
 		{
+			// notify LLGroupMgrObserver
+			// Copy the map because observers may remove themselves on update
+			observer_multimap_t observers = mObservers;
+
 			// find all observers for this group id
-			observer_multimap_t::iterator oi = mObservers.find(gi->first);
-			for (; oi != mObservers.end(); ++oi)
+			observer_multimap_t::iterator oi = observers.lower_bound(group_id);
+			observer_multimap_t::iterator end = observers.upper_bound(group_id);
+			for (; oi != end; ++oi)
 			{
 				oi->second->changed(gc);
 			}
 			gi->second->mChanged = FALSE;
+
+
+			// notify LLParticularGroupObserver
+		    observer_map_t::iterator obs_it = mParticularObservers.find(group_id);
+		    if(obs_it == mParticularObservers.end())
+		        return;
+
+		    observer_set_t& obs = obs_it->second;
+		    for (observer_set_t::iterator ob_it = obs.begin(); ob_it != obs.end(); ++ob_it)
+		    {
+		        (*ob_it)->changed(group_id, gc);
+		    }
 		}
 	}
 }
@@ -1660,19 +1711,24 @@ void LLGroupMgr::sendGroupMemberEjects(const LLUUID& group_id,
 	bool start_message = true;
 	LLMessageSystem* msg = gMessageSystem;
 
+	
+
 	LLGroupMgrGroupData* group_datap = LLGroupMgr::getInstance()->getGroupData(group_id);
 	if (!group_datap) return;
 
 	for (std::vector<LLUUID>::iterator it = member_ids.begin();
 		 it != member_ids.end(); ++it)
 	{
+		LLUUID& ejected_member_id = (*it);
+
 		// Can't use 'eject' to leave a group.
-		if ((*it) == gAgent.getID()) continue;
+		if (ejected_member_id == gAgent.getID()) continue;
 
 		// Make sure they are in the group, and we need the member data
-		LLGroupMgrGroupData::member_list_t::iterator mit = group_datap->mMembers.find(*it);
+		LLGroupMgrGroupData::member_list_t::iterator mit = group_datap->mMembers.find(ejected_member_id);
 		if (mit != group_datap->mMembers.end())
 		{
+			LLGroupMemberData* member_data = (*mit).second;
 			// Add them to the message
 			if (start_message)
 			{
@@ -1686,7 +1742,7 @@ void LLGroupMgr::sendGroupMemberEjects(const LLUUID& group_id,
 			}
 			
 			msg->nextBlock("EjectData");
-			msg->addUUID("EjecteeID",(*it));
+			msg->addUUID("EjecteeID",ejected_member_id);
 
 			if (msg->isSendFull())
 			{
@@ -1695,16 +1751,18 @@ void LLGroupMgr::sendGroupMemberEjects(const LLUUID& group_id,
 			}
 
 			// Clean up groupmgr
-			for (LLGroupMemberData::role_list_t::iterator rit = (*mit).second->roleBegin();
-				 rit != (*mit).second->roleEnd(); ++rit)
+			for (LLGroupMemberData::role_list_t::iterator rit = member_data->roleBegin();
+				 rit != member_data->roleEnd(); ++rit)
 			{
-				if ((*rit).first.notNull())
+				if ((*rit).first.notNull() && (*rit).second!=0)
 				{
-					(*rit).second->removeMember(*it);
+					(*rit).second->removeMember(ejected_member_id);
 				}
 			}
-			delete (*mit).second;
-			group_datap->mMembers.erase(*it);
+			
+			group_datap->mMembers.erase(ejected_member_id);
+			
+			delete member_data;
 		}
 	}
 

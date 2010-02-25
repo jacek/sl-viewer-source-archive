@@ -6,12 +6,8 @@
 	<layout_stack name="panels">
 		<layout_panel name="moderation_mode_panel">
 			<combo_box name="moderation_mode">
-				<combo_item name="OpenVoice">
-					Vozes ativadas por padrão
-				</combo_item>
-				<combo_item name="ModeratedVoice">
-					Vozes desligadas por padrão
-				</combo_item>
+				<combo_box.item label="Voz ligada por padrão" name="OpenVoice"/>
+				<combo_box.item label="Voz desligada por padrão" name="ModeratedVoice"/>
 			</combo_box>
 		</layout_panel>
 		<layout_panel name="moderate_chat_panel">
@@ -30,12 +26,8 @@
 			<text name="moderator_controls_label">
 				Controles do Moderador:
 			</text>
-			<check_box name="moderator_allow_voice">
-				Permitir conversa por voz
-			</check_box>
-			<check_box name="moderator_allow_text">
-				Permitir conversa por texto
-			</check_box>
+			<check_box label="Permitir conversa por voz" name="moderator_allow_voice"/>
+			<check_box label="Permitir conversa por texto" name="moderator_allow_text"/>
 		</layout_panel>
 	</layout_stack>
 </panel>

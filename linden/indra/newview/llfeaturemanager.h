@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,7 @@
 
 #include "stdtypes.h"
 
+#include "llsingleton.h"
 #include "llstring.h"
 #include <map>
 
@@ -98,8 +99,14 @@ protected:
 class LLFeatureManager : public LLFeatureList, public LLSingleton<LLFeatureManager>
 {
 public:
-	LLFeatureManager() :
-		LLFeatureList("default"), mInited(FALSE), mTableVersion(0), mSafe(FALSE), mGPUClass(GPU_CLASS_UNKNOWN)
+	LLFeatureManager()
+	:	LLFeatureList("default"),
+
+		mInited(FALSE),
+		mTableVersion(0),
+		mSafe(FALSE),
+		mGPUClass(GPU_CLASS_UNKNOWN),
+		mGPUSupported(FALSE)
 	{
 	}
 	~LLFeatureManager() {cleanupFeatureTables();}

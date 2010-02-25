@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="private_call" title="コール： UNKNOWN PERSON">
+	<floater.string name="unknown_person">
+		不明の人物
+	</floater.string>
+	<floater.string name="call_prefix">
+		コール：
+	</floater.string>
+	<panel name="bottom_panel">
+		<button label="終了" name="end_btn"/>
+	</panel>
+</floater>

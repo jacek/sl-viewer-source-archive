@@ -5,6 +5,7 @@
 
 set -x
 
+export INSTALL_USE_HTTP_FOR_SCP=true
 export PATH=/bin:/usr/bin:$PATH
 arch=`uname | cut -b-6`
 here=`echo $0 | sed 's:[^/]*$:.:'`
@@ -288,7 +289,7 @@ then
 else
   # By right, this should be in the branched source tree, but for now it will be a helper
   python "$update_version_files" --verbose --src-root=. --viewer > indra/build.log
-  [ x"$VIEWER_CHANNEL" = x ] && export VIEWER_CHANNEL="Snowglobe Release"
+  [ x"$VIEWER_CHANNEL" = x ] && export VIEWER_CHANNEL="Snowglobe Test Build"
 fi
 
 # First, go into the directory where the code was checked out by Parabuild

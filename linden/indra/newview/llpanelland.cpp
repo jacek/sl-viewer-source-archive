@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,6 +40,7 @@
 #include "llbutton.h"
 #include "llcheckboxctrl.h"
 #include "llfloaterland.h"
+#include "llfloaterreg.h"
 #include "lltextbox.h"
 #include "llviewercontrol.h"
 #include "llviewerparcelmgr.h"
@@ -69,7 +70,6 @@ BOOL	LLPanelLandInfo::postBuild()
 	childSetAction("button subdivide land",onClickDivide,this);
 	childSetAction("button join land",onClickJoin,this);
 	childSetAction("button about land",onClickAbout,this);
-	childSetAction("button show owners help", onShowOwnersHelp, this);
 
 	mCheckShowOwners = getChild<LLCheckBoxCtrl>("checkbox show owners");
 	childSetValue("checkbox show owners", gSavedSettings.getBOOL("ShowParcelOwners"));
@@ -79,8 +79,8 @@ BOOL	LLPanelLandInfo::postBuild()
 //
 // Methods
 //
-LLPanelLandInfo::LLPanelLandInfo(const std::string& name)
-:	LLPanel(name),
+LLPanelLandInfo::LLPanelLandInfo()
+:	LLPanel(),
 	mCheckShowOwners(NULL)
 {
 	if (!sInstance)
@@ -262,10 +262,5 @@ void LLPanelLandInfo::onClickAbout(void*)
 		LLViewerParcelMgr::getInstance()->selectParcelInRectangle();
 	}
 
-	LLFloaterLand::showInstance();
-}
-
-void LLPanelLandInfo::onShowOwnersHelp(void* user_data)
-{
-	LLNotifications::instance().add("ShowOwnersHelp");
+	LLFloaterReg::showInstance("about_land");
 }

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -312,7 +312,7 @@ void LLScriptScriptCodeChunk::build(LLFILE *efp, LLFILE *bcfp)
 		set_register(mCompleteCode, LREG_TM, mTotalSize);
 
 
-		if (fwrite(mCompleteCode, 1, mTotalSize, bcfp) != mTotalSize)
+		if (fwrite(mCompleteCode, 1, mTotalSize, bcfp) != (size_t)mTotalSize)
 		{
 			llwarns << "Short write" << llendl;
 		}

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -63,6 +63,7 @@ char*		u32_to_ip_string(U32 ip, char *ip_string);	// NULL on failure, ip_string 
 U32			ip_string_to_u32(const char* ip_string);	// Wrapper for inet_addr()
 
 extern const char* LOOPBACK_ADDRESS_STRING;
+extern const char* BROADCAST_ADDRESS_STRING;
 
 
 // useful MTU consts

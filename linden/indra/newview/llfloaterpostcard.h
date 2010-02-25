@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,25 +36,25 @@
 #include "llfloater.h"
 #include "llcheckboxctrl.h"
 
-#include "llmemory.h"
-#include "llimagegl.h"
+#include "llpointer.h"
 
 class LLTextEditor;
 class LLLineEditor;
 class LLButton;
+class LLViewerTexture;
+class LLImageJPEG;
 
 class LLFloaterPostcard 
 : public LLFloater
 {
 public:
-	LLFloaterPostcard(LLImageJPEG* jpeg, LLImageGL *img, const LLVector2& img_scale, const LLVector3d& pos_taken_global);
+	LLFloaterPostcard(const LLSD& key);
 	virtual ~LLFloaterPostcard();
 
-	virtual void init();
 	virtual BOOL postBuild();
 	virtual void draw();
 
-	static LLFloaterPostcard* showFromSnapshot(LLImageJPEG *jpeg, LLImageGL *img, const LLVector2& img_scale, const LLVector3d& pos_taken_global);
+	static LLFloaterPostcard* showFromSnapshot(LLImageJPEG *jpeg, LLViewerTexture *img, const LLVector2& img_scale, const LLVector3d& pos_taken_global);
 
 	static void onClickCancel(void* data);
 	static void onClickSend(void* data);
@@ -70,18 +70,15 @@ public:
 
 	void sendPostcard();
 
-protected:
+private:
 	
 	LLPointer<LLImageJPEG> mJPEGImage;
-	LLPointer<LLImageGL> mViewerImage;
+	LLPointer<LLViewerTexture> mViewerImage;
 	LLTransactionID mTransactionID;
 	LLAssetID mAssetID;
 	LLVector2 mImageScale;
 	LLVector3d mPosTakenGlobal;
-	boolean mHasFirstMsgFocus;
-
-	typedef std::set<LLFloaterPostcard*> instance_list_t;
-	static instance_list_t sInstances;
+	bool mHasFirstMsgFocus;
 };
 
 

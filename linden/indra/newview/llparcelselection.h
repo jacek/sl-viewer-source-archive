@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,8 @@
 #ifndef LLPARCELSELECTION_H
 #define LLPARCELSELECTION_H
 
-#include "llmemory.h"
+#include "llrefcount.h"
+#include "llsafehandle.h"
 
 class LLParcel;
 

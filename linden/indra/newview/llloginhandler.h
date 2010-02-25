@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,7 +39,7 @@ class LLLoginHandler : public LLCommandHandler
 {
  public:
 	// allow from external browsers
-	LLLoginHandler() : LLCommandHandler("login", false) { }
+	LLLoginHandler() : LLCommandHandler("login", UNTRUSTED_ALLOW) { }
 	/*virtual*/ bool handle(const LLSD& tokens, const LLSD& query_map, LLMediaCtrl* web);
 
 	// Fill in our internal fields from a SLURL like
@@ -48,7 +48,9 @@ class LLLoginHandler : public LLCommandHandler
 
 	std::string getFirstName() const { return mFirstName; }
 	std::string getLastName() const { return mLastName; }
-	LLUUID getWebLoginKey() const { return mWebLoginKey; }
+
+	// Web-based login unsupported
+	//LLUUID getWebLoginKey() const { return mWebLoginKey; }
 
 private:
 	void parse(const LLSD& queryMap);
@@ -56,7 +58,7 @@ private:
 private:
 	std::string mFirstName;
 	std::string mLastName;
-	LLUUID mWebLoginKey;
+	//LLUUID mWebLoginKey;
 };
 
 extern LLLoginHandler gLoginHandler;

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,6 +44,11 @@ LLWorkerThread::LLWorkerThread(const std::string& name, bool threaded) :
 	LLQueuedThread(name, threaded)
 {
 	mDeleteMutex = new LLMutex(NULL);
+
+	if(!mLocalAPRFilePoolp)
+	{
+		mLocalAPRFilePoolp = new LLVolatileAPRPool() ;
+	}
 }
 
 LLWorkerThread::~LLWorkerThread()
@@ -183,6 +188,7 @@ LLWorkerClass::LLWorkerClass(LLWorkerThread* workerthread, const std::string& na
 	: mWorkerThread(workerthread),
 	  mWorkerClassName(name),
 	  mRequestHandle(LLWorkerThread::nullHandle()),
+	  mRequestPriority(LLWorkerThread::PRIORITY_NORMAL),
 	  mMutex(NULL),
 	  mWorkFlags(0)
 {

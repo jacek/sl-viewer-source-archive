@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,7 @@
 #define LL_LLTRACKER_H
 
 #include "lldarray.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llstring.h"
 #include "lluuid.h"
 #include "v3dmath.h"

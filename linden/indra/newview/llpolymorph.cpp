@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,7 @@
 
 #include "llpolymorph.h"
 #include "llvoavatar.h"
+#include "llwearable.h"
 #include "llxmltree.h"
 #include "llendianswizzle.h"
 
@@ -299,6 +300,13 @@ BOOL LLPolyMorphTarget::setInfo(LLPolyMorphTargetInfo* info)
 		return FALSE;  // Continue, ignoring this tag
 	}
 	return TRUE;
+}
+
+/*virtual*/ LLViewerVisualParam* LLPolyMorphTarget::cloneParam(LLWearable* wearable) const
+{
+	LLPolyMorphTarget *new_param = new LLPolyMorphTarget(mMesh);
+	*new_param = *this;
+	return new_param;
 }
 
 #if 0 // obsolete

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -48,14 +48,14 @@
 #include "lldrawable.h"
 #include "llface.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobjectlist.h"
 #include "llviewerregion.h"
 #include "llworld.h"
 #include "noise.h"
 #include "pipeline.h"
 #include "llspatialpartition.h"
-#include "llviewerwindow.h"
+#include "llnotificationsutil.h"
 
 extern LLPipeline gPipeline;
 
@@ -257,7 +257,7 @@ void LLVOTree::initClass()
 		{
 			LLSD args;
 			args["SPECIES"] = err;
-			LLNotifications::instance().add("ErrorUndefinedTrees", args);
+			LLNotificationsUtil::add("ErrorUndefinedTrees", args);
 		}
 };
 
@@ -311,11 +311,7 @@ U32 LLVOTree::processUpdateMessage(LLMessageSystem *mesgsys,
 	//
 	//  Load Species-Specific data 
 	//
-	mTreeImagep = gImageList.getImage(sSpeciesTable[mSpecies]->mTextureID);
-	if (mTreeImagep)
-	{
-		gGL.getTexUnit(0)->bind(mTreeImagep.get());
-	}
+	mTreeImagep = LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
 	mBranchLength = sSpeciesTable[mSpecies]->mBranchLength;
 	mTrunkLength = sSpeciesTable[mSpecies]->mTrunkLength;
 	mLeafScale = sSpeciesTable[mSpecies]->mLeafScale;
@@ -504,9 +500,11 @@ LLDrawable* LLVOTree::createDrawable(LLPipeline *pipeline)
 const S32 LEAF_INDICES = 24;
 const S32 LEAF_VERTICES = 16;
 
+static LLFastTimer::DeclareTimer FTM_UPDATE_TREE("Update Tree");
+
 BOOL LLVOTree::updateGeometry(LLDrawable *drawable)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_UPDATE_TREE);
+	LLFastTimer ftm(FTM_UPDATE_TREE);
 
 	if (mReferenceBuffer.isNull() || mDrawable->getFace(0)->mVertexBuffer.isNull())
 	{
@@ -1303,9 +1301,8 @@ U32 LLVOTree::getPartitionType() const
 }
 
 LLTreePartition::LLTreePartition()
-: LLSpatialPartition(0)
+: LLSpatialPartition(0, FALSE, 0)
 {
-	mRenderByGroup = FALSE;
 	mDrawableType = LLPipeline::RENDER_TYPE_TREE;
 	mPartitionType = LLViewerRegion::PARTITION_TREE;
 	mSlopRatio = 0.f;

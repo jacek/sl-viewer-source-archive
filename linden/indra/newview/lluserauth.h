@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,6 +36,9 @@
 #include <string>
 #include <vector>
 #include <map>
+
+#include "llsingleton.h"
+
 typedef struct _xmlrpc_value* XMLRPC_VALUE;
 // forward ecl of types from xlrpc.h
 
@@ -127,11 +130,6 @@ public:
 		const std::string& hashed_volume_serial);
 
 	UserAuthcode authResponse();
-	// mResult contains the responses we get through the login process
-	//
-	LLSD mResult; // OGPX : *way* different access of auth result in OGP.
-	UserAuthcode mAuthResponse; // OGPX TODO: proper access functions
-	 
 
 	// clears out internal data cache.
 	void reset();
@@ -148,7 +146,7 @@ public:
 private:
 	LLXMLRPCTransaction* mTransaction;
 
-
+	UserAuthcode mAuthResponse;
 	std::string mErrorMessage;
 	
 	// dealing with the XML

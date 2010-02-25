@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,10 +44,11 @@
 #include "llgl.h"
 #include "llsecondlifeurls.h"
 
+#include "llappviewer.h"
 #include "llviewercontrol.h"
 #include "llworld.h"
 #include "lldrawpoolterrain.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llwindow.h"
 #include "llui.h"
 #include "llcontrol.h"
@@ -58,11 +59,6 @@
 #include "lldxhardware.h"
 #endif
 
-//
-// externs
-//
-extern LLMemoryInfo gSysMemory;
-extern LLCPUInfo gSysCPU;
 
 #if LL_DARWIN
 const char FEATURE_TABLE_FILENAME[] = "featuretable_mac.txt";
@@ -291,6 +287,7 @@ BOOL LLFeatureManager::loadFeatureTables()
 			if (!flp)
 			{
 				LL_ERRS("RenderInit") << "Specified parameter before <list> keyword!" << LL_ENDL;
+				return FALSE;
 			}
 			S32 available;
 			F32 recommended;
@@ -434,7 +431,6 @@ void LLFeatureManager::applyRecommendedSettings()
 
 	setGraphicsLevel(level, false);
 	gSavedSettings.setU32("RenderQualityPerformance", level);
-	gSavedSettings.setBOOL("RenderCustomSettings", FALSE);
 
 	// now apply the tweaks to draw distance
 	// these are double negatives, because feature masks only work by

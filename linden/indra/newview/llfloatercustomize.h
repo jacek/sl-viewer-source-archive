@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -51,11 +51,9 @@ class LLGenePool;
 class LLInventoryObserver;
 class LLJoint;
 class LLLineEditor;
-class LLMakeOutfitDialog;
 class LLRadioGroup;
-class LLScrollableContainerView;
+class LLScrollContainer;
 class LLScrollingPanelList;
-class LLTabContainerVertical;
 class LLTextBox;
 class LLTextureCtrl;
 class LLViewerJointMesh;
@@ -63,7 +61,7 @@ class LLViewerVisualParam;
 class LLVisualParam;
 class LLVisualParamReset;
 class LLWearableSaveAsDialog;
-class LLPanelEditWearable;
+class LLPanelWearable;
 
 /////////////////////////////////////////////////////////////////////
 // LLFloaterCustomize
@@ -80,66 +78,65 @@ public:
 	virtual BOOL 	postBuild();
 
 	// Inherted methods from LLFloater (and above)
-	virtual void	onClose(bool app_quitting);
+	virtual BOOL	canClose();
 	virtual void	draw();
-	/*virtual*/ void open();
+	/*virtual*/ void openFloater();
 
 
 	// New methods
 	void			clearScrollingPanelList();
 	void			generateVisualParamHints(LLViewerJointMesh* joint_mesh,
-											 param_map& params);
+											 param_map& params, LLPanelWearable* panel);
 
 	const std::string& getEditGroup();
 	void 			updateScrollingPanelList(BOOL allow_modify);
 
 	void			setWearable(EWearableType type, LLWearable* wearable, U32 perm_mask, BOOL is_complete);
-	LLPanelEditWearable* getCurrentWearablePanel() { return mWearablePanelList[ sCurrentWearableType ]; }
+	void			setWearable(EWearableType type, U32 index);
+	LLPanelWearable* getCurrentWearablePanel();
 
 	virtual BOOL	isDirty() const;
-
-	void			askToSaveIfDirty( void(*next_step_callback)(BOOL proceed, void* userdata), void* userdata );
+	
+	typedef boost::function<void (BOOL proceed)> next_step_callback_t;
+	void			askToSaveIfDirty( next_step_callback_t next_step_callback );
 
 	void			switchToDefaultSubpart();
 
-	static void		setCurrentWearableType( EWearableType type );
-	static EWearableType getCurrentWearableType()					{ return sCurrentWearableType; }
+	void			setCurrentWearableType( EWearableType type, bool force_change = false );
+	EWearableType 	getCurrentWearableType() { return mCurrentWearableType; }
 
 	// Callbacks
 	static void		onBtnOk( void* userdata );
 	static void		onBtnMakeOutfit( void* userdata );
-	static void		onMakeOutfitCommit( LLMakeOutfitDialog* dialog, void* userdata );
+	static void		onBtnScriptInfo( void* userdata );
 
-	static void		onTabChanged( void* userdata, bool from_click );
-	static void		onTabPrecommit( void* userdata, bool from_click );
+	void			onTabChanged( const LLSD& data );
+	bool			onTabPrecommit( LLUICtrl* ctrl, const LLSD& data );
 	bool			onSaveDialog(const LLSD& notification, const LLSD& response);
-	static void		onCommitChangeTab(BOOL proceed, void* userdata);
+	void			onCommitChangeTab(BOOL proceed, LLUICtrl* ctrl, const std::string& selected_tab);
 
 	void fetchInventory();
 	void updateInventoryUI();
 	void updateScrollingPanelUI();
 
 protected:
-	LLPanelEditWearable*	mWearablePanelList[ WT_COUNT ];
+	LLPanelWearable*	mWearablePanelList[ WT_COUNT ];
 
-	static EWearableType	sCurrentWearableType;
+	EWearableType			mCurrentWearableType;
 
 	LLScrollingPanelList*	mScrollingPanelList;
-	LLScrollableContainerView* mScrollContainer;
-	LLVisualParamReset*		mResetParams;
+	LLScrollContainer* 		mScrollContainer;
+	LLPointer<LLVisualParamReset>		mResetParams;
 
-	LLInventoryObserver* mInventoryObserver;
+	LLInventoryObserver* 	mInventoryObserver;
 
-	void					(*mNextStepAfterSaveCallback)(BOOL proceed, void* userdata);
-	void*					mNextStepAfterSaveUserdata;
-
+	next_step_callback_t	mNextStepAfterSaveCallback;
 
 protected:
 	
 	static void* createWearablePanel(void* userdata);
 	
 	void			initWearablePanels();
-	void			initScrollingPanelList();
 };
 
 extern LLFloaterCustomize* gFloaterCustomize;

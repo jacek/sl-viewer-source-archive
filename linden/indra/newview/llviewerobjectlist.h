@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,11 +39,13 @@
 // common includes
 #include "llstat.h"
 #include "lldarrayptr.h"
+#include "llmap.h"			// *TODO: switch to std::map
 #include "llstring.h"
 
 // project includes
 #include "llviewerobject.h"
 
+class LLCamera;
 class LLNetMap;
 class LLDebugBeacon;
 
@@ -150,19 +152,8 @@ public:
 
 	U32	mCurBin; // Current bin we're working on...
 
-	//////////////////////
-	//
-	// Statistics data
-	//
-	//
-	LLStat mNumObjectsStat;
-	LLStat mNumActiveObjectsStat;
-	LLStat mNumNewObjectsStat;
-	LLStat mNumSizeCulledStat;
-	LLStat mNumVisCulledStat;
-
+	// Statistics data (see also LLViewerStats)
 	S32 mNumNewObjects;
-
 	S32 mNumSizeCulled;
 	S32 mNumVisCulled;
 
@@ -242,6 +233,10 @@ public:
 extern LLViewerObjectList gObjectList;
 
 // Inlines
+/**
+ * Note:
+ * it will return NULL for offline avatar_id 
+ */
 inline LLViewerObject *LLViewerObjectList::findObject(const LLUUID &id)
 {
 	std::map<LLUUID, LLPointer<LLViewerObject> >::iterator iter = mUUIDObjectMap.find(id);

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -50,12 +50,12 @@ public:
 
 private:
 	static void onCommitAny(LLUICtrl* ctrl, void *userdata);
-	static void onClickSoundHelp(void*);
 
 private:
 	LLCheckBoxCtrl* mCheckSoundLocal;
-	LLButton*		mSoundHelpButton;
-	LLRadioGroup*	mRadioVoiceChat;
+	LLCheckBoxCtrl* mCheckParcelEnableVoice;
+	LLCheckBoxCtrl* mCheckEstateDisabledVoice;
+	LLCheckBoxCtrl* mCheckParcelVoiceLocal;	
 	LLLineEditor*	mMusicURLEdit;
 	LLCheckBoxCtrl* mMusicUrlCheck;
 

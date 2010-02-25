@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 #define LL_LLPANELGROUPNOTICES_H
 
 #include "llpanelgroup.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llinventory.h"
 
 class LLLineEditor;
@@ -47,11 +47,10 @@ class LLScrollListCtrl;
 class LLPanelGroupNotices : public LLPanelGroupTab
 {
 public:
-	LLPanelGroupNotices(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupNotices();
 	virtual ~LLPanelGroupNotices();
 
 	// LLPanelGroupTab
-	static void* createTab(void* data);
 	virtual void activate();
 	//virtual bool needsApply(std::string& mesg);
 	//virtual bool apply(std::string& mesg);
@@ -69,6 +68,10 @@ public:
 					const bool& has_inventory,
 					const std::string& inventory_name,
 					LLOfferInfo* inventory_offer);
+
+	void refreshNotices();
+
+	virtual void setGroupID(const LLUUID& id);
 
 private:
 	static void onClickRemoveAttachment(void* data);

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,90 +38,231 @@
 #define LL_LLPANELPICK_H
 
 #include "llpanel.h"
-#include "v3dmath.h"
-#include "lluuid.h"
+#include "llremoteparcelrequest.h"
+#include "llavatarpropertiesprocessor.h"
 
-class LLButton;
-class LLCheckBoxCtrl;
 class LLIconCtrl;
-class LLLineEditor;
-class LLTextBox;
-class LLTextEditor;
 class LLTextureCtrl;
-class LLUICtrl;
+class LLScrollContainer;
 class LLMessageSystem;
+class LLAvatarPropertiesObserver;
 
-class LLPanelPick : public LLPanel
+/**
+ * Panel for displaying Pick Information - snapshot, name, description, etc.
+ */
+class LLPanelPickInfo : public LLPanel, public LLAvatarPropertiesObserver, LLRemoteParcelInfoObserver
 {
+	LOG_CLASS(LLPanelPickInfo);
 public:
-    LLPanelPick(BOOL top_pick);
-    /*virtual*/ ~LLPanelPick();
+	
+	// Creates new panel
+	static LLPanelPickInfo* create();
 
-	void reset();
+	virtual ~LLPanelPickInfo();
 
-    /*virtual*/ BOOL postBuild();
+	/**
+	 * Initializes panel properties
+	 *
+	 * By default Pick will be created for current Agent location.
+	 * Use setPickData to change Pick properties.
+	 */
+	/*virtual*/ void onOpen(const LLSD& key);
 
-    /*virtual*/ void draw();
+	/*virtual*/ BOOL postBuild();
 
-	/*virtual*/ void refresh();
+	/*virtual*/ void reshape(S32 width, S32 height, BOOL called_from_parent = TRUE);
 
-	// Setup a new pick, including creating an id, giving a sane
-	// initial position, etc.
-	void initNewPick();
+	/*virtual*/ void processProperties(void* data, EAvatarProcessorType type);
 
-	// We need to know the creator id so the database knows which partition
-	// to query for the pick data.
-	void setPickID(const LLUUID& pick_id, const LLUUID& creator_id);
+	/**
+	 * Sends remote parcel info request to resolve parcel name from its ID.
+	 */
+	void sendParcelInfoRequest();
 
-	// Schedules the panel to request data
-	// from the server next time it is drawn.
-	void markForServerRequest();
+	/**
+	 * Sets "Back" button click callback
+	 */
+	virtual void setExitCallback(const commit_callback_t& cb);
 
-	std::string getPickName();
-	const LLUUID& getPickID() const { return mPickID; }
-	const LLUUID& getPickCreatorID() const { return mCreatorID; }
+	/**
+	 * Sets "Edit" button click callback
+	 */
+	virtual void setEditPickCallback(const commit_callback_t& cb);
 
-    void sendPickInfoRequest();
-	void sendPickInfoUpdate();
-
-    static void processPickInfoReply(LLMessageSystem* msg, void**);
+	//This stuff we got from LLRemoteParcelObserver, in the last one we intentionally do nothing
+	/*virtual*/ void processParcelInfo(const LLParcelData& parcel_data);
+	/*virtual*/ void setParcelID(const LLUUID& parcel_id) { mParcelId = parcel_id; }
+	/*virtual*/ void setErrorStatus(U32 status, const std::string& reason) {};
 
 protected:
-    static void onClickTeleport(void* data);
-    static void onClickMap(void* data);
-    //static void onClickLandmark(void* data);
-    static void onClickSet(void* data);
 
-	static void onCommitAny(LLUICtrl* ctrl, void* data);
+	LLPanelPickInfo();
+	
+	/**
+	 * Resets Pick information
+	 */
+	virtual void resetData();
+
+	/**
+	 * Resets UI controls (visibility, values)
+	 */
+	virtual void resetControls();
+
+	/** 
+	* "Location text" is actually the owner name, the original
+	* name that owner gave the parcel, and the location.
+	*/
+	static std::string createLocationText(
+		const std::string& owner_name, 
+		const std::string& original_name,
+		const std::string& sim_name, 
+		const LLVector3d& pos_global);
+
+	virtual void setAvatarId(const LLUUID& avatar_id) { mAvatarId = avatar_id; }
+	virtual LLUUID& getAvatarId() { return mAvatarId; }
+
+	/**
+	 * Sets snapshot id.
+	 *
+	 * Will mark snapshot control as valid if id is not null.
+	 * Will mark snapshot control as invalid if id is null. If null id is a valid value,
+	 * you have to manually mark snapshot is valid.
+	 */
+	virtual void setSnapshotId(const LLUUID& id);
+	
+	virtual void setPickId(const LLUUID& id) { mPickId = id; }
+	virtual LLUUID& getPickId() { return mPickId; }
+	
+	virtual void setPickName(const std::string& name);
+	
+	virtual void setPickDesc(const std::string& desc);
+	
+	virtual void setPickLocation(const std::string& location);
+	
+	virtual void setPosGlobal(const LLVector3d& pos) { mPosGlobal = pos; }
+	virtual LLVector3d& getPosGlobal() { return mPosGlobal; }
+
+	/**
+	 * Callback for "Map" button, opens Map
+	 */
+	void onClickMap();
+
+	/**
+	 * Callback for "Teleport" button, teleports user to Pick location.
+	 */
+	void onClickTeleport();
+
+	void onClickBack();
 
 protected:
-	BOOL mTopPick;
-    LLUUID mPickID;
-	LLUUID mCreatorID;
-	LLUUID mParcelID;
 
-	// Data will be requested on first draw
-	BOOL mDataRequested;
-	BOOL mDataReceived;
+	S32						mScrollingPanelMinHeight;
+	S32						mScrollingPanelWidth;
+	LLScrollContainer*		mScrollContainer;
+	LLPanel*				mScrollingPanel;
+	LLTextureCtrl*			mSnapshotCtrl;
 
-	std::string mSimName;
-    LLVector3d mPosGlobal;
+	LLUUID mAvatarId;
+	LLVector3d mPosGlobal;
+	LLUUID mParcelId;
+	LLUUID mPickId;
+	LLUUID mRequestedId;
+};
 
-    LLTextureCtrl*	mSnapshotCtrl;
-    LLLineEditor*	mNameEditor;
-    LLTextEditor*	mDescEditor;
-    LLLineEditor*	mLocationEditor;
+/**
+ * Panel for creating/editing Pick.
+ */
+class LLPanelPickEdit : public LLPanelPickInfo
+{
+	LOG_CLASS(LLPanelPickEdit);
+public:
 
-    LLButton*    mTeleportBtn;
-    LLButton*    mMapBtn;
+	/**
+	 * Creates new panel
+	 */
+	static LLPanelPickEdit* create();
 
-    LLTextBox*    mSortOrderText;
-    LLLineEditor* mSortOrderEditor;
-    LLCheckBoxCtrl* mEnabledCheck;
-    LLButton*    mSetBtn;
+	/*virtual*/ ~LLPanelPickEdit();
 
-    typedef std::list<LLPanelPick*> panel_list_t;
-	static panel_list_t sAllPanels;
+	/*virtual*/ void onOpen(const LLSD& key);
+
+	virtual void setPickData(const LLPickData* pick_data);
+
+	/*virtual*/ BOOL postBuild();
+
+	/**
+	 * Sets "Save" button click callback
+	 */
+	virtual void setSaveCallback(const commit_callback_t& cb);
+
+	/**
+	 * Sets "Cancel" button click callback
+	 */
+	virtual void setCancelCallback(const commit_callback_t& cb);
+
+	/**
+	 * Resets panel and all cantrols to unedited state
+	 */
+	/*virtual*/ void resetDirty();
+
+	/**
+	 * Returns true if any of Pick properties was changed by user.
+	 */
+	/*virtual*/ BOOL isDirty() const;
+
+	/*virtual*/ void processProperties(void* data, EAvatarProcessorType type);
+
+protected:
+
+	LLPanelPickEdit();
+
+	/**
+	 * Sends Pick properties to server.
+	 */
+	void sendUpdate();
+
+	/**
+	 * Called when snapshot image changes.
+	 */
+	void onSnapshotChanged();
+	
+	/**
+	 * Callback for Pick snapshot, name and description changed event.
+	 */
+	void onPickChanged(LLUICtrl* ctrl);
+
+	/*virtual*/ void resetData();
+
+	/**
+	 * Enables/disables "Save" button
+	 */
+	void enableSaveButton(bool enable);
+
+	/**
+	 * Callback for "Set Location" button click
+	 */
+	void onClickSetLocation();
+
+	/**
+	 * Callback for "Save" button click
+	 */
+	void onClickSave();
+
+protected:
+
+	bool mLocationChanged;
+	bool mNeedData;
+	bool mNewPick;
+
+private:
+
+	void initTexturePickerMouseEvents();
+        void onTexturePickerMouseEnter(LLUICtrl* ctrl);
+	void onTexturePickerMouseLeave(LLUICtrl* ctrl);
+
+private:
+
+	LLIconCtrl* text_icon;
 };
 
 #endif // LL_LLPANELPICK_H

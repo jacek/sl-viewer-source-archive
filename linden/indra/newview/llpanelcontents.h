@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,9 +35,14 @@
 
 #include "v3math.h"
 #include "llpanel.h"
+#include "llinventory.h"
+#include "lluuid.h"
+#include "llmap.h"
+#include "llviewerobject.h"
+#include "llvoinventorylistener.h"
 
 class LLButton;
-class LLPanelInventory;
+class LLPanelObjectInventory;
 class LLViewerObject;
 class LLCheckBoxCtrl;
 class LLSpinCtrl;
@@ -46,19 +51,31 @@ class LLPanelContents : public LLPanel
 {
 public:
 	virtual	BOOL postBuild();
-	LLPanelContents(const std::string& name);
+	LLPanelContents();
 	virtual ~LLPanelContents();
 
 	void			refresh();
 
-	static void		onClickNewScript(		void* userdata);
-	static void		onClickPermissions(		void* userdata);
+
+	static void		onClickNewScript(void*);
+	static void		onClickPermissions(void*);
+	
+    // Key suffix for "tentative" fields
+    static const char* TENTATIVE_SUFFIX;
+
+    // These aren't fields in LLMediaEntry, so we have to define them ourselves for checkbox control
+    static const char* PERMS_OWNER_INTERACT_KEY;
+    static const char* PERMS_OWNER_CONTROL_KEY;
+    static const char* PERMS_GROUP_INTERACT_KEY;
+    static const char* PERMS_GROUP_CONTROL_KEY;
+    static const char* PERMS_ANYONE_INTERACT_KEY;
+    static const char* PERMS_ANYONE_CONTROL_KEY;
 
 protected:
-	void			getState(LLViewerObject *object);
+	void				getState(LLViewerObject *object);
 
 public:
-	LLPanelInventory* mPanelInventory;
+	LLPanelObjectInventory* mPanelInventoryObject;
 };
 
-#endif
+#endif // LL_LLPANELCONTENTS_H

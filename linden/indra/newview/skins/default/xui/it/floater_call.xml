@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="private_call" title="CHIAMATA: PERSONA SCONOSCIUTA">
+	<floater.string name="unknown_person">
+		Persona Sconosciuta
+	</floater.string>
+	<floater.string name="call_prefix">
+		Chiama:
+	</floater.string>
+	<panel name="bottom_panel">
+		<button label="Fine" name="end_btn"/>
+	</panel>
+</floater>

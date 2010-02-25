@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,6 +41,7 @@
 #include "llkeyboard.h"
 #include "llfocusmgr.h"
 #include "llviewercontrol.h"
+#include "llrootview.h"
 
 // static
 LLUploadDialog*	LLUploadDialog::sDialog = NULL;
@@ -64,8 +65,7 @@ void LLUploadDialog::modalUploadFinished()
 // Private methods
 
 LLUploadDialog::LLUploadDialog( const std::string& msg)
-	:
-	LLPanel( std::string("Uploading..."), LLRect(0,100,100,0) )  // dummy rect.  Will reshape below.
+  : LLPanel()
 {
 	setBackgroundVisible( TRUE );
 
@@ -75,11 +75,16 @@ LLUploadDialog::LLUploadDialog( const std::string& msg)
 	}
 	LLUploadDialog::sDialog = this;
 
-	const LLFontGL* font = LLResMgr::getInstance()->getRes( LLFONT_SANSSERIF );
+	const LLFontGL* font = LLFontGL::getFontSansSerif();
 	LLRect msg_rect;
 	for (int line_num=0; line_num<16; ++line_num)
 	{
-		mLabelBox[line_num] = new LLTextBox( std::string("Filename"), msg_rect, std::string("Filename"), font );
+		LLTextBox::Params params;
+		params.name("Filename");
+		params.rect(msg_rect);
+		params.initial_value("Filename");
+		params.font(font);
+		mLabelBox[line_num] = LLUICtrlFactory::create<LLTextBox> (params);
 		addChild(mLabelBox[line_num]);
 	}
 
@@ -91,7 +96,7 @@ LLUploadDialog::LLUploadDialog( const std::string& msg)
 
 void LLUploadDialog::setMessage( const std::string& msg)
 {
-	const LLFontGL* font = LLResMgr::getInstance()->getRes( LLFONT_SANSSERIF );
+	const LLFontGL* font = LLFontGL::getFontSansSerif();
 
 	const S32 VPAD = 16;
 	const S32 HPAD = 25;
@@ -103,18 +108,10 @@ void LLUploadDialog::setMessage( const std::string& msg)
 	S32 max_msg_width = 0;
 	std::list<std::string> msg_lines;
 
-	S32 size = msg.size() + 1;// + strlen("Uploading...\n\n");
-	char* temp_msg = new char[size];
-	
-	//strcpy(temp_msg,"Uploading...\n\n");
-	if (temp_msg == NULL)
-	{
-		llerrs << "Memory Allocation Failed" << llendl;
-		return;
-	}
-	
-	strcpy( temp_msg, msg.c_str());		/* Flawfinder: ignore */
-	char* token = strtok( temp_msg, "\n" );
+	S32 size = msg.size() + 1;
+	std::vector<char> temp_msg(size); // non-const copy to make strtok happy
+	strcpy( &temp_msg[0], msg.c_str());
+	char* token = strtok( &temp_msg[0], "\n" );
 	while( token )
 	{
 		std::string tokstr(token);
@@ -123,8 +120,6 @@ void LLUploadDialog::setMessage( const std::string& msg)
 		msg_lines.push_back( tokstr );
 		token = strtok( NULL, "\n" );
 	}
-	delete[] temp_msg;
-
 
 	S32 line_height = S32( font->getLineHeight() + 0.99f );
 	S32 dialog_width = max_msg_width + 2 * HPAD;
@@ -149,7 +144,7 @@ void LLUploadDialog::setMessage( const std::string& msg)
 		msg_rect.setOriginAndSize( msg_x, msg_y, max_msg_width, line_height );
 		mLabelBox[line_num]->setRect(msg_rect);
 		mLabelBox[line_num]->setText(cur_line);
-		mLabelBox[line_num]->setColor( gColors.getColor( "LabelTextColor" ) );
+		mLabelBox[line_num]->setColor( LLUIColorTable::instance().getColor( "LabelTextColor" ) );
 		mLabelBox[line_num]->setVisible(TRUE);
 		msg_y -= line_height;
 		++line_num;

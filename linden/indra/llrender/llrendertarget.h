@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -121,6 +121,7 @@ public:
 	U32 getTexture(U32 attachment = 0) const;
 
 	U32 getDepth(void) const { return mDepth; }
+	BOOL hasStencil() const { return mStencil; }
 
 	void bindTexture(U32 index, S32 channel);
 
@@ -135,10 +136,15 @@ public:
 	void copyContents(LLRenderTarget& source, S32 srcX0, S32 srcY0, S32 srcX1, S32 srcY1,
 						S32 dstX0, S32 dstY0, S32 dstX1, S32 dstY1, U32 mask, U32 filter);
 
+	static void copyContentsToFramebuffer(LLRenderTarget& source, S32 srcX0, S32 srcY0, S32 srcX1, S32 srcY1,
+						S32 dstX0, S32 dstY0, S32 dstX1, S32 dstY1, U32 mask, U32 filter);
+
 	//Returns TRUE if target is ready to be rendered into.
 	//That is, if the target has been allocated with at least
 	//one renderable attachment (i.e. color buffer, depth buffer).
 	BOOL isComplete() const;
+
+	static LLRenderTarget* getCurrentBoundTarget() { return sBoundTarget; }
 
 protected:
 	friend class LLMultisampleBuffer;
@@ -153,6 +159,8 @@ protected:
 	LLTexUnit::eTextureType mUsage;
 	U32 mSamples;
 	LLMultisampleBuffer* mSampleBuffer;
+
+	static LLRenderTarget* sBoundTarget;
 	
 };
 

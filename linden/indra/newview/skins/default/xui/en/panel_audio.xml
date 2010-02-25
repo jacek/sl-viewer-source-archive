@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ class="panel_preference"
+ follows="left|top|right|bottom"
+ height="160"
+ label="Audio &amp; Video"
+ layout="topleft"
+ name="Media panel"
+ width="175">
+    <slider
+     control_name="AudioLevelMaster"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Master"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="System Volume"
+     show_text="false"
+     top="5"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteAudio" />
+    </slider>
+    <button
+     control_name="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_audio"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelMusic"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Music"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="Music Volume"
+     show_text="false"
+     top="35"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteMusic" />
+    </slider>
+    <button
+     control_name="MuteMusic"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_music"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelMedia"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Media"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="Media Volume"
+     show_text="false"
+     top="55"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteMedia" />
+    </slider>
+    <button
+     control_name="MuteMedia"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_media"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelVoice"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Voice"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="Voice Volume"
+     show_text="false"
+     top="75"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteVoice" />
+    </slider>
+    <button
+     control_name="MuteVoice"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_voice"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelSFX"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Sounds"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="SFX Volume"
+     show_text="false"
+     top="95"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteSounds" />
+    </slider>
+    <button
+     control_name="MuteSounds"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_sfx"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelAmbient"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="Ambient"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="Wind Volume"
+     show_text="false"
+     top="115"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteAmbient" />
+    </slider>
+    <button
+     control_name="MuteAmbient"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_wind"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+    <slider
+     control_name="AudioLevelUI"
+     disabled_control="MuteAudio"
+     follows="left|top"
+     height="15"
+     increment="0.05"
+     initial_value="0.5"
+     label="UI"
+     label_width="55"
+     layout="topleft"
+     left="10"
+     name="UI Volume"
+     show_text="false"
+     top="135"
+     volume="true">
+        <slider.commit_callback
+         function="Pref.setControlFalse"
+         parameter="MuteUI" />
+    </slider>
+    <button
+     control_name="MuteUI"
+     disabled_control="MuteAudio"
+     follows="top|right"
+     height="16"
+     image_selected="icn_speaker-muted_dark.tga"
+     image_unselected="icn_speaker_dark.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="140"
+     name="mute_ui"
+     tab_stop="false"
+     top_delta="-1"
+     width="25" />
+</panel>

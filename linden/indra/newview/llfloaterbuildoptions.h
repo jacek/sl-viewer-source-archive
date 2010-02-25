@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,19 +42,12 @@
 
 
 class LLFloaterBuildOptions
-:	public LLFloater
+	:	public LLFloater
 {
-protected:
-	LLFloaterBuildOptions();
+	friend class LLFloaterReg;
+private:
+	LLFloaterBuildOptions(const LLSD& key);
 	~LLFloaterBuildOptions();
-
-public:
-	static void		show(void*);
-	static LLFloaterBuildOptions* getInstance();
-	static BOOL		visible(void*);
-
-protected:
-	static LLFloaterBuildOptions*	sInstance;
 };
 
 #endif

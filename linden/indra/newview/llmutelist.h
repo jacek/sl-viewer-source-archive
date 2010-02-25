@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -127,12 +127,7 @@ public:
 	// call this method on logout to save everything.
 	void cache(const LLUUID& agent_id);
 
-	void setSavedResidentVolume(const LLUUID& id, F32 volume);
-	F32 getSavedResidentVolume(const LLUUID& id);
-
 private:
-	void loadUserVolumes();
-	
 	BOOL loadFromFile(const std::string& filename);
 	BOOL saveToFile(const std::string& filename);
 
@@ -153,7 +148,13 @@ private:
 	{
 		bool operator()(const LLMute& a, const LLMute& b) const
 		{
-			return a.mName < b.mName;
+			std::string name1 = a.mName;
+			std::string name2 = b.mName;
+
+			LLStringUtil::toUpper(name1);
+			LLStringUtil::toUpper(name2);
+
+			return name1 < name2;
 		}
 	};
 	struct compare_by_id
@@ -173,12 +174,8 @@ private:
 	observer_set_t mObservers;
 
 	BOOL mIsLoaded;
-	BOOL mUserVolumesLoaded;
 
 	friend class LLDispatchEmptyMuteList;
-
-	typedef std::map<LLUUID, F32> user_volume_map_t; 
-	user_volume_map_t mUserVolumeSettings;
 };
 
 class LLMuteListObserver

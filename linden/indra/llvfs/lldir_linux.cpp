@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -94,10 +94,28 @@ LLDir_Linux::LLDir_Linux()
 	mExecutablePathAndName = "";
 	mExecutableDir = tmp_str;
 	mWorkingDir = tmp_str;
+#ifdef APP_RO_DATA_DIR
+	mAppRODataDir = APP_RO_DATA_DIR;
+#else
 	mAppRODataDir = tmp_str;
+#endif
+    U32 indra_pos = mExecutableDir.find("/indra");
+    if (indra_pos != std::string::npos)
+    {
+		// ...we're in a dev checkout
+		mSkinBaseDir = mExecutableDir.substr(0, indra_pos) + "/indra/newview/skins";
+		llinfos << "Running in dev checkout with mSkinBaseDir "
+		 << mSkinBaseDir << llendl;
+    }
+    else
+    {
+		// ...normal installation running
+		mSkinBaseDir = mAppRODataDir + mDirDelimiter + "skins";
+    }	
+
 	mOSUserDir = getCurrentUserHome(tmp_str);
 	mOSUserAppDir = "";
-	mLindenUserDir = tmp_str;
+	mLindenUserDir = "";
 
 	char path [32];	/* Flawfinder: ignore */ 
 
@@ -126,31 +144,6 @@ LLDir_Linux::LLDir_Linux()
 
 	mLLPluginDir = mExecutableDir + mDirDelimiter + "llplugin";
 
-#ifdef APP_RO_DATA_DIR
-        const char* appRODataDir = APP_RO_DATA_DIR;
-        if(appRODataDir[0] == '/')
-          {
-          // We have a full path to the data directory.
-          mAppRODataDir = appRODataDir;
-          }
-        else if(appRODataDir[0] != '\0')
-          {
-          // We have a relative path to the data directory.  Search
-          // for it in each potential install prefix containing the
-          // executable.
-          for(std::string prefix = getDirName(mExecutableDir);
-              !prefix.empty(); prefix = getDirName(prefix))
-            {
-            std::string dir = prefix + "/" + appRODataDir;
-            if(fileExists(dir + "/app_settings"))
-              {
-              mAppRODataDir = dir;
-              break;
-              }
-            }
-          }
-#endif
-
 	// *TODO: don't use /tmp, use $HOME/.secondlife/tmp or something.
 	mTempDir = "/tmp";
 }
@@ -162,8 +155,15 @@ LLDir_Linux::~LLDir_Linux()
 // Implementation
 
 
-void LLDir_Linux::initAppDirs(const std::string &app_name)
+void LLDir_Linux::initAppDirs(const std::string &app_name,
+							  const std::string& app_read_only_data_dir)
 {
+	// Allow override so test apps can read newview directory
+	if (!app_read_only_data_dir.empty())
+	{
+		mAppRODataDir = app_read_only_data_dir;
+		mSkinBaseDir = mAppRODataDir + mDirDelimiter + "skins";
+	}
 	mAppName = app_name;
 
 	std::string upper_app_name(app_name);
@@ -226,15 +226,6 @@ void LLDir_Linux::initAppDirs(const std::string &app_name)
 		}
 	}
 	
-	res = LLFile::mkdir(getExpandedFilename(LL_PATH_MOZILLA_PROFILE,""));
-	if (res == -1)
-	{
-		if (errno != EEXIST)
-		{
-			llwarns << "Couldn't create LL_PATH_MOZILLA_PROFILE dir " << getExpandedFilename(LL_PATH_MOZILLA_PROFILE,"") << llendl;
-		}
-	}
-
 	mCAFile = getExpandedFilename(LL_PATH_APP_SETTINGS, "CA.pem");
 }
 

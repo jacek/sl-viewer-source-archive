@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -121,7 +121,7 @@ class LLVoiceVisualizer : public LLHUDEffect
 			bool					mWaveActive				[ NUM_VOICE_SYMBOL_WAVES ];
 			F64						mWaveFadeOutStartTime	[ NUM_VOICE_SYMBOL_WAVES ];
 			F32						mWaveOpacity			[ NUM_VOICE_SYMBOL_WAVES ];
-			LLPointer<LLImageGL>	mTexture				[ NUM_VOICE_SYMBOL_WAVES ];
+			LLPointer<LLViewerFetchedTexture>	mTexture				[ NUM_VOICE_SYMBOL_WAVES ];
 			bool					mActive;
 			LLVector3				mPosition;
 		};

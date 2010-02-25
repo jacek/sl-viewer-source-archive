@@ -6,12 +6,8 @@
 	<layout_stack name="panels">
 		<layout_panel name="moderation_mode_panel">
 			<combo_box name="moderation_mode">
-				<combo_item name="OpenVoice">
-					Głos włączony domyślnie
-				</combo_item>
-				<combo_item name="ModeratedVoice">
-					Głos wyłączony domyślnie
-				</combo_item>
+				<combo_box.item name="OpenVoice" label="Głos włączony domyślnie" />
+				<combo_box.item name="ModeratedVoice" label="Głos wyłączony domyślnie" />
 			</combo_box>
 		</layout_panel>
 		<layout_panel name="moderate_chat_panel">
@@ -32,12 +28,8 @@
 			<text name="moderator_controls_label">
 				Moderator Kontroluje:
 			</text>
-			<check_box name="moderator_allow_voice">
-				Rozmowy dozwolone
-			</check_box>
-			<check_box name="moderator_allow_text">
-				Czat/IM dozwolony
-			</check_box>
+			<check_box name="moderator_allow_voice" label="Rozmowy dozwolone"/>
+			<check_box name="moderator_allow_text" label="Czat dozwolony"/>
 		</layout_panel>
 	</layout_stack>
 </panel>

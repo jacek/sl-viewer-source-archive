@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,58 +40,16 @@
 #include "llfloaterbuildoptions.h"
 #include "lluictrlfactory.h"
 
-// library includes
-#include "llfontgl.h"
-#include "llcheckboxctrl.h"
-#include "llspinctrl.h"
-#include "llsliderctrl.h"
-
-// newview includes
-#include "llresmgr.h"
-#include "llviewercontrol.h"
-
-//
-// Globals
-//
-LLFloaterBuildOptions	*LLFloaterBuildOptions::sInstance = NULL;
-
 //
 // Methods
 //
-LLFloaterBuildOptions::LLFloaterBuildOptions( )
-: LLFloater(std::string("build options floater"))
+LLFloaterBuildOptions::LLFloaterBuildOptions(const LLSD& key)
+  : LLFloater(key)
 {
-	sInstance = this;
+	//LLUICtrlFactory::getInstance()->buildFloater(this, "floater_build_options.xml");
 }
 
 LLFloaterBuildOptions::~LLFloaterBuildOptions()
 {
-	sInstance = NULL;
 }
 
-// static
-void LLFloaterBuildOptions::show(void*)
-{
-	if (sInstance)
-	{
-		sInstance->open();	/*Flawfinder: ignore*/
-	}
-	else
-	{
-		LLFloaterBuildOptions* floater = new LLFloaterBuildOptions();
-
-		LLUICtrlFactory::getInstance()->buildFloater(floater, "floater_build_options.xml");
-		floater->open();	/*Flawfinder: ignore*/
-	}
-}
-
-LLFloaterBuildOptions* LLFloaterBuildOptions::getInstance()
-{
-	return sInstance;
-}
-
-// static
-BOOL LLFloaterBuildOptions::visible(void*)
-{
-	return (sInstance != NULL);
-}

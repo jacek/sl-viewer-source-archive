@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<toggleable_menu name="all_nearby_gear_menu">
+	<menu_item_call label="Copia URL" name="copy_url"/>
+	<menu_item_call label="Evidenzia con un Marcatore" name="highlight"/>
+	<menu_item_call label="Segnala come Inappropriato" name="flag"/>
+	<menu_item_call label="Blocca Proprietario" name="mute"/>
+</toggleable_menu>

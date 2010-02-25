@@ -1,10 +1,10 @@
 /** 
  * @file llpluginmessage.h
- * @brief LLPluginMessage encapsulates the serialization/deserialization of messages passed to and from plugins.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #ifndef LL_LLPLUGINMESSAGE_H
@@ -35,12 +36,15 @@
 
 #include "llsd.h"
 
-
+/**
+ * @brief LLPluginMessage encapsulates the serialization/deserialization of messages passed to and from plugins.
+ */
 class LLPluginMessage
 {
 	LOG_CLASS(LLPluginMessage);
 public:
 	LLPluginMessage();
+	LLPluginMessage(const LLPluginMessage &p);
 	LLPluginMessage(const std::string &message_class, const std::string &message_name);
 	~LLPluginMessage();
 	
@@ -58,6 +62,7 @@ public:
 	void setValueU32(const std::string &key, U32 value);
 	void setValueBoolean(const std::string &key, bool value);
 	void setValueReal(const std::string &key, F64 value);
+	void setValuePointer(const std::string &key, void *value);
 	
 	std::string getClass(void) const;
 	std::string getName(void) const;
@@ -83,6 +88,9 @@ public:
 	// get the value of a key as a float.
 	F64 getValueReal(const std::string &key) const;
 
+	// get the value of a key as a pointer.
+	void* getValuePointer(const std::string &key) const;
+
 	// Flatten the message into a string
 	std::string generate(void) const;
 
@@ -98,14 +106,23 @@ private:
 
 };
 
+/**
+ * @brief Listener for plugin messages.
+ */
 class LLPluginMessageListener
 {
 public:
 	virtual ~LLPluginMessageListener();
+   /** Plugin receives message from plugin loader shell. */
 	virtual void receivePluginMessage(const LLPluginMessage &message) = 0;
 	
 };
 
+/**
+ * @brief Dispatcher for plugin messages.
+ *
+ * Manages the set of plugin message listeners and distributes messages to plugin message listeners.
+ */
 class LLPluginMessageDispatcher
 {
 public:
@@ -116,7 +133,9 @@ public:
 protected:
 	void dispatchPluginMessage(const LLPluginMessage &message);
 
+   /** A set of message listeners. */
 	typedef std::set<LLPluginMessageListener*> listener_set_t;
+   /** The set of message listeners. */
 	listener_set_t mListeners;
 };
 

@@ -1,147 +1,64 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Geral" name="general_panel">
-	<radio_group name="default_start_location">
-		<radio_item name="MyHome" tool_tip="Como padrão, registrar na minha casa.">
-			Minha Casa
-		</radio_item>
-		<radio_item name="MyLastLocation" tool_tip="Por padrão, registrar na minha última localidade.">
-			Minha Última Localidade
-		</radio_item>
-	</radio_group>
-	<check_box label="Mostrar Posição Inicial na Tela de Login" name="show_location_checkbox"/>
-	<combo_box name="fade_out_combobox" width="166">
-		<combo_item name="Never">
-			Nunca
-		</combo_item>
-		<combo_item name="Show Temporarily">
-			Mostrar Temporariamente
-		</combo_item>
-		<combo_item name="Always">
-			Sempre
-		</combo_item>
-	</combo_box>
-	<check_box label="Avatar com Nomes Pequenos" name="small_avatar_names_checkbox"/>
-	<check_box label="Ocultar meu Nome na minha Tela" name="show_my_name_checkbox"/>
-	<text name="group_titles_textbox">
-		Títulos dos Grupos:
-	</text>
-	<check_box label="Ocultar todos os Títulos de Grupos" name="show_all_title_checkbox"/>
-	<check_box label="Ocultar meu Título no Grupo" name="show_my_title_checkbox"/>
-	<color_swatch label="" name="effect_color_swatch" tool_tip="Clique para abrir o seletor de cores"/>
-	<text name="UI Size:">
-		Tamanho da UI:
-	</text>
-	<check_box label="Usar escala independente da resolução" name="ui_auto_scale"/>
-	<spinner label="Tempo para ficar Ausente:" name="afk_timeout_spinner"/>
-	<check_box label="Avisar quando receber ou gastar Linden dollars (L$)" name="notify_money_change_checkbox"/>
-	<text name="maturity_desired_label" bottom="-312">
-		Classificação:
-	</text>
-	<text name="maturity_desired_prompt" bottom="-312">
-		Eu quero acessar
-conteúdo classificado:
-	</text>
-	<combo_box name="maturity_desired_combobox" bottom="-330" left="278">
-		<combo_item name="Desired_Adult">
-			PG, Mature e Adult
-		</combo_item>
-		<combo_item name="Desired_Mature">
-			PG e Mature
-		</combo_item>
-		<combo_item name="Desired_PG">
-			apenas PG
-		</combo_item>
-	</combo_box>
-	<text name="maturity_desired_textbox" bottom="-324" left="278">
-		apenas PG
-	</text>
-	<text length="1" name="start_location_textbox" type="string">
-		Posição Inicial:
-	</text>
-	<text length="1" name="show_names_textbox" type="string">
-		Mostrar Nomes:
-	</text>
-	<text length="1" name="effects_color_textbox" type="string">
-		Cores para Meus Efeitos:
-	</text>
-	<text length="1" name="seconds_textbox" type="string">
-		segundos
-	</text>
-	<text length="1" name="crash_report_textbox" type="string">
-		Relatórios de Falhas:
-	</text>
 	<text name="language_textbox">
 		Linguagem:
 	</text>
-	<text left_delta="313" length="1" name="language_textbox2" type="string">
-		(Precisa de reinício para efetivar)
+	<combo_box name="language_combobox">
+		<combo_box.item label="Padrão" name="System Default Language"/>
+		<combo_box.item label="English (Inglês)" name="English"/>
+		<combo_box.item label="Dansk (Dinamarquês) - Beta" name="Danish"/>
+		<combo_box.item label="Deutsch (Alemão) - Beta" name="Deutsch(German)"/>
+		<combo_box.item label="Español (Espanhol) - Beta" name="Spanish"/>
+		<combo_box.item label="Français (Francês) - Beta" name="French"/>
+		<combo_box.item label="Italiano - Beta" name="Italian"/>
+		<combo_box.item label="Nederlands (Holandês) - Beta" name="Dutch"/>
+		<combo_box.item label="Polski (Polonês) - Beta" name="Polish"/>
+		<combo_box.item label="Português - Beta" name="Portugese"/>
+		<combo_box.item label="日本語 (Japonês) - Beta" name="(Japanese)"/>
+	</combo_box>
+	<text name="language_textbox2">
+		(Reinicie para mostrar o novo idioma)
 	</text>
-	<string name="region_name_prompt">
-		Digite o nome da Região
-	</string>
-	<combo_box name="crash_behavior_combobox" width="166">
-		<combo_item length="1" name="Askbeforesending" type="string">
-			Perguntar antes de enviar
-		</combo_item>
-		<combo_item length="1" name="Alwayssend" type="string">
-			Sempre enviar
-		</combo_item>
-		<combo_item length="1" name="Neversend" type="string">
-			Nunca Enviar
-		</combo_item>
+	<text name="maturity_desired_prompt">
+		Eu quero acessar conteúdo classificado:
+	</text>
+	<text name="maturity_desired_textbox"/>
+	<combo_box name="maturity_desired_combobox">
+		<combo_box.item label="PG, Mature e Adult" name="Desired_Adult"/>
+		<combo_box.item label="PG e Mature" name="Desired_Mature"/>
+		<combo_box.item label="PG" name="Desired_PG"/>
 	</combo_box>
-	<combo_box name="language_combobox" width="166">
-		<combo_item name="System Default Language">
-			Padrão do Sistema
-		</combo_item>
-		<combo_item name="English">
-			English (Inglês)
-		</combo_item>
-		<combo_item name="Danish">
-			Dansk (Dinamarquês) - Beta
-		</combo_item>
-		<combo_item name="Deutsch(German)">
-			Deutsch (Alemão) - Beta
-		</combo_item>
-		<combo_item name="Spanish">
-			Español (Espanhol) - Beta
-		</combo_item>
-		<combo_item name="French">
-			Français (Francês) - Beta
-		</combo_item>
-		<combo_item name="Italian">
-			Italiano - Beta
-		</combo_item>
-		<combo_item name="Hungarian">
-			Magyar (Húngaro) - Beta
-		</combo_item>
-		<combo_item name="Dutch">
-			Nederlands (Holandês) - Beta
-		</combo_item>
-		<combo_item name="Polish">
-			Polski (Polonês) - Beta
-		</combo_item>
-		<combo_item name="Portugese">
-			Português - Beta
-		</combo_item>
-		<combo_item name="Russian">
-			Русский (Russo) - Beta
-		</combo_item>
-		<combo_item name="Turkish">
-			Türkçe (Turco) - Beta
-		</combo_item>
-		<combo_item name="Ukrainian">
-			Українська (Ucraniano) - Beta
-		</combo_item>
-		<combo_item name="Chinese">
-			中文 (简体) (Chinês) - Beta
-		</combo_item>
-		<combo_item name="(Japanese)">
-			日本語 (Japonês) - Beta
-		</combo_item>
-		<combo_item name="(Korean)">
-			한국어 (Coreano) - Beta
-		</combo_item>
+	<text name="start_location_textbox">
+		Ponto de partida:
+	</text>
+	<combo_box name="start_location_combo">
+		<combo_box.item label="Minha Última Localidade" name="MyLastLocation" tool_tip="Por padrão, registrar na minha última localidade."/>
+		<combo_box.item label="Minha Casa" name="MyHome" tool_tip="Como padrão, registrar na minha casa."/>
 	</combo_box>
-	<check_box label="Compartilhar a linguagem com objetos" name="language_is_public" tool_tip="Isto permite que os objetos no mundo conheçam sua linguagem preferida."/>
+	<check_box initial_value="true" label="Mostrar ao entrar" name="show_location_checkbox"/>
+	<text name="name_tags_textbox">
+		Mostrar nomes:
+	</text>
+	<radio_group name="Name_Tag_Preference">
+		<radio_item label="Desligar" name="radio"/>
+		<radio_item label="Ligar" name="radio2"/>
+		<radio_item label="Brevemente" name="radio3"/>
+	</radio_group>
+	<check_box label="Mostrar meu nome" name="show_my_name_checkbox1"/>
+	<check_box initial_value="true" label="Nomes pequenos" name="small_avatar_names_checkbox"/>
+	<check_box label="Mostrar cargo" name="show_all_title_checkbox1"/>
+	<text name="effects_color_textbox">
+		Meus efeitos:
+	</text>
+	<color_swatch label="" name="effect_color_swatch" tool_tip="Clique para abrir o seletor de cores"/>
+	<text name="title_afk_text">
+		Entrar no modo ausente em:
+	</text>
+	<spinner label="Tempo para ficar Ausente:" name="afk_timeout_spinner"/>
+	<text name="seconds_textbox">
+		segundos
+	</text>
+	<text name="text_box3">
+		Mensagem do modo ocupado:
+	</text>
 </panel>

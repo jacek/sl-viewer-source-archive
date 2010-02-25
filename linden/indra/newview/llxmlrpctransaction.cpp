@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,6 +33,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llxmlrpctransaction.h"
+#include "llxmlrpclistener.h"
 
 #include "llcurl.h"
 #include "llviewercontrol.h"
@@ -41,6 +42,13 @@
 #include <xmlrpc-epi/xmlrpc.h>
 
 #include "llappviewer.h"
+
+// Static instance of LLXMLRPCListener declared here so that every time we
+// bring in this code, we instantiate a listener. If we put the static
+// instance of LLXMLRPCListener into llxmlrpclistener.cpp, the linker would
+// simply omit llxmlrpclistener.o, and shouting on the LLEventPump would do
+// nothing.
+static LLXMLRPCListener listener("LLXMLRPCTransaction");
 
 LLXMLRPCValue LLXMLRPCValue::operator[](const char* id) const
 {
@@ -150,11 +158,11 @@ XMLRPC_VALUE LLXMLRPCValue::getValue() const
 class LLXMLRPCTransaction::Impl
 {
 public:
-	typedef LLXMLRPCTransaction::Status	Status;
+	typedef LLXMLRPCTransaction::EStatus	EStatus;
 
 	LLCurlEasyRequest* mCurlRequest;
 
-	Status		mStatus;
+	EStatus		mStatus;
 	CURLcode	mCurlCode;
 	std::string	mStatusMessage;
 	std::string	mStatusURI;
@@ -176,7 +184,7 @@ public:
 	
 	bool process();
 	
-	void setStatus(Status code,
+	void setStatus(EStatus code,
 				   const std::string& message = "", const std::string& uri = "");
 	void setCurlStatus(CURLcode);
 
@@ -213,6 +221,11 @@ LLXMLRPCTransaction::Impl::Impl(const std::string& uri,
 	XMLRPC_RequestSetData(request, params.getValue());
 	
 	init(request, useGzip);
+    // DEV-28398: without this XMLRPC_RequestFree() call, it looks as though
+    // the 'request' object is simply leaked. It's less clear to me whether we
+    // should also ask to free request value data (second param 1), since the
+    // data come from 'params'.
+    XMLRPC_RequestFree(request, 1);
 }
 
 
@@ -239,9 +252,8 @@ void LLXMLRPCTransaction::Impl::init(XMLRPC_REQUEST request, bool useGzip)
 //	mCurlRequest->setopt(CURLOPT_VERBOSE, 1); // usefull for debugging
 	mCurlRequest->setopt(CURLOPT_NOSIGNAL, 1);
 	mCurlRequest->setWriteCallback(&curlDownloadCallback, (void*)this);
-    	BOOL vefifySSLCert = !gSavedSettings.getBOOL("NoVerifySSLCert");
-	mCurlRequest->setopt(CURLOPT_SSL_VERIFYPEER, vefifySSLCert);
-	mCurlRequest->setopt(CURLOPT_SSL_VERIFYHOST, vefifySSLCert ? 2 : 0);
+	mCurlRequest->setopt(CURLOPT_SSL_VERIFYPEER, LLCurl::getSSLVerify());
+	mCurlRequest->setopt(CURLOPT_SSL_VERIFYHOST, LLCurl::getSSLVerify() ? 2 : 0);
 	// Be a little impatient about establishing connections.
 	mCurlRequest->setopt(CURLOPT_CONNECTTIMEOUT, 40L);
 
@@ -385,7 +397,7 @@ bool LLXMLRPCTransaction::Impl::process()
 	return false;
 }
 
-void LLXMLRPCTransaction::Impl::setStatus(Status status,
+void LLXMLRPCTransaction::Impl::setStatus(EStatus status,
 	const std::string& message, const std::string& uri)
 {
 	mStatus = status;
@@ -509,7 +521,7 @@ bool LLXMLRPCTransaction::process()
 	return impl.process();
 }
 
-LLXMLRPCTransaction::Status LLXMLRPCTransaction::status(int* curlCode)
+LLXMLRPCTransaction::EStatus LLXMLRPCTransaction::status(int* curlCode)
 {
 	if (curlCode)
 	{

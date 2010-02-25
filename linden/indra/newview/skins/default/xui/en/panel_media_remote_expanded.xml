@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ follows="right|bottom"
+ height="185"
+ layout="topleft"
+ left="0"
+ name="media_remote"
+ top="185"
+ use_bounding_rect="true"
+ width="220">
+    <panel.string
+     name="play_label">
+        Play
+    </panel.string>
+    <panel.string
+     name="stop_label">
+        Stop
+    </panel.string>
+    <panel.string
+     name="pause_label">
+        Pause
+    </panel.string>
+    <panel.string
+     name="default_tooltip_label">
+        No Media Specified
+    </panel.string>
+    <panel.string
+     name="media_hidden_label">
+        (URL hidden by parcel owner)
+    </panel.string>
+    <panel.string
+     name="media_icon_tooltip_web">
+        This location displays content from the World Wide Web. Click the Play button to display Web content.
+    </panel.string>
+    <panel.string
+     name="media_icon_tooltip_movie">
+        This location displays Video content. Click the Play button to play the video.
+    </panel.string>
+    <panel.string
+     name="media_play_tooltip">
+        Display Web content at this location.
+    </panel.string>
+    <panel
+     filename="panel_bg_tab.xml"
+     height="186"
+     layout="topleft"
+     left="0"
+     top="-2"
+     width="220" />
+    <panel
+	 class="panel_preference"
+     bottom="163"
+     filename="panel_audio.xml"
+     height="160"
+     label="Audio &amp; Video"
+     layout="topleft"
+     name="Volume Panel"
+     width="220" />
+    <panel
+     filename="panel_media_controls.xml"
+     height="20"
+     layout="topleft"
+     left="0"
+     top="162"
+     width="220" />
+</panel>

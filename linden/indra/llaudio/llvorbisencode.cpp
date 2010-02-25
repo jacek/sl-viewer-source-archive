@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -89,7 +89,7 @@ S32 check_for_invalid_wav_formats(const std::string& in_fname, std::string& erro
 
 	//********************************
 	LLAPRFile infile ;
-    infile.open(in_fname,LL_APR_RB, LLAPRFile::global);
+    infile.open(in_fname,LL_APR_RB);
 	//********************************
 	if (!infile.getFileHandle())
 	{
@@ -233,7 +233,7 @@ S32 encode_vorbis_file(const std::string& in_fname, const std::string& out_fname
 	S32 data_left = 0;
 
 	LLAPRFile infile ;
-	infile.open(in_fname,LL_APR_RB, LLAPRFile::global);
+	infile.open(in_fname,LL_APR_RB);
 	if (!infile.getFileHandle())
 	{
 		llwarns << "Couldn't open temporary ogg file for writing: " << in_fname
@@ -242,7 +242,7 @@ S32 encode_vorbis_file(const std::string& in_fname, const std::string& out_fname
 	}
 
 	LLAPRFile outfile ;
-	outfile.open(out_fname,LL_APR_WPB, LLAPRFile::global);
+	outfile.open(out_fname,LL_APR_WPB);
 	if (!outfile.getFileHandle())
 	{
 		llwarns << "Couldn't open upload sound file for reading: " << in_fname

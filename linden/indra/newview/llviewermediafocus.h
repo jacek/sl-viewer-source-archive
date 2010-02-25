@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,7 +41,7 @@
 #include "llselectmgr.h"
 
 class LLViewerMediaImpl;
-class LLPanelMediaHUD;
+class LLPanelPrimMediaControls;
 
 class LLViewerMediaFocus : 
 	public LLFocusableElement, 
@@ -51,40 +51,66 @@ public:
 	LLViewerMediaFocus();
 	~LLViewerMediaFocus();
 	
-	static void cleanupClass();
-
-	void setFocusFace(BOOL b, LLPointer<LLViewerObject> objectp, S32 face, viewer_media_t media_impl);
-	void clearFocus() { setFocusFace(false, NULL, 0, NULL); }
+	// Set/clear the face that has media focus (takes keyboard input and has the full set of controls)
+	void setFocusFace(LLPointer<LLViewerObject> objectp, S32 face, viewer_media_t media_impl, LLVector3 pick_normal = LLVector3::zero);
+	void clearFocus();
+	
+	// Set/clear the face that has "media hover" (has the mimimal set of controls to zoom in or pop out into a media browser).
+	// If a media face has focus, the media hover will be ignored.
+	void setHoverFace(LLPointer<LLViewerObject> objectp, S32 face, viewer_media_t media_impl, LLVector3 pick_normal = LLVector3::zero);
+	void clearHover();
+	
 	/*virtual*/ bool	getFocus();
-	/*virtual*/ // void onNavigateComplete( const EventType& event_in );
-
 	/*virtual*/ BOOL	handleKey(KEY key, MASK mask, BOOL called_from_parent);
 	/*virtual*/ BOOL	handleUnicodeChar(llwchar uni_char, BOOL called_from_parent);
 	BOOL handleScrollWheel(S32 x, S32 y, S32 clicks);
 
-	LLUUID getSelectedUUID();
-	LLObjectSelectionHandle getSelection() { return mFocus; }
-
 	void update();
+	
+	static void setCameraZoom(LLViewerObject* object, LLVector3 normal, F32 padding_factor, bool zoom_in_only = false);
+	static F32 getBBoxAspectRatio(const LLBBox& bbox, const LLVector3& normal, F32* height, F32* width, F32* depth);
 
-	void setCameraZoom(F32 padding_factor);
-	void setMouseOverFlag(bool b, viewer_media_t media_impl = NULL);
-	bool getMouseOverFlag() { return mMouseOverFlag; }
-	void setPickInfo(LLPickInfo pick_info) { mPickInfo = pick_info; }
-	F32 getBBoxAspectRatio(const LLBBox& bbox, const LLVector3& normal, F32* height, F32* width, F32* depth);
+	bool isFocusedOnFace(LLPointer<LLViewerObject> objectp, S32 face);
+	bool isHoveringOverFace(LLPointer<LLViewerObject> objectp, S32 face);
+	
+	// These look up (by uuid) and return the values that were set with setFocusFace.  They will return null if the objects have been destroyed.
+	LLViewerMediaImpl* getFocusedMediaImpl();
+	LLViewerObject* getFocusedObject();
+	S32 getFocusedFace() { return mFocusedObjectFace; }
+	LLUUID getFocusedObjectID() { return mFocusedObjectID; }
+	
+	// These look up (by uuid) and return the values that were set with setHoverFace.  They will return null if the objects have been destroyed.
+	LLViewerMediaImpl* getHoverMediaImpl();
+	LLViewerObject* getHoverObject();
+	S32 getHoverFace() { return mHoverObjectFace; }
+	
+	// Try to focus/zoom on the specified media (if it's on an object in world).
+	void focusZoomOnMedia(LLUUID media_id);
+	// Are we zoomed in?
+	bool isZoomed() const;
+	void unZoom();
+	
+	// Return the ID of the media instance the controls are currently attached to (either focus or hover).
+	LLUUID getControlsMediaID();
 
 protected:
 	/*virtual*/ void	onFocusReceived();
 	/*virtual*/ void	onFocusLost();
 
 private:
-	LLObjectSelectionHandle mFocus;
-	std::string mLastURL;
-	bool mMouseOverFlag;
-	LLPickInfo mPickInfo;
-	LLHandle<LLPanelMediaHUD> mMediaHUD;
-	LLUUID mObjectID;
-	viewer_media_t mMediaImpl;
+	
+	LLHandle<LLPanelPrimMediaControls> mMediaControls;
+	LLObjectSelectionHandle mSelection;
+	
+	LLUUID mFocusedObjectID;
+	S32 mFocusedObjectFace;
+	LLUUID mFocusedImplID;
+	LLVector3 mFocusedObjectNormal;
+	
+	LLUUID mHoverObjectID;
+	S32 mHoverObjectFace;
+	LLUUID mHoverImplID;
+	LLVector3 mHoverObjectNormal;
 };
 
 

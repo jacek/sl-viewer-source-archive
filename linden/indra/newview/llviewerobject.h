@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,7 @@
 #include "llhudtext.h"
 #include "llhudicon.h"
 #include "llinventory.h"
-#include "llmemory.h"
+#include "llrefcount.h"
 #include "llmemtype.h"
 #include "llprimitive.h"
 #include "lluuid.h"
@@ -64,16 +64,18 @@ class LLWorld;
 class LLNameValue;
 class LLNetMap;
 class LLMessageSystem;
+class LLPartSysData;
 class LLPrimitive;
 class LLPipeline;
 class LLTextureEntry;
-class LLViewerImage;
+class LLViewerTexture;
 class LLViewerInventoryItem;
 class LLViewerObject;
 class LLViewerPartSourceScript;
 class LLViewerRegion;
 class LLViewerObjectMedia;
 class LLVOInventoryListener;
+class LLVOAvatar;
 
 typedef enum e_object_update_type
 {
@@ -116,7 +118,7 @@ public:
 
 //============================================================================
 
-class LLViewerObject : public LLPrimitive, public LLRefCount
+class LLViewerObject : public LLPrimitive, public LLRefCount, public LLGLUpdate
 {
 protected:
 	~LLViewerObject(); // use unref()
@@ -143,6 +145,8 @@ public:
 	BOOL isOrphaned() const								{ return mOrphaned; }
 	BOOL isParticleSource() const;
 
+	virtual LLVOAvatar* asAvatar();
+
 	static void initVOClasses();
 	static void cleanupVOClasses();
 
@@ -154,10 +158,16 @@ public:
 	virtual BOOL	idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time);
 
 	// Types of media we can associate
-	enum { MEDIA_TYPE_NONE = 0, MEDIA_TYPE_WEB_PAGE = 1 };
+	enum { MEDIA_NONE = 0, MEDIA_SET = 1 };
 
 	// Return codes for processUpdateMessage
-	enum { MEDIA_URL_REMOVED = 0x1, MEDIA_URL_ADDED = 0x2, MEDIA_URL_UPDATED = 0x4, INVALID_UPDATE = 0x80000000 };
+	enum { 
+        MEDIA_URL_REMOVED = 0x1, 
+        MEDIA_URL_ADDED = 0x2, 
+        MEDIA_URL_UPDATED = 0x4, 
+        MEDIA_FLAGS_CHANGED = 0x8,
+        INVALID_UPDATE = 0x80000000
+    };
 
 	virtual U32		processUpdateMessage(LLMessageSystem *mesgsys,
 										void **user_data,
@@ -194,6 +204,7 @@ public:
 	
 	virtual LLDrawable* createDrawable(LLPipeline *pipeline);
 	virtual BOOL		updateGeometry(LLDrawable *drawable);
+	virtual void		updateGL();
 	virtual void		updateFaceSize(S32 idx);
 	virtual BOOL		updateLOD();
 	virtual BOOL		setDrawableParent(LLDrawable* parentp);
@@ -218,6 +229,7 @@ public:
 
 	virtual BOOL isFlexible() const					{ return FALSE; }
 	virtual BOOL isSculpted() const 				{ return FALSE; }
+	virtual BOOL hasLightTexture() const			{ return FALSE; }
 
 	// This method returns true if the object is over land owned by
 	// the agent.
@@ -236,13 +248,13 @@ public:
 	BOOL isProbablyModifiable() const;
 	*/
 
-	virtual void setParent(LLViewerObject* parent);
+	virtual BOOL setParent(LLViewerObject* parent);
 	virtual void addChild(LLViewerObject *childp);
 	virtual void removeChild(LLViewerObject *childp);
 	const_child_list_t& getChildren() const { 	return mChildList; }
 	S32 numChildren() const { return mChildList.size(); }
-	void addThisAndAllChildren(LLDynamicArray<LLViewerObject*>& objects);
-	void addThisAndNonJointChildren(LLDynamicArray<LLViewerObject*>& objects);
+	void addThisAndAllChildren(std::vector<LLViewerObject*>& objects);
+	void addThisAndNonJointChildren(std::vector<LLViewerObject*>& objects);
 	BOOL isChild(LLViewerObject *childp) const;
 	BOOL isSeat() const;
 	
@@ -311,8 +323,9 @@ public:
 	/*virtual*/	S32		setTEMediaFlags(const U8 te, const U8 media_flags );
 	/*virtual*/ S32     setTEGlow(const U8 te, const F32 glow);
 	/*virtual*/	BOOL	setMaterial(const U8 material);
-	virtual		void	setTEImage(const U8 te, LLViewerImage *imagep); // Not derived from LLPrimitive
-	LLViewerImage		*getTEImage(const U8 te) const;
+	virtual		void	setTEImage(const U8 te, LLViewerTexture *imagep); // Not derived from LLPrimitive
+	void                changeTEImage(S32 index, LLViewerTexture* new_image)  ;
+	LLViewerTexture		*getTEImage(const U8 te) const;
 	
 	void fitFaceTexture(const U8 face);
 	void sendTEUpdate() const;			// Sends packed representation of all texture entry information
@@ -353,7 +366,7 @@ public:
 	void setCanSelect(BOOL canSelect);
 
 	void setDebugText(const std::string &utf8text);
-	void setIcon(LLViewerImage* icon_image);
+	void setIcon(LLViewerTexture* icon_image);
 	void clearIcon();
 
 	void markForUpdate(BOOL priority);
@@ -444,6 +457,7 @@ public:
 	inline BOOL		flagAnimSource() const			{ return ((mFlags & FLAGS_ANIM_SOURCE) != 0); }
 	inline BOOL		flagCameraSource() const		{ return ((mFlags & FLAGS_CAMERA_SOURCE) != 0); }
 	inline BOOL		flagCameraDecoupled() const		{ return ((mFlags & FLAGS_CAMERA_DECOUPLED) != 0); }
+	inline BOOL		flagObjectMove() const			{ return ((mFlags & FLAGS_OBJECT_MOVE) != 0); }
 
 	bool getIncludeInSearch() const;
 	void setIncludeInSearch(bool include_in_search);
@@ -468,7 +482,7 @@ public:
 
 	virtual S32 getLOD() const { return 3; } 
 	virtual U32 getPartitionType() const;
-	virtual void dirtySpatialGroup() const;
+	virtual void dirtySpatialGroup(BOOL priority = FALSE) const;
 	virtual void dirtyMesh();
 
 	virtual LLNetworkData* getParameterEntry(U16 param_type) const;
@@ -497,6 +511,10 @@ private:
 	ExtraParameter* getExtraParameterEntry(U16 param_type) const;
 	ExtraParameter* getExtraParameterEntryCreate(U16 param_type);
 	bool unpackParameterEntry(U16 param_type, LLDataPacker *dp);
+
+    // This function checks to see if the given media URL has changed its version
+    // and the update wasn't due to this agent's last action.
+    U32 checkMediaURL(const std::string &media_url);
 	
 public:
 	//
@@ -526,7 +544,7 @@ public:
 	// Last total CRC received from sim, used for caching
 	U32				mTotalCRC;
 
-	LLPointer<LLViewerImage> *mTEImages;
+	LLPointer<LLViewerTexture> *mTEImages;
 
 	// Selection, picking and rendering variables
 	U32				mGLName;			// GL "name" used by selection code
@@ -659,6 +677,12 @@ protected:
 
 private:	
 	static S32 sNumObjects;
+
+public:
+	const LLUUID &getItemID() const { return mAttachmentItemID; }
+	void setItemID(const LLUUID &id) { mAttachmentItemID = id; }
+private:
+	LLUUID mAttachmentItemID; // ItemID when item is in user inventory.
 };
 
 ///////////////////

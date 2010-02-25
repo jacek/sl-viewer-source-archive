@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,11 +42,10 @@
 
 #include "llcubemap.h"
 #include "llsky.h"
-#include "llagent.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"	// For debugging
+#include "llviewertexturelist.h"	// For debugging
 #include "llviewerobjectlist.h" // For debugging
 #include "llviewerwindow.h"
 #include "pipeline.h"
@@ -88,20 +87,21 @@ void LLDrawPoolAlpha::beginDeferredPass(S32 pass)
 
 void LLDrawPoolAlpha::endDeferredPass(S32 pass)
 {
-	gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.4f);
-	{
-		LLFastTimer t(LLFastTimer::FTM_RENDER_GRASS);
-		gDeferredTreeProgram.bind();
-		LLGLEnable test(GL_ALPHA_TEST);
-		//render alpha masked objects
-		LLRenderPass::renderTexture(LLRenderPass::PASS_ALPHA_MASK, getVertexDataMask());
-	}			
-	gGL.setAlphaRejectSettings(LLRender::CF_DEFAULT);
+	
 }
 
 void LLDrawPoolAlpha::renderDeferred(S32 pass)
 {
-	
+	gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.f);
+	{
+		LLFastTimer t(FTM_RENDER_GRASS);
+		gDeferredTreeProgram.bind();
+		LLGLEnable test(GL_ALPHA_TEST);
+		//render alpha masked objects
+		LLRenderPass::renderTexture(LLRenderPass::PASS_ALPHA_MASK, getVertexDataMask());
+		gDeferredTreeProgram.unbind();
+	}			
+	gGL.setAlphaRejectSettings(LLRender::CF_DEFAULT);
 }
 
 
@@ -112,7 +112,7 @@ S32 LLDrawPoolAlpha::getNumPostDeferredPasses()
 
 void LLDrawPoolAlpha::beginPostDeferredPass(S32 pass) 
 { 
-	LLFastTimer t(LLFastTimer::FTM_RENDER_ALPHA);
+	LLFastTimer t(FTM_RENDER_ALPHA);
 
 	simple_shader = &gDeferredAlphaProgram;
 	fullbright_shader = &gDeferredFullbrightProgram;
@@ -139,7 +139,7 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 
 void LLDrawPoolAlpha::beginRenderPass(S32 pass)
 {
-	LLFastTimer t(LLFastTimer::FTM_RENDER_ALPHA);
+	LLFastTimer t(FTM_RENDER_ALPHA);
 	
 	if (LLPipeline::sUnderWaterRender)
 	{
@@ -163,7 +163,7 @@ void LLDrawPoolAlpha::beginRenderPass(S32 pass)
 
 void LLDrawPoolAlpha::endRenderPass( S32 pass )
 {
-	LLFastTimer t(LLFastTimer::FTM_RENDER_ALPHA);
+	LLFastTimer t(FTM_RENDER_ALPHA);
 	LLRenderPass::endRenderPass(pass);
 
 	if(gPipeline.canUseWindLightShaders()) 
@@ -174,12 +174,13 @@ void LLDrawPoolAlpha::endRenderPass( S32 pass )
 
 void LLDrawPoolAlpha::render(S32 pass)
 {
-	LLFastTimer t(LLFastTimer::FTM_RENDER_ALPHA);
+	LLFastTimer t(FTM_RENDER_ALPHA);
 
 	LLGLSPipelineAlpha gls_pipeline_alpha;
 
 	if (LLPipeline::sFastAlpha && !deferred_render)
 	{
+		LLGLDisable blend_disable(GL_BLEND);
 		gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.33f);
 		if (mVertexShaderLevel > 0)
 		{
@@ -218,8 +219,8 @@ void LLDrawPoolAlpha::render(S32 pass)
 		}
 		gPipeline.enableLightsFullbright(LLColor4(1,1,1,1));
 		glColor4f(1,0,0,1);
-		LLViewerImage::sSmokeImagep->addTextureStats(1024.f*1024.f);
-		gGL.getTexUnit(0)->bind(LLViewerImage::sSmokeImagep.get(), TRUE);
+		LLViewerFetchedTexture::sSmokeImagep->addTextureStats(1024.f*1024.f);
+		gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sSmokeImagep, TRUE) ;
 		renderAlphaHighlight(LLVertexBuffer::MAP_VERTEX |
 							LLVertexBuffer::MAP_TEXCOORD0);
 	}
@@ -261,6 +262,8 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 {
 	BOOL initialized_lighting = FALSE;
 	BOOL light_enabled = TRUE;
+	S32 diffuse_channel = 0;
+
 	//BOOL is_particle = FALSE;
 	BOOL use_shaders = (LLPipeline::sUnderWaterRender && gPipeline.canUseVertexShaders())
 		|| gPipeline.canUseWindLightShadersOnObjects();
@@ -290,19 +293,6 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 				LLDrawInfo& params = **k;
 
 				LLRenderPass::applyModelMatrix(params);
-
-				if (params.mTexture.notNull())
-				{
-					gGL.getTexUnit(0)->activate();
-					gGL.getTexUnit(0)->bind(params.mTexture.get());
-
-					if (params.mTextureMatrix)
-					{
-						glMatrixMode(GL_TEXTURE);
-						glLoadMatrixf((GLfloat*) params.mTextureMatrix->mMatrix);
-						gPipeline.mTextureMatrixOps++;
-					}
-				}
 
 				if (params.mFullbright)
 				{
@@ -344,11 +334,13 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 					if (deferred_render && current_shader != NULL)
 					{
 						gPipeline.unbindDeferredShader(*current_shader);
+						diffuse_channel = 0;
 					}
 					current_shader = target_shader;
 					if (deferred_render)
 					{
 						gPipeline.bindDeferredShader(*current_shader);
+						diffuse_channel = current_shader->enableTexture(LLViewerShaderMgr::DIFFUSE_MAP);
 					}
 					else
 					{
@@ -357,11 +349,12 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 				}
 				else if (!use_shaders && current_shader != NULL)
 				{
-					LLGLSLShader::bindNoShader();
 					if (deferred_render)
 					{
 						gPipeline.unbindDeferredShader(*current_shader);
+						diffuse_channel = 0;
 					}
+					LLGLSLShader::bindNoShader();
 					current_shader = NULL;
 				}
 
@@ -369,6 +362,24 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 				{
 					params.mGroup->rebuildMesh();
 				}
+
+				
+				if (params.mTexture.notNull())
+				{
+					gGL.getTexUnit(diffuse_channel)->bind(params.mTexture.get());
+					if(params.mTexture.notNull())
+					{
+						params.mTexture->addTextureStats(params.mVSize);
+					}
+					if (params.mTextureMatrix)
+					{
+						gGL.getTexUnit(0)->activate();
+						glMatrixMode(GL_TEXTURE);
+						glLoadMatrixf((GLfloat*) params.mTextureMatrix->mMatrix);
+						gPipeline.mTextureMatrixOps++;
+					}
+				}
+
 				params.mVertexBuffer->setBuffer(mask);
 				params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
 				gPipeline.addTrianglesDrawn(params.mCount/3);
@@ -383,6 +394,15 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 		}
 	}
 
+	if (deferred_render && current_shader != NULL)
+	{
+		gPipeline.unbindDeferredShader(*current_shader);
+		LLVertexBuffer::unbind();	
+		LLGLState::checkStates();
+		LLGLState::checkTextureChannels();
+		LLGLState::checkClientArrays();
+	}
+	
 	if (!light_enabled)
 	{
 		gPipeline.enableLightsDynamic();

@@ -33,60 +33,24 @@
 	</text>
 	<combo_box name="category_combo"
 	     tool_tip="Category -- select the category that best describes this report">
-		<combo_item name="Selectcategory">
-			カテゴリーを選択
-		</combo_item>
-		<combo_item name="Building">
-			建造物
-		</combo_item>
-		<combo_item name="Character">
-			キャラクター
-		</combo_item>
-		<combo_item name="Chat/IM">
-			チャット／IM
-		</combo_item>
-		<combo_item name="Documentation">
-			文書
-		</combo_item>
-		<combo_item name="Exploit">
-			開発する
-		</combo_item>
-		<combo_item name="Graphics">
-			表示
-		</combo_item>
-		<combo_item name="Inventory">
-			持ち物
-		</combo_item>
-		<combo_item name="Lag">
-			ラグ
-		</combo_item>
-		<combo_item name="MissingContent">
-			コンテンツなし
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			リンデン・ドル(L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			権限
-		</combo_item>
-		<combo_item name="Physics">
-			物理的作用
-		</combo_item>
-		<combo_item name="Script">
-			スクリプト
-		</combo_item>
-		<combo_item name="Sound">
-			音
-		</combo_item>
-		<combo_item name="Stipends">
-			給金
-		</combo_item>
-		<combo_item name="Userinterface">
-			ユーザー・インターフェース
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			その他
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="カテゴリーを選択" />
+		<combo_box.item name="Building" label="建造物" />
+		<combo_box.item name="Character" label="キャラクター" />
+		<combo_box.item name="Chat/IM" label="チャット／IM" />
+		<combo_box.item name="Documentation" label="文書" />
+		<combo_box.item name="Exploit" label="開発する" />
+		<combo_box.item name="Graphics" label="表示" />
+		<combo_box.item name="Inventory" label="持ち物" />
+		<combo_box.item name="Lag" label="ラグ" />
+		<combo_box.item name="MissingContent" label="コンテンツなし" />
+		<combo_box.item name="LindenDollars(L$)" label="リンデン・ドル(L$)" />
+		<combo_box.item name="Permissions" label="権限" />
+		<combo_box.item name="Physics" label="物理的作用" />
+		<combo_box.item name="Script" label="スクリプト" />
+		<combo_box.item name="Sound" label="音" />
+		<combo_box.item name="Stipends" label="給金" />
+		<combo_box.item name="Userinterface" label="ユーザー・インターフェース" />
+		<combo_box.item name="Miscellaneous" label="その他" />
 	</combo_box>
 	<text name="sum_title">
 		概要：

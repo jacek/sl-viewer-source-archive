@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,7 +52,7 @@
  * be careful to always pass in a valid memory location that exists
  * for at least as long as this streambuf.
  */
-class LLMemoryStreamBuf : public std::streambuf
+class LL_COMMON_API LLMemoryStreamBuf : public std::streambuf
 {
 public:
 	LLMemoryStreamBuf(const U8* start, S32 length);
@@ -74,7 +74,7 @@ protected:
  * be careful to always pass in a valid memory location that exists
  * for at least as long as this streambuf.
  */
-class LLMemoryStream : public std::istream
+class LL_COMMON_API LLMemoryStream : public std::istream
 {
 public:
 	LLMemoryStream(const U8* start, S32 length);

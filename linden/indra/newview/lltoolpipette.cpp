@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,6 +40,7 @@
 #include "lltoolpipette.h" 
 
 // Library includes
+#include "lltooltip.h"
 
 // Viewer includes
 #include "llviewerobjectlist.h"
@@ -55,8 +56,6 @@ LLToolPipette::LLToolPipette()
 :	LLTool(std::string("Pipette")),
 	mSuccess(TRUE)
 { 
-	mSelectCallback = NULL;
-	mUserData = NULL;
 }
 
 
@@ -94,16 +93,29 @@ BOOL LLToolPipette::handleHover(S32 x, S32 y, MASK mask)
 	return FALSE;
 }
 
-BOOL LLToolPipette::handleToolTip(S32 x, S32 y, std::string& msg, LLRect *sticky_rect_screen)
+BOOL LLToolPipette::handleToolTip(S32 x, S32 y, MASK mask)
 {
 	if (mTooltipMsg.empty())
 	{
 		return FALSE;
 	}
-	// keep tooltip message up when mouse in this part of screen
-	sticky_rect_screen->setCenterAndSize(x, y, 20, 20);
-	msg = mTooltipMsg;
+
+	LLRect sticky_rect;
+	sticky_rect.setCenterAndSize(x, y, 20, 20);
+	LLToolTipMgr::instance().show(LLToolTip::Params()
+		.message(mTooltipMsg)
+		.sticky_rect(sticky_rect));
+
 	return TRUE;
+}
+
+void LLToolPipette::setTextureEntry(const LLTextureEntry* entry)
+{
+	if (entry)
+	{
+		mTextureEntry = *entry;
+		mSignal(mTextureEntry);
+	}
 }
 
 void LLToolPipette::pickCallback(const LLPickInfo& pick_info)
@@ -118,18 +130,9 @@ void LLToolPipette::pickCallback(const LLPickInfo& pick_info)
 	{
 		//TODO: this should highlight the selected face only
 		LLSelectMgr::getInstance()->highlightObjectOnly(hit_obj);
-		LLToolPipette::getInstance()->mTextureEntry = *hit_obj->getTE(pick_info.mObjectFace);
-		if (LLToolPipette::getInstance()->mSelectCallback)
-		{
-			LLToolPipette::getInstance()->mSelectCallback(LLToolPipette::getInstance()->mTextureEntry, LLToolPipette::getInstance()->mUserData);
-		}
+		const LLTextureEntry* entry = hit_obj->getTE(pick_info.mObjectFace);
+		LLToolPipette::getInstance()->setTextureEntry(entry);
 	}
-}
-
-void LLToolPipette::setSelectCallback(select_callback callback, void* user_data)
-{
-	mSelectCallback = callback;
-	mUserData = user_data;
 }
 
 void LLToolPipette::setResult(BOOL success, const std::string& msg)

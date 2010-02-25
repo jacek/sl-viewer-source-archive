@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,22 +39,18 @@ class LLMediaCtrl;
 
 class LLFloaterHUD : public LLFloater
 {
+	friend class LLFloaterReg;
 public:
-	static LLFloaterHUD* getInstance(); ///< get instance creating if necessary
 
-	static void showHUD(); ///< show the HUD
-
-	// Save our visibility state during close
-	/*virtual*/ void onClose(bool app_quitting);
-
+	BOOL postBuild();
+	
 private:
 	// Handles its own construction and destruction, so private.
-	LLFloaterHUD();
+	LLFloaterHUD(const LLSD& key);
 	/*virtual*/ ~LLFloaterHUD();
 
 private:
 	LLMediaCtrl* mWebBrowser; ///< the actual web browser control
-	static LLFloaterHUD* sInstance;
 };
 
 #endif // LL_LLFLOATERHUD_H

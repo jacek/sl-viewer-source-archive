@@ -9,7 +9,7 @@
 					<button label="Disponible" label_selected="Disponible" name="Set Not Busy" tool_tip="Le chat et les IM ne s&apos;affichent pas. Cliquez ici pour ne plus être en mode occupé(e)."/>
 					<button label="Flycam" label_selected="Flycam" name="Flycam" tool_tip="Votre caméra est contrôlée par le joystick, cliquez ici pour la libérer."/>
 					<button label="Vue subjective" label_selected="Vue subjective" name="Mouselook" tool_tip="Utilisez la souris pour diriger votre vue. Si vous avez un pistolet, vous pouvez tirer en cliquant."/>
-					<button label="Me lever" label_selected="Me lever" name="Stand Up" tool_tip="Cliquez ici pour vous lever."/>
+					<button label="Me lever" label_selected="Me lever" name="Stand Up" tool_tip="Cliquez ici pour vous lever"/>
 				</layout_panel>
 				<layout_panel name="chat_bar"/>
 			</layout_stack>

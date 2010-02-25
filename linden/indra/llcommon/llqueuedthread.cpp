@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -31,7 +31,9 @@
 
 #include "linden_common.h"
 #include "llqueuedthread.h"
+
 #include "llstl.h"
+#include "lltimer.h"	// ms_sleep()
 
 //============================================================================
 
@@ -40,7 +42,8 @@ LLQueuedThread::LLQueuedThread(const std::string& name, bool threaded) :
 	LLThread(name),
 	mThreaded(threaded),
 	mIdleThread(TRUE),
-	mNextHandle(0)
+	mNextHandle(0),
+	mStarted(FALSE)
 {
 	if (mThreaded)
 	{
@@ -51,6 +54,10 @@ LLQueuedThread::LLQueuedThread(const std::string& name, bool threaded) :
 // MAIN THREAD
 LLQueuedThread::~LLQueuedThread()
 {
+	if (!mThreaded)
+	{
+		endThread();
+	}
 	shutdown();
 	// ~LLThread() will be called here
 }
@@ -89,6 +96,7 @@ void LLQueuedThread::shutdown()
 		if (req->getStatus() == STATUS_QUEUED || req->getStatus() == STATUS_INPROGRESS)
 		{
 			++active_count;
+			req->setStatus(STATUS_ABORTED); // avoid assert in deleteRequest
 		}
 		req->deleteRequest();
 	}
@@ -104,6 +112,14 @@ void LLQueuedThread::shutdown()
 // virtual
 S32 LLQueuedThread::update(U32 max_time_ms)
 {
+	if (!mStarted)
+	{
+		if (!mThreaded)
+		{
+			startThread();
+			mStarted = TRUE;
+		}
+	}
 	return updateQueue(max_time_ms);
 }
 
@@ -421,6 +437,7 @@ S32 LLQueuedThread::processNextRequest()
 	if (req)
 	{
 		// process request
+		U32 start_priority = req->getPriority();
 		bool complete = req->processRequest();
 
 		if (complete)
@@ -441,9 +458,8 @@ S32 LLQueuedThread::processNextRequest()
 			lockData();
 			req->setStatus(STATUS_QUEUED);
 			mRequestQueue.insert(req);
-			U32 priority = req->getPriority();
 			unlockData();
-			if (priority < PRIORITY_NORMAL)
+			if (mThreaded && start_priority <= PRIORITY_LOW)
 			{
 				ms_sleep(1); // sleep the thread a little
 			}
@@ -471,6 +487,7 @@ void LLQueuedThread::run()
 	// call checPause() immediately so we don't try to do anything before the class is fully constructed
 	checkPause();
 	startThread();
+	mStarted = TRUE;
 	
 	while (1)
 	{

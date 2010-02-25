@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="active_speakers_panel">
 	<string name="moderator_label">
 		(Moderator)
@@ -6,12 +6,8 @@
 	<layout_stack name="panels">
 		<layout_panel name="moderation_mode_panel">
 			<combo_box name="moderation_mode">
-				<combo_item name="OpenVoice">
-					Voice-Chat standardmäßig einschalten
-				</combo_item>
-				<combo_item name="ModeratedVoice">
-					Voice-Chat standardmäßig abschalten
-				</combo_item>
+				<combo_box.item label="Stimmen in der Standardeinstellung einschalten" name="OpenVoice"/>
+				<combo_box.item label="Stimmen in der Standardeinstellung stummschalten" name="ModeratedVoice"/>
 			</combo_box>
 		</layout_panel>
 		<layout_panel name="moderate_chat_panel">
@@ -30,12 +26,8 @@
 			<text name="moderator_controls_label">
 				Moderator-Steuerung:
 			</text>
-			<check_box name="moderator_allow_voice">
-				Voice-Chat erlauben
-			</check_box>
-			<check_box name="moderator_allow_text">
-				Text-Chat zulassen
-			</check_box>
+			<check_box label="Voice-Chat erlauben" name="moderator_allow_voice"/>
+			<check_box label="Text-Chat zulassen" name="moderator_allow_text"/>
 		</layout_panel>
 	</layout_stack>
 </panel>

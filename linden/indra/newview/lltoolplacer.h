@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,6 @@
 #ifndef LL_TOOLPLACER_H
 #define LL_TOOLPLACER_H
 
-#include "llprimitive.h"
 #include "llpanel.h"
 #include "lltool.h"
 
@@ -65,45 +64,6 @@ private:
 	BOOL raycastForNewObjPos( S32 x, S32 y, LLViewerObject** hit_obj, S32* hit_face, 
 							  BOOL* b_hit_land, LLVector3* ray_start_region, LLVector3* ray_end_region, LLViewerRegion** region );
 	BOOL addDuplicate(S32 x, S32 y);
-};
-
-////////////////////////////////////////////////////
-// LLToolPlacerPanel
-
-
-const S32 TOOL_PLACER_NUM_BUTTONS = 14;
-
-
-class LLToolPlacerPanel : public LLPanel
-{
-public:
-
-	LLToolPlacerPanel(const std::string& name, const LLRect& rect);
- 	
-	static void	setObjectType( void* data );
-
-	static LLPCode sCube;
-	static LLPCode sPrism;
-	static LLPCode sPyramid;
-	static LLPCode sTetrahedron;
-	static LLPCode sCylinder;
-	static LLPCode sCylinderHemi;
-	static LLPCode sCone; 
-	static LLPCode sConeHemi;
-	static LLPCode sTorus;
-	static LLPCode sSquareTorus;
-	static LLPCode sTriangleTorus;
-	static LLPCode sSphere; 
-	static LLPCode sSphereHemi;
-	static LLPCode sTree;
-	static LLPCode sGrass;
-
-private:
-	void		addButton( const std::string& up_state, const std::string& down_state, LLPCode* pcode );
-
-private:
-	static S32			sButtonsAdded;
-	static LLButton*	sButtons[ TOOL_PLACER_NUM_BUTTONS ];
 };
 
 #endif

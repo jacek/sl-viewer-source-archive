@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,37 +36,34 @@
 #include "llpanelcontents.h"
 
 // linden library includes
+#include "lleconomy.h"
 #include "llerror.h"
+#include "llfloaterreg.h"
+#include "llfontgl.h"
+#include "llmaterialtable.h"
+#include "llpermissionsflags.h"
 #include "llrect.h"
 #include "llstring.h"
-#include "llmaterialtable.h"
-#include "llfontgl.h"
+#include "llui.h"
 #include "m3math.h"
-#include "llpermissionsflags.h"
-#include "lleconomy.h"
 #include "material_codes.h"
 
 // project includes
-#include "llui.h"
-#include "llspinctrl.h"
-#include "llcheckboxctrl.h"
-#include "lltextbox.h"
-#include "llbutton.h"
-#include "llcombobox.h"
-#include "llfloaterbulkpermission.h"
-
 #include "llagent.h"
-#include "llviewerwindow.h"
-#include "llworld.h"
-#include "llviewerobject.h"
-#include "llviewerregion.h"
+#include "llpanelobjectinventory.h"
+#include "llpreviewscript.h"
 #include "llresmgr.h"
 #include "llselectmgr.h"
-#include "llpreviewscript.h"
 #include "lltool.h"
-#include "lltoolmgr.h"
 #include "lltoolcomp.h"
-#include "llpanelinventory.h"
+#include "lltoolmgr.h"
+#include "lltrans.h"
+#include "llviewerassettype.h"
+#include "llviewerinventory.h"
+#include "llviewerobject.h"
+#include "llviewerregion.h"
+#include "llviewerwindow.h"
+#include "llworld.h"
 
 //
 // Imported globals
@@ -76,6 +73,13 @@
 //
 // Globals
 //
+const char* LLPanelContents::TENTATIVE_SUFFIX = "_tentative";
+const char* LLPanelContents::PERMS_OWNER_INTERACT_KEY = "perms_owner_interact";
+const char* LLPanelContents::PERMS_OWNER_CONTROL_KEY = "perms_owner_control";
+const char* LLPanelContents::PERMS_GROUP_INTERACT_KEY = "perms_group_interact";
+const char* LLPanelContents::PERMS_GROUP_CONTROL_KEY = "perms_group_control";
+const char* LLPanelContents::PERMS_ANYONE_INTERACT_KEY = "perms_anyone_interact";
+const char* LLPanelContents::PERMS_ANYONE_CONTROL_KEY = "perms_anyone_control";
 
 BOOL LLPanelContents::postBuild()
 {
@@ -86,12 +90,14 @@ BOOL LLPanelContents::postBuild()
 	childSetAction("button new script",&LLPanelContents::onClickNewScript, this);
 	childSetAction("button permissions",&LLPanelContents::onClickPermissions, this);
 
+	mPanelInventoryObject = getChild<LLPanelObjectInventory>("contents_inventory");
+
 	return TRUE;
 }
 
-LLPanelContents::LLPanelContents(const std::string& name)
-	:	LLPanel(name),
-		mPanelInventory(NULL)
+LLPanelContents::LLPanelContents()
+	:	LLPanel(),
+		mPanelInventoryObject(NULL)
 {
 }
 
@@ -114,7 +120,7 @@ void LLPanelContents::getState(LLViewerObject *objectp )
 	LLSelectMgr::getInstance()->selectGetGroup(group_id);  // sets group_id as a side effect SL-23488
 
 	// BUG? Check for all objects being editable?
-	BOOL editable = gAgent.isGodlike()
+	bool editable = gAgent.isGodlike()
 					|| (objectp->permModify()
 					       && ( objectp->permYouOwner() || ( !group_id.isNull() && gAgent.isInGroup(group_id) )));  // solves SL-23488
 	BOOL all_volume = LLSelectMgr::getInstance()->selectionAllPCode( LL_PCODE_VOLUME );
@@ -125,8 +131,8 @@ void LLPanelContents::getState(LLViewerObject *objectp )
 		all_volume &&
 		((LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() == 1)
 			|| (LLSelectMgr::getInstance()->getSelection()->getObjectCount() == 1)));
-}
 
+}
 
 void LLPanelContents::refresh()
 {
@@ -134,10 +140,10 @@ void LLPanelContents::refresh()
 	LLViewerObject* object = LLSelectMgr::getInstance()->getSelection()->getFirstRootObject(children_ok);
 
 	getState(object);
-	if (mPanelInventory)
+	if (mPanelInventoryObject)
 	{
-		mPanelInventory->refresh();
-	}
+		mPanelInventoryObject->refresh();
+	}	
 }
 
 
@@ -162,7 +168,7 @@ void LLPanelContents::onClickNewScript(void *userdata)
 			PERM_NONE,
 			PERM_MOVE | PERM_TRANSFER);
 		std::string desc;
-		LLAssetType::generateDescriptionFor(LLAssetType::AT_LSL_TEXT, desc);
+		LLViewerAssetType::generateDescriptionFor(LLAssetType::AT_LSL_TEXT, desc);
 		LLPointer<LLViewerInventoryItem> new_item =
 			new LLViewerInventoryItem(
 				LLUUID::null,
@@ -171,7 +177,7 @@ void LLPanelContents::onClickNewScript(void *userdata)
 				LLUUID::null,
 				LLAssetType::AT_LSL_TEXT,
 				LLInventoryType::IT_LSL,
-				std::string("New Script"),
+				LLTrans::getString("PanelContentsNewScript"),
 				desc,
 				LLSaleInfo::DEFAULT,
 				LLViewerInventoryItem::II_FLAGS_NONE,
@@ -185,21 +191,7 @@ void LLPanelContents::onClickNewScript(void *userdata)
 		// viewer so the viewer can auto-open the script and start
 		// editing ASAP.
 #if 0
-		S32 left, top;
-		gFloaterView->getNewFloaterPosition(&left, &top);
-		LLRect rect = gSavedSettings.getRect("PreviewScriptRect");
-		rect.translate( left - rect.mLeft, top - rect.mTop );
-
-		LLLiveLSLEditor* editor;
-		editor = new LLLiveLSLEditor("script ed",
-									   rect,
-									   "Script: New Script",
-									   object->mID,
-									   LLUUID::null);
-		editor->open();	/*Flawfinder: ignore*/
-
-		// keep onscreen
-		gFloaterView->adjustToFitScreen(editor, FALSE);
+		LLFloaterReg::showInstance("preview_scriptedit", LLSD(inv_item->getUUID()), TAKE_FOCUS_YES);
 #endif
 	}
 }
@@ -209,5 +201,5 @@ void LLPanelContents::onClickNewScript(void *userdata)
 void LLPanelContents::onClickPermissions(void *userdata)
 {
 	LLPanelContents* self = (LLPanelContents*)userdata;
-	gFloaterView->getParentFloater(self)->addDependentFloater(LLFloaterBulkPermission::showInstance());
+	gFloaterView->getParentFloater(self)->addDependentFloater(LLFloaterReg::showInstance("bulk_perms"));
 }

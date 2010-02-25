@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -70,7 +70,7 @@ hasGamma(false), hasLighting(false), calculatesAtmospherics(false)
 // LLGLSL Shader implementation
 //===============================
 LLGLSLShader::LLGLSLShader()
-: mProgramObject(0), mShaderLevel(0), mShaderGroup(SG_DEFAULT)
+	: mProgramObject(0), mActiveTextureChannels(0), mShaderLevel(0), mShaderGroup(SG_DEFAULT), mUniformsDirty(FALSE)
 {
 }
 
@@ -209,7 +209,7 @@ BOOL LLGLSLShader::mapAttributes(const vector<string> * attributes)
 	{ //read back channel locations
 
 		//read back reserved channels first
-		for (U32 i = 0; i < (S32) LLShaderMgr::instance()->mReservedAttribs.size(); i++)
+		for (U32 i = 0; i < LLShaderMgr::instance()->mReservedAttribs.size(); i++)
 		{
 			const char* name = LLShaderMgr::instance()->mReservedAttribs[i].c_str();
 			S32 index = glGetAttribLocationARB(mProgramObject, (const GLcharARB *)name);
@@ -408,7 +408,15 @@ S32 LLGLSLShader::disableTexture(S32 uniform, LLTexUnit::eTextureType mode)
 	{
 		if (gDebugGL && gGL.getTexUnit(index)->getCurrType() != mode)
 		{
-			llerrs << "Texture channel " << index << " texture type corrupted." << llendl;
+			if (gDebugSession)
+			{
+				gFailLog << "Texture channel " << index << " texture type corrupted." << std::endl;
+				ll_fail("LLGLSLShader::disableTexture failed");
+			}
+			else
+			{
+				llerrs << "Texture channel " << index << " texture type corrupted." << llendl;
+			}
 		}
 		gGL.getTexUnit(index)->disable();
 	}

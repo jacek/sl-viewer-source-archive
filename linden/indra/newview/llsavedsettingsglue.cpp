@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,37 +39,27 @@
 
 #include "llviewercontrol.h"
 
-void LLSavedSettingsGlue::setBOOL(LLUICtrl* ctrl, void* data)
+void LLSavedSettingsGlue::setBOOL(LLUICtrl* ctrl, const std::string& name)
 {
-	const char* name = (const char*)data;
-	LLSD value = ctrl->getValue();
-	gSavedSettings.setBOOL(name, value.asBoolean());
+	gSavedSettings.setBOOL(name, ctrl->getValue().asBoolean());
 }
 
-void LLSavedSettingsGlue::setS32(LLUICtrl* ctrl, void* data)
+void LLSavedSettingsGlue::setS32(LLUICtrl* ctrl, const std::string& name)
 {
-	const char* name = (const char*)data;
-	LLSD value = ctrl->getValue();
-	gSavedSettings.setS32(name, value.asInteger());
+	gSavedSettings.setS32(name, ctrl->getValue().asInteger());
 }
 
-void LLSavedSettingsGlue::setF32(LLUICtrl* ctrl, void* data)
+void LLSavedSettingsGlue::setF32(LLUICtrl* ctrl, const std::string& name)
 {
-	const char* name = (const char*)data;
-	LLSD value = ctrl->getValue();
-	gSavedSettings.setF32(name, (F32)value.asReal());
+	gSavedSettings.setF32(name, (F32)ctrl->getValue().asReal());
 }
 
-void LLSavedSettingsGlue::setU32(LLUICtrl* ctrl, void* data)
+void LLSavedSettingsGlue::setU32(LLUICtrl* ctrl, const std::string& name)
 {
-	const char* name = (const char*)data;
-	LLSD value = ctrl->getValue();
-	gSavedSettings.setU32(name, (U32)value.asInteger());
+	gSavedSettings.setU32(name, (U32)ctrl->getValue().asInteger());
 }
 
-void LLSavedSettingsGlue::setString(LLUICtrl* ctrl, void* data)
+void LLSavedSettingsGlue::setString(LLUICtrl* ctrl, const std::string& name)
 {
-	const char* name = (const char*)data;
-	LLSD value = ctrl->getValue();
-	gSavedSettings.setString(name, value.asString());
+	gSavedSettings.setString(name, ctrl->getValue().asString());
 }

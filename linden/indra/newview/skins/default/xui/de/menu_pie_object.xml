@@ -1,30 +1,28 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<pie_menu name="Object Pie">
-	<menu_item_call label="Öffnen" name="Open" />
-	<menu_item_call label="Erstellen" name="Create" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<context_menu name="Object Pie">
 	<menu_item_call label="Berühren" name="Object Touch">
-		<on_enable userdata="Berühren" name="EnableTouch"/>
+		<menu_item_call.on_enable name="EnableTouch" userdata="Berühren"/>
 	</menu_item_call>
+	<menu_item_call label="Bearbeiten" name="Edit..."/>
+	<menu_item_call label="Bauen" name="Build"/>
+	<menu_item_call label="Öffnen" name="Open"/>
 	<menu_item_call label="Hier sitzen" name="Object Sit">
-		<on_enable userdata="Hier sitzen,Aufstehen" name="EnableSitOrStand"/>
+		<menu_item_call.on_enable name="EnableSitOrStand" userdata="Hier sitzen,Aufstehen"/>
 	</menu_item_call>
-	<menu_item_call label="Nehmen" name="Pie Object Take">
-		<on_enable userdata="Kaufen,Nehmen" name="EnableBuyOrTake"/>
-	</menu_item_call>
-	<menu_item_call label="Zahlen..." name="Pay..." />
-	<pie_menu label="Mehr &gt;" name="More &gt;">
-		<menu_item_call label="Löschen" name="Delete" />
-		<menu_item_call label="Anziehen" name="Wear" />
-		<menu_item_call label="Kopie nehmen/machen" name="Take Copy" />
-		<pie_menu label="HUD anhängen &gt;" name="Object Attach HUD" />
-		<pie_menu label="Anhängen &gt;" name="Object Attach" />
-		<menu_item_call label="Zurückgeben..." name="Return..." />
-		<pie_menu label="Mehr &gt;" name="Rate Menu">
-			<menu_item_call label="Melden..." name="Report Abuse..."/>
-			<menu_item_call label="Stummschalten" name="Object Mute" />
-			<menu_item_call label="Untersuchen" name="Object Inspect" />
-		</pie_menu>
-		<menu_item_call label="Kaufen..." name="Buy..." />
-	</pie_menu>
-	<menu_item_call label="Bearbeiten..." name="Edit..." />
-</pie_menu>
+	<menu_item_call label="Objektprofil" name="Object Inspect"/>
+	<context_menu label="Anziehen &gt;" name="Put On">
+		<menu_item_call label="Anziehen" name="Wear"/>
+		<context_menu label="Anhängen &gt;" name="Object Attach"/>
+		<context_menu label="HUD anhängen &gt;" name="Object Attach HUD"/>
+	</context_menu>
+	<context_menu label="Entfernen &gt;" name="Remove">
+		<menu_item_call label="Löschen" name="Delete"/>
+		<menu_item_call label="Nehmen" name="Pie Object Take"/>
+		<menu_item_call label="Missbrauch melden" name="Report Abuse..."/>
+		<menu_item_call label="Ignorieren" name="Object Mute"/>
+		<menu_item_call label="Zurückgeben" name="Return..."/>
+	</context_menu>
+	<menu_item_call label="Kopie nehmen" name="Take Copy"/>
+	<menu_item_call label="Bezahlen" name="Pay..."/>
+	<menu_item_call label="Kaufen" name="Buy..."/>
+</context_menu>

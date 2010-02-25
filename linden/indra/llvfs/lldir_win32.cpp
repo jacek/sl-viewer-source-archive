@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -121,15 +121,21 @@ LLDir_Win32::LLDir_Win32()
 	GetCurrentDirectory(MAX_PATH, w_str);
 	mExecutableDir = utf16str_to_utf8str(llutf16string(w_str));
 #endif
-	
-	// When running in a dev tree, app_settings is under indra/newview/
-	// but in production it is under Program Files/SecondLife/
-	// Attempt to detect which one we're using. JC
-	if (mExecutableDir.find("indra") != std::string::npos)
-		mAppRODataDir = getCurPath();
-	else
-		mAppRODataDir = mExecutableDir;
 
+	mAppRODataDir = ".";	
+
+	mSkinBaseDir = mAppRODataDir + mDirDelimiter + "skins";
+
+	if (mExecutableDir.find("indra") == std::string::npos)
+	{
+		// Running from installed directory.  Make sure current
+		// directory isn't something crazy (e.g. if invoking from
+		// command line).
+		SetCurrentDirectory(utf8str_to_utf16str(mExecutableDir).c_str());
+		GetCurrentDirectory(MAX_PATH, w_str);
+		mWorkingDir = utf16str_to_utf8str(llutf16string(w_str));
+	}
+	llinfos << "mAppRODataDir = " << mAppRODataDir << llendl;
 
 	// Build the default cache directory
 	mDefaultCacheDir = buildSLOSCacheDir();
@@ -153,8 +159,15 @@ LLDir_Win32::~LLDir_Win32()
 
 // Implementation
 
-void LLDir_Win32::initAppDirs(const std::string &app_name)
+void LLDir_Win32::initAppDirs(const std::string &app_name,
+							  const std::string& app_read_only_data_dir)
 {
+	// Allow override so test apps can read newview directory
+	if (!app_read_only_data_dir.empty())
+	{
+		mAppRODataDir = app_read_only_data_dir;
+		mSkinBaseDir = mAppRODataDir + mDirDelimiter + "skins";
+	}
 	mAppName = app_name;
 	mOSUserAppDir = mOSUserDir;
 	mOSUserAppDir += "\\";
@@ -199,15 +212,14 @@ void LLDir_Win32::initAppDirs(const std::string &app_name)
 		}
 	}
 	
-	res = LLFile::mkdir(getExpandedFilename(LL_PATH_MOZILLA_PROFILE,""));
+	res = LLFile::mkdir(getExpandedFilename(LL_PATH_USER_SKIN,""));
 	if (res == -1)
 	{
 		if (errno != EEXIST)
 		{
-			llwarns << "Couldn't create LL_PATH_MOZILLA_PROFILE dir " << getExpandedFilename(LL_PATH_MOZILLA_PROFILE,"") << llendl;
+			llwarns << "Couldn't create LL_PATH_SKINS dir " << getExpandedFilename(LL_PATH_USER_SKIN,"") << llendl;
 		}
 	}
-	
 	mCAFile = getExpandedFilename(LL_PATH_APP_SETTINGS, "CA.pem");
 }
 

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,18 +38,20 @@
 #include "llparcelselection.h"
 
 class LLButton;
-class LLTextBox;
-class LLTool;
+class LLComboBox;
 class LLCheckBoxCtrl;
-class LLTabContainer;
 class LLPanelPermissions;
 class LLPanelObject;
 class LLPanelVolume;
 class LLPanelContents;
 class LLPanelFace;
 class LLPanelLandInfo;
-class LLComboBox;
+class LLRadioGroup;
 class LLSlider;
+class LLTabContainer;
+class LLTextBox;
+class LLMediaCtrl;
+class LLTool;
 class LLParcelSelection;
 class LLObjectSelection;
 
@@ -65,15 +67,16 @@ public:
 	static	void*	createPanelVolume(void*	vdata);
 	static	void*	createPanelFace(void*	vdata);
 	static	void*	createPanelContents(void*	vdata);
-	static	void*	createPanelContentsInventory(void*	vdata);
 	static	void*	createPanelLandInfo(void*	vdata);
 
-	LLFloaterTools();
+	LLFloaterTools(const LLSD& key);
 	virtual ~LLFloaterTools();
 
-	virtual void onOpen();
-	virtual void onClose(bool app_quitting);
-	virtual BOOL canClose();
+	/*virtual*/ void onOpen(const LLSD& key);
+	/*virtual*/ BOOL canClose();
+	/*virtual*/ void onClose(bool app_quitting);
+	/*virtual*/ void draw();
+	/*virtual*/ void onFocusReceived();
 
 	// call this once per frame to handle visibility, rect location,
 	// button highlights, etc.
@@ -93,24 +96,33 @@ public:
 		PANEL_COUNT
 	};
 
-	/*virtual*/  void draw();
-
 	void dirty();
 	void showPanel(EInfoPanel panel);
 
 	void setStatusText(const std::string& text);
-	virtual void onFocusReceived();
 	static void setEditTool(void* data);
+	void setTool(const LLSD& user_data);
 	void saveLastTool();
-private:
-	static void setObjectType( void* data );
-	
-	void refresh();
+	void onClickBtnDeleteMedia();
+	void onClickBtnAddMedia();
+	void onClickBtnEditMedia();
+	void clearMediaSettings();
+	void updateMediaTitle();
+	void navigateToTitleMedia( const std::string url );
+	bool selectedMediaEditable();
 
-	static void onClickGridOptions(void* data);
+private:
+	void refresh();
+	void refreshMedia();
+	void getMediaState();
+	void updateMediaSettings();
+	static bool deleteMediaConfirm(const LLSD& notification, const LLSD& response);
+	static bool multipleFacesSelectedConfirm(const LLSD& notification, const LLSD& response);
+	static void setObjectType( LLPCode pcode );
+	void onClickGridOptions();
+	S32 calcRenderCost();
 
 public:
-
 	LLButton		*mBtnFocus;
 	LLButton		*mBtnMove;
 	LLButton		*mBtnEdit;
@@ -120,20 +132,13 @@ public:
 	LLTextBox		*mTextStatus;
 
 	// Focus buttons
-	LLCheckBoxCtrl	*mRadioOrbit;
-	LLCheckBoxCtrl	*mRadioZoom;
-	LLCheckBoxCtrl	*mRadioPan;
+	LLRadioGroup*	mRadioGroupFocus;
 
 	// Move buttons
-	LLCheckBoxCtrl	*mRadioMove;
-	LLCheckBoxCtrl	*mRadioLift;
-	LLCheckBoxCtrl	*mRadioSpin;
+	LLRadioGroup*	mRadioGroupMove;
 
 	// Edit buttons
-	LLCheckBoxCtrl	*mRadioPosition;
-	LLCheckBoxCtrl	*mRadioRotate;
-	LLCheckBoxCtrl	*mRadioStretch;
-	LLCheckBoxCtrl	*mRadioSelectFace;
+	LLRadioGroup*	mRadioGroupEdit;
 
 	LLCheckBoxCtrl	*mCheckSelectIndividual;
 
@@ -159,15 +164,7 @@ public:
 	LLCheckBoxCtrl	*mCheckCopyRotates;
 
 	// Land buttons
-//	LLCheckBoxCtrl	*mRadioEditLand;
-	LLCheckBoxCtrl	*mRadioSelectLand;
-
-	LLCheckBoxCtrl	*mRadioDozerFlatten;
-	LLCheckBoxCtrl	*mRadioDozerRaise;
-	LLCheckBoxCtrl	*mRadioDozerLower;
-	LLCheckBoxCtrl	*mRadioDozerSmooth;
-	LLCheckBoxCtrl	*mRadioDozerNoise;
-	LLCheckBoxCtrl	*mRadioDozerRevert;
+	LLRadioGroup*	mRadioGroupLand;
 	LLSlider		*mSliderDozerSize;
 	LLSlider		*mSliderDozerForce;
 
@@ -188,10 +185,20 @@ public:
 	LLParcelSelectionHandle	mParcelSelection;
 	LLObjectSelectionHandle	mObjectSelection;
 
+	LLMediaCtrl				*mTitleMedia;
+	bool					mNeedMediaTitle;
+
 private:
 	BOOL					mDirty;
 
 	std::map<std::string, std::string> mStatusText;
+
+protected:
+	LLSD				mMediaSettings;
+
+public:
+	static bool		sShowObjectCost;
+	
 };
 
 extern LLFloaterTools *gFloaterTools;

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -178,8 +178,8 @@ LLImageJ2C::LLImageJ2C() : 	LLImageFormatted(IMG_CODEC_J2C),
 							mMaxBytes(0),
 							mRawDiscardLevel(-1),
 							mRate(0.0f),
-							mReversible(FALSE)
-	
+							mReversible(FALSE),
+							mAreaUsedForDataSizeCalcs(0)
 {
 	//We assume here that if we wanted to create via
 	//a dynamic library that the approriate open calls were made
@@ -195,6 +195,12 @@ LLImageJ2C::LLImageJ2C() : 	LLImageFormatted(IMG_CODEC_J2C),
 	}
 
 	mImpl = j2cimpl_create_func();
+
+	// Clear data size table
+	for( S32 i = 0; i <= MAX_DISCARD_LEVEL; i++)
+	{	// Array size is MAX_DISCARD_LEVEL+1
+		mDataSizes[i] = 0;
+	}
 }
 
 // virtual
@@ -280,7 +286,7 @@ BOOL LLImageJ2C::decode(LLImageRaw *raw_imagep, F32 decode_time)
 // Returns TRUE to mean done, whether successful or not.
 BOOL LLImageJ2C::decodeChannels(LLImageRaw *raw_imagep, F32 decode_time, S32 first_channel, S32 max_channel_count )
 {
-	LLMemType mt1((LLMemType::EMemType)mMemType);
+	LLMemType mt1(mMemType);
 
 	BOOL res = TRUE;
 	
@@ -330,7 +336,7 @@ BOOL LLImageJ2C::encode(const LLImageRaw *raw_imagep, F32 encode_time)
 
 BOOL LLImageJ2C::encode(const LLImageRaw *raw_imagep, const char* comment_text, F32 encode_time)
 {
-	LLMemType mt1((LLMemType::EMemType)mMemType);
+	LLMemType mt1(mMemType);
 	resetLastError();
 	BOOL res = mImpl->encodeImpl(*this, *raw_imagep, comment_text, encode_time, mReversible);
 	if (!mLastError.empty())
@@ -368,9 +374,45 @@ S32 LLImageJ2C::calcHeaderSize()
 	return calcHeaderSizeJ2C();
 }
 
+
+// calcDataSize() returns how many bytes to read 
+// to load discard_level (including header and higher discard levels)
 S32 LLImageJ2C::calcDataSize(S32 discard_level)
 {
-	return calcDataSizeJ2C(getWidth(), getHeight(), getComponents(), discard_level, mRate);
+	discard_level = llclamp(discard_level, 0, MAX_DISCARD_LEVEL);
+
+	if ( mAreaUsedForDataSizeCalcs != (getHeight() * getWidth()) 
+		|| mDataSizes[0] == 0)
+	{
+		mAreaUsedForDataSizeCalcs = getHeight() * getWidth();
+		
+		S32 level = MAX_DISCARD_LEVEL;	// Start at the highest discard
+		while ( level >= 0 )
+		{
+			mDataSizes[level] = calcDataSizeJ2C(getWidth(), getHeight(), getComponents(), level, mRate);
+			level--;
+		}
+
+		/* This is technically a more correct way to calculate the size required
+		   for each discard level, since they should include the size needed for
+		   lower levels.   Unfortunately, this doesn't work well and will lead to 
+		   download stalls.  The true correct way is to parse the header.  This will
+		   all go away with http textures at some point.
+
+		// Calculate the size for each discard level.   Lower levels (higher quality)
+		// contain the cumulative size of higher levels		
+		S32 total_size = calcHeaderSizeJ2C();
+
+		S32 level = MAX_DISCARD_LEVEL;	// Start at the highest discard
+		while ( level >= 0 )
+		{	// Add in this discard level and all before it
+			total_size += calcDataSizeJ2C(getWidth(), getHeight(), getComponents(), level, mRate);
+			mDataSizes[level] = total_size;
+			level--;
+		}
+		*/
+	}
+	return mDataSizes[discard_level];
 }
 
 S32 LLImageJ2C::calcDiscardLevelBytes(S32 bytes)
@@ -421,7 +463,7 @@ BOOL LLImageJ2C::loadAndValidate(const std::string &filename)
 
 	S32 file_size = 0;
 	LLAPRFile infile ;
-	infile.open(filename, LL_APR_RB, LLAPRFile::global, &file_size);
+	infile.open(filename, LL_APR_RB, NULL, &file_size);
 	apr_file_t* apr_file = infile.getFileHandle() ;
 	if (!apr_file)
 	{
@@ -463,7 +505,7 @@ BOOL LLImageJ2C::loadAndValidate(const std::string &filename)
 
 BOOL LLImageJ2C::validate(U8 *data, U32 file_size)
 {
-	LLMemType mt1((LLMemType::EMemType)mMemType);
+	LLMemType mt1(mMemType);
 
 	resetLastError();
 	

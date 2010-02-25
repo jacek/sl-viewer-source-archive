@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="floater_media_remote" title="MEDIAREMOTE">
+	<panel name="media_remote">
+		<panel label="Lyd &amp; Video" name="Volume Panel"/>
+		<button name="end_call_btn" tool_tip="Klik for at lægge på"/>
+	</panel>
+</floater>

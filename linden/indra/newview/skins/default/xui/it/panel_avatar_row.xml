@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel name="avatar_row">
+	<text name="avatar_name">
+		Persona Sconosciuta
+	</text>
+	<text name="speaker_status">
+		Stato Sconosciuto
+	</text>
+</panel>

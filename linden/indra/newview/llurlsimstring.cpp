@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,11 +39,10 @@
 #include "llviewercontrol.h"
 
 #include "curl/curl.h"
+#include <sstream>
 
 //static
 LLURLSimString LLURLSimString::sInstance;
-std::string LLURLSimString::sLocationStringHome("My Home");
-std::string LLURLSimString::sLocationStringLast("My Last Location");
 
 // "secondlife://simname/x/y/z" -> "simname/x/y/z"
 // (actually .*//foo -> foo)
@@ -53,13 +52,13 @@ void LLURLSimString::setString(const std::string& sim_string)
 	sInstance.mSimString.clear();
 	sInstance.mSimName.clear();
 	sInstance.mParseState = NOT_PARSED;
-	if (sim_string == sLocationStringHome)
+	if (sim_string == "home" || sim_string == "last")
 	{
-		gSavedSettings.setBOOL("LoginLastLocation", FALSE);
+		gSavedSettings.setString("LoginLocation", sim_string);
 	}
-	else if (sim_string == sLocationStringLast)
+	else if (sim_string == "")
 	{
-		gSavedSettings.setBOOL("LoginLastLocation", TRUE);
+		sInstance.mSimString = "";
 	}
 	else
 	{
@@ -70,6 +69,27 @@ void LLURLSimString::setString(const std::string& sim_string)
 		idx = (idx == std::string::npos) ? 0 : idx+2;
 		sInstance.mSimString = tstring.substr(idx);
 	}
+}
+
+void LLURLSimString::setStringRaw(const std::string& raw_url_path)
+{
+	std::string region("");
+	int x = 128;
+	int y = 128;
+	int z = 0;
+
+	LLURLSimString::parse(raw_url_path, &region, &x, &y, &z);
+
+	std::ostringstream codec;
+	codec << region;
+	codec << "/";
+	codec << x;
+	codec << "/";
+	codec << y;
+	codec << "/";
+	codec << z;
+
+	LLURLSimString::setString( codec.str() );
 }
 
 // "/100" -> 100

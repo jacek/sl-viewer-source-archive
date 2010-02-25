@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<multi_floater
+ legacy_header_height="18" 
+ can_resize="true"
+ height="390"
+ layout="topleft"
+ name="floater_chatterbox"
+ help_topic="floater_chatterbox"
+ save_rect="true"
+ save_visibility="true"
+ single_instance="true"
+ title="Communicate"
+ width="392">
+    <icon
+     color="DefaultShadowLight"
+     enabled="false"
+     follows="left|right|bottom"
+     height="17"
+     image_name="tabarea.tga"
+     layout="topleft"
+     left="1"
+     name="chatterbox_tab_container"
+     top="371"
+     width="391" />
+    <tab_container
+     follows="left|right|top|bottom"
+     height="370"
+     layout="topleft"
+     left_delta="-1"
+     name="chatterbox_tabs"
+     tab_position="bottom"
+     tab_width="80"
+     top_delta="-353"
+     width="395" />
+</multi_floater>

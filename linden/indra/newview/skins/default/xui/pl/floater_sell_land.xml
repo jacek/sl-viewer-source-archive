@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="sell land" title="Sell Land">
+<floater name="sell land" title="SELL LAND">
+    <scroll_container name="profile_scroll">
+    <panel name="scroll_content_panel">
 	<text name="info_parcel_label">
 		Posiadłość:
 	</text>
@@ -34,15 +36,9 @@
 		Wybierz sprzedaż dla kogokolwiek albo dla wybranego kupca.
 	</text>
 	<combo_box name="sell_to">
-		<combo_item name="--selectone--">
-			-- wybierz --
-		</combo_item>
-		<combo_item name="Anyone">
-			Ktokolwiek
-		</combo_item>
-		<combo_item name="Specificuser:">
-			Wybrany kupiec:
-		</combo_item>
+		<combo_box.item name="--selectone--" label="wybierz --" />
+		<combo_box.item name="Anyone" label="Ktokolwiek" />
+		<combo_box.item name="Specificuser:" label="Wybrany kupiec:" />
 	</combo_box>
 	<button label="Wybierz..." name="sell_to_select_agent" />
 	<text name="sell_objects_label">
@@ -52,12 +48,8 @@
 		Przekazywalne obiekty właściciela Posiadłości zmienią właściciela.
 	</text>
 	<radio_group name="sell_objects">
-		<radio_item name="no">
-			Nie, zatrzymaj obiekty
-		</radio_item>
-		<radio_item name="yes">
-			Tak, sprzedaj obiekty razem z Posiadłością
-		</radio_item>
+		<radio_item name="no" label="Nie, zatrzymaj obiekty" />
+		<radio_item name="yes" label="Tak, sprzedaj obiekty razem z Posiadłością" />
 	</radio_group>
 	<button label="Pokaż Obiekty" name="show_objects" />
 	<text name="nag_message_label">
@@ -65,4 +57,6 @@
 	</text>
 	<button label="Wystaw Ziemię na Sprzedaż" name="sell_btn" />
 	<button label="Anuluj" name="cancel_btn" />
+    </panel>
+    </scroll_container>
 </floater>

@@ -2,9 +2,10 @@
  * @file llpluginclassmediaowner.h
  * @brief LLPluginClassMedia handles interaction with a plugin which knows about the "media" message class.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,12 +29,12 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #ifndef LL_LLPLUGINCLASSMEDIAOWNER_H
 #define LL_LLPLUGINCLASSMEDIAOWNER_H
 
-#include "llgl.h"
 #include "llpluginprocessparent.h"
 #include "llrect.h"
 #include <queue>
@@ -54,11 +55,13 @@ public:
 		MEDIA_EVENT_NAVIGATE_COMPLETE,		// browser has finished navigation
 		MEDIA_EVENT_PROGRESS_UPDATED,		// browser has updated loading progress
 		MEDIA_EVENT_STATUS_TEXT_CHANGED,	// browser has updated the status text
+		MEDIA_EVENT_NAME_CHANGED,			// browser has updated the name of the media (typically <title> tag)
 		MEDIA_EVENT_LOCATION_CHANGED,		// browser location (URL) has changed (maybe due to internal navagation/frames/etc)
 		MEDIA_EVENT_CLICK_LINK_HREF,		// I'm not entirely sure what the semantics of these two are
 		MEDIA_EVENT_CLICK_LINK_NOFOLLOW,
 		
-		MEDIA_EVENT_PLUGIN_FAILED			// The plugin failed to launch or died unexpectedly
+		MEDIA_EVENT_PLUGIN_FAILED_LAUNCH,	// The plugin failed to launch 
+		MEDIA_EVENT_PLUGIN_FAILED			// The plugin died unexpectedly
 		
 	} EMediaEvent;
 	
@@ -70,7 +73,8 @@ public:
 		MEDIA_ERROR,		// navigation/preroll failed
 		MEDIA_PLAYING,		// playing (only for time-based media)
 		MEDIA_PAUSED,		// paused (only for time-based media)
-		
+		MEDIA_DONE			// finished playing (only for time-based media)
+	
 	} EMediaStatus;
 	
 	virtual ~LLPluginClassMediaOwner() {};

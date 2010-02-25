@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,7 +49,7 @@
 #include "llglheaders.h"
 #include "llsky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobjectlist.h"
 #include "llviewerregion.h"
 #include "llworld.h"
@@ -212,8 +212,8 @@ void LLSkyTex::init()
 
 	for (S32 i = 0; i < 2; ++i)
 	{
-		mImageGL[i] = new LLImageGL(FALSE);
-		mImageGL[i]->setAddressMode(LLTexUnit::TAM_CLAMP);
+		mTexture[i] = LLViewerTextureManager::getLocalTexture(FALSE);
+		mTexture[i]->setAddressMode(LLTexUnit::TAM_CLAMP);
 		mImageRaw[i] = new LLImageRaw(sResolution, sResolution, sComponents);
 		
 		initEmpty(i);
@@ -222,16 +222,16 @@ void LLSkyTex::init()
 
 void LLSkyTex::cleanupGL()
 {
-	mImageGL[0] = NULL;
-	mImageGL[1] = NULL;
+	mTexture[0] = NULL;
+	mTexture[1] = NULL;
 }
 
 void LLSkyTex::restoreGL()
 {
 	for (S32 i = 0; i < 2; i++)
 	{
-		mImageGL[i] = new LLImageGL(FALSE);
-		mImageGL[i]->setAddressMode(LLTexUnit::TAM_CLAMP);
+		mTexture[i] = LLViewerTextureManager::getLocalTexture(FALSE);
+		mTexture[i]->setAddressMode(LLTexUnit::TAM_CLAMP);
 	}
 }
 
@@ -289,13 +289,13 @@ void LLSkyTex::create(const F32 brightness)
 
 void LLSkyTex::createGLImage(S32 which)
 {	
-	mImageGL[which]->createGLTexture(0, mImageRaw[which], 0, TRUE, LLViewerImageBoostLevel::OTHER);
-	mImageGL[which]->setAddressMode(LLTexUnit::TAM_CLAMP);
+	mTexture[which]->createGLTexture(0, mImageRaw[which], 0, TRUE, LLViewerTexture::LOCAL);
+	mTexture[which]->setAddressMode(LLTexUnit::TAM_CLAMP);
 }
 
 void LLSkyTex::bindTexture(BOOL curr)
 {
-	gGL.getTexUnit(0)->bind(mImageGL[getWhich(curr)]);
+	gGL.getTexUnit(0)->bind(mTexture[getWhich(curr)]);
 }
 
 /***************************************
@@ -343,7 +343,6 @@ LLVOSky::LLVOSky(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp)
 	cloud_pos_density1 = LLColor3();
 	cloud_pos_density2 = LLColor3();
 
-
 	mInitialized = FALSE;
 	mbCanSelect = FALSE;
 	mUpdateTimer.reset();
@@ -376,21 +375,25 @@ LLVOSky::LLVOSky(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp)
 	mSun.setIntensity(SUN_INTENSITY);
 	mMoon.setIntensity(0.1f * SUN_INTENSITY);
 
-	mSunTexturep = gImageList.getImage(gSunTextureID, TRUE, TRUE);
+	mSunTexturep = LLViewerTextureManager::getFetchedTexture(gSunTextureID, TRUE, LLViewerTexture::BOOST_UI);
 	mSunTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
-	mMoonTexturep = gImageList.getImage(gMoonTextureID, TRUE, TRUE);
+	mMoonTexturep = LLViewerTextureManager::getFetchedTexture(gMoonTextureID, TRUE, LLViewerTexture::BOOST_UI);
 	mMoonTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
-	mBloomTexturep = gImageList.getImage(IMG_BLOOM1);
+	mBloomTexturep = LLViewerTextureManager::getFetchedTexture(IMG_BLOOM1);
 	mBloomTexturep->setNoDelete() ;
 	mBloomTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
 
 	mHeavenlyBodyUpdated = FALSE ;
+
+	mDrawRefl = 0;
+	mHazeConcentration = 0.f;
+	mInterpVal = 0.f;
 }
 
 
 LLVOSky::~LLVOSky()
 {
-	// Don't delete images - it'll get deleted by gImageList on shutdown
+	// Don't delete images - it'll get deleted by gTextureList on shutdown
 	// This needs to be done for each texture
 
 	mCubeMap = NULL;
@@ -472,11 +475,11 @@ void LLVOSky::restoreGL()
 	{
 		mSkyTex[i].restoreGL();
 	}
-	mSunTexturep = gImageList.getImage(gSunTextureID, TRUE, TRUE);
+	mSunTexturep = LLViewerTextureManager::getFetchedTexture(gSunTextureID, TRUE, LLViewerTexture::BOOST_UI);
 	mSunTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
-	mMoonTexturep = gImageList.getImage(gMoonTextureID, TRUE, TRUE);
+	mMoonTexturep = LLViewerTextureManager::getFetchedTexture(gMoonTextureID, TRUE, LLViewerTexture::BOOST_UI);
 	mMoonTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
-	mBloomTexturep = gImageList.getImage(IMG_BLOOM1);
+	mBloomTexturep = LLViewerTextureManager::getFetchedTexture(IMG_BLOOM1);
 	mBloomTexturep->setNoDelete() ;
 	mBloomTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
 
@@ -965,7 +968,7 @@ void LLVOSky::calcAtmospherics(void)
 		
 		// and vary_sunlight will work properly with moon light
 		F32 lighty = unclamped_lightnorm[1];
-		if(lighty < NIGHTTIME_ELEVATION_COS)
+		if(lighty < LLSky::NIGHTTIME_ELEVATION_COS)
 		{
 			lighty = -lighty;
 		}
@@ -1072,10 +1075,10 @@ BOOL LLVOSky::updateSky()
 		++next_frame;
 		next_frame = next_frame % cycle_frame_no;
 
-		sInterpVal = (!mInitialized) ? 1 : (F32)next_frame / cycle_frame_no;
+		mInterpVal = (!mInitialized) ? 1 : (F32)next_frame / cycle_frame_no;
 		// sInterpVal = (F32)next_frame / cycle_frame_no;
-		LLSkyTex::setInterpVal( sInterpVal );
-		LLHeavenBody::setInterpVal( sInterpVal );
+		LLSkyTex::setInterpVal( mInterpVal );
+		LLHeavenBody::setInterpVal( mInterpVal );
 		calcAtmospherics();
 
 		if (mForceUpdate || total_no_tiles == frame)
@@ -1231,6 +1234,8 @@ void LLVOSky::createDummyVertexBuffer()
 	}
 }
 
+static LLFastTimer::DeclareTimer FTM_RENDER_FAKE_VBO_UPDATE("Fake VBO Update");
+
 void LLVOSky::updateDummyVertexBuffer()
 {	
 	if(!LLVertexBuffer::sEnableVBOs)
@@ -1242,7 +1247,7 @@ void LLVOSky::updateDummyVertexBuffer()
 		return ;
 	}
 
-	LLFastTimer t(LLFastTimer::FTM_RENDER_FAKE_VBO_UPDATE) ;
+	LLFastTimer t(FTM_RENDER_FAKE_VBO_UPDATE) ;
 
 	if(!mFace[FACE_DUMMY] || mFace[FACE_DUMMY]->mVertexBuffer.isNull())
 		createDummyVertexBuffer() ;
@@ -1255,10 +1260,11 @@ void LLVOSky::updateDummyVertexBuffer()
 //----------------------------------
 //end of fake vertex buffer updating
 //----------------------------------
+static LLFastTimer::DeclareTimer FTM_GEO_SKY("Sky Geometry");
 
 BOOL LLVOSky::updateGeometry(LLDrawable *drawable)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_GEO_SKY);
+	LLFastTimer ftm(FTM_GEO_SKY);
 	if (mFace[FACE_REFLECTION] == NULL)
 	{
 		LLDrawPoolWater *poolp = (LLDrawPoolWater*) gPipeline.getPool(LLDrawPool::POOL_WATER);

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ border="true"
+ follows="top|left"
+ height="332"
+ label="Classified"
+ layout="topleft"
+ left="0"
+ name="Classified"
+ top="332"
+ width="350">
+    <panel.string
+     name="ad_placed_paid">
+        Ad placed: [DATE], Paid L$[AMT] for listing.
+    </panel.string>
+    <panel.string
+     name="update_txt">
+        Update
+    </panel.string>
+    <panel.string
+     name="publish_txt">
+        Publish...
+    </panel.string>
+    <texture_picker
+     follows="left|top"
+     height="155"
+     layout="topleft"
+     left="10"
+     name="snapshot_ctrl"
+     top="10"
+     width="207" />
+    <line_editor
+     enabled="false"
+     follows="left|top"
+     font="SansSerif"
+     height="20"
+     layout="topleft"
+     left_delta="0"
+     name="given_name_editor"
+     tool_tip="Name must begin with a letter or number, not punctuation"
+     top_delta="143"
+     width="280" />
+    <text_editor
+     enabled="false"
+     follows="left|top"
+     height="70"
+     layout="topleft"
+     left="10"
+     max_length="1023"
+     name="desc_editor"
+     width="280"
+     word_wrap="true" />
+    <line_editor
+     enabled="false"
+     follows="left|top"
+     height="20"
+     layout="topleft"
+     left="10"
+     name="location_editor"
+     tool_tip="Set the location for this classified to your current position"
+     width="280" />
+    <button
+     follows="left|top"
+     height="20"
+     label="Set Location"
+     layout="topleft"
+     left_delta="0"
+     name="set_location_btn"
+     top_pad="7"
+     width="120" />
+    <button
+     follows="left|top"
+     height="20"
+     label="Teleport"
+     layout="topleft"
+     left_delta="120"
+     name="classified_teleport_btn"
+     top_delta="0"
+     width="90" />
+    <button
+     follows="left|top"
+     height="20"
+     label="Map"
+     layout="topleft"
+     left_delta="90"
+     name="classified_map_btn"
+     top_delta="0"
+     width="80" />
+    <combo_box
+     bottom_delta="27"
+     height="18"
+     layout="topleft"
+     left="10"
+     name="classified_category_combo"
+     right="150" />
+    <combo_box
+     height="20"
+     layout="topleft"
+     left_pad="10"
+     name="classified_mature_check"
+     top_delta="-1"
+     width="130">
+        <combo_box.item
+         label="- Select one -"
+         name="select_mature"
+         value="Select" />
+        <combo_box.item
+         label="Moderate Content"
+         name="mature"
+         value="Mature" />
+        <combo_box.item
+         label="General Content"
+         name="pg"
+         value="PG" />
+    </combo_box>
+    <text
+     type="string"
+     length="1"
+     follows="left|top"
+     height="18"
+     layout="topleft"
+     left="10"
+     name="classified_info_text"
+     tool_tip="The more you choose to pay for your ad, the higher in the list it appears"
+     top="1"
+     width="300">
+        Ad placed: Not yet published
+    </text>
+    <text
+     type="string"
+     length="1"
+     follows="left|top"
+     height="18"
+     layout="topleft"
+     left_delta="0"
+     name="click_through_text"
+     tool_tip="Total number of clicks on each button since this classified was placed"
+     top_delta="18"
+     width="300">
+        Clicks:
+    </text>
+    <button
+     follows="left|top"
+     height="18"
+     label="Publish..."
+     layout="topleft"
+     left="208"
+     name="classified_update_btn"
+     top="35"
+     width="100" />
+    <check_box
+     height="20"
+     label="Auto-renew each week"
+     layout="topleft"
+     left_delta="-198"
+     name="auto_renew_check"
+     top_delta="-2"
+     width="120" />
+</panel>

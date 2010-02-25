@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,7 @@
 	It also keeps track of whether the process is still running, and can kill it if required.
 */
 
-class LLProcessLauncher
+class LL_COMMON_API LLProcessLauncher
 {
 	LOG_CLASS(LLProcessLauncher);
 public:
@@ -71,6 +71,14 @@ public:
 	
 	// This needs to be called periodically on Mac/Linux to clean up zombie processes.
 	static void reap(void);
+	
+	// Accessors for platform-specific process ID
+#if LL_WINDOWS
+	HANDLE getProcessHandle() { return mProcessHandle; };
+#else
+	pid_t getProcessID() { return mProcessID; };
+#endif	
+	
 private:
 	std::string mExecutable;
 	std::string mWorkingDir;

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -147,6 +147,21 @@ BOOL LLVisualParamInfo::parseXml(LLXmlTreeNode *node)
 	return TRUE;
 }
 
+//virtual
+void LLVisualParamInfo::toStream(std::ostream &out)
+{
+	out <<  mID << "\t";
+	out << mName << "\t";
+	out <<  mDisplayName << "\t";
+	out <<  mMinName << "\t";
+	out <<  mMaxName << "\t";
+	out <<  mGroup << "\t";
+	out <<  mMinWeight << "\t";
+	out <<  mMaxWeight << "\t";
+	out <<  mDefaultWeight << "\t";
+	out <<  mSex << "\t";
+}
+
 //-----------------------------------------------------------------------------
 // LLVisualParam()
 //-----------------------------------------------------------------------------
@@ -158,7 +173,8 @@ LLVisualParam::LLVisualParam()
 	mTargetWeight( 0.f ),
 	mIsAnimating( FALSE ),
 	mID( -1 ),
-	mInfo( 0 )
+	mInfo( 0 ),
+	mIsDummy(FALSE)
 {
 }
 
@@ -209,7 +225,7 @@ BOOL LLVisualParam::parseData(LLXmlTreeNode *node)
 //-----------------------------------------------------------------------------
 // setWeight()
 //-----------------------------------------------------------------------------
-void LLVisualParam::setWeight(F32 weight, BOOL set_by_user)
+void LLVisualParam::setWeight(F32 weight, BOOL upload_bake)
 {
 	if (mIsAnimating)
 	{
@@ -227,15 +243,22 @@ void LLVisualParam::setWeight(F32 weight, BOOL set_by_user)
 	
 	if (mNext)
 	{
-		mNext->setWeight(weight, set_by_user);
+		mNext->setWeight(weight, upload_bake);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // setAnimationTarget()
 //-----------------------------------------------------------------------------
-void LLVisualParam::setAnimationTarget(F32 target_value, BOOL set_by_user)
+void LLVisualParam::setAnimationTarget(F32 target_value, BOOL upload_bake)
 {
+	// don't animate dummy parameters
+	if (mIsDummy)
+	{
+		setWeight(target_value, upload_bake);
+		return;
+	}
+
 	if (mInfo)
 	{
 		if (getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE)
@@ -251,7 +274,7 @@ void LLVisualParam::setAnimationTarget(F32 target_value, BOOL set_by_user)
 
 	if (mNext)
 	{
-		mNext->setAnimationTarget(target_value, set_by_user);
+		mNext->setAnimationTarget(target_value, upload_bake);
 	}
 }
 
@@ -268,23 +291,37 @@ void LLVisualParam::setNextParam( LLVisualParam *next )
 //-----------------------------------------------------------------------------
 // animate()
 //-----------------------------------------------------------------------------
-void LLVisualParam::animate( F32 delta, BOOL set_by_user )
+void LLVisualParam::animate( F32 delta, BOOL upload_bake )
 {
 	if (mIsAnimating)
 	{
 		F32 new_weight = ((mTargetWeight - mCurWeight) * delta) + mCurWeight;
-		setWeight(new_weight, set_by_user);
+		setWeight(new_weight, upload_bake);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // stopAnimating()
 //-----------------------------------------------------------------------------
-void LLVisualParam::stopAnimating(BOOL set_by_user)
+void LLVisualParam::stopAnimating(BOOL upload_bake)
 { 
 	if (mIsAnimating && getGroup() == VISUAL_PARAM_GROUP_TWEAKABLE)
 	{
 		mIsAnimating = FALSE; 
-		setWeight(mTargetWeight, set_by_user);
+		setWeight(mTargetWeight, upload_bake);
 	}
+}
+
+//virtual
+BOOL LLVisualParam::linkDrivenParams(visual_param_mapper mapper, BOOL only_cross_params)
+{
+	// nothing to do for non-driver parameters
+	return TRUE;
+}
+
+//virtual 
+void LLVisualParam::resetDrivenParams()
+{
+	// nothing to do for non-driver parameters
+	return;
 }

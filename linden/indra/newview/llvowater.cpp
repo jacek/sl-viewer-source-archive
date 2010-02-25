@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,7 +37,6 @@
 #include "imageids.h"
 #include "llviewercontrol.h"
 
-#include "llagent.h"
 #include "lldrawable.h"
 #include "lldrawpoolwater.h"
 #include "llface.h"
@@ -45,7 +44,7 @@
 #include "llsurface.h"
 #include "llvosky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "llworld.h"
 #include "pipeline.h"
@@ -55,8 +54,6 @@ const BOOL gUseRoam = FALSE;
 
 
 ///////////////////////////////////
-
-#include "randgauss.h"
 
 template<class T> inline T LERP(T a, T b, F32 factor)
 {
@@ -139,9 +136,11 @@ LLDrawable *LLVOWater::createDrawable(LLPipeline *pipeline)
 	return mDrawable;
 }
 
+static LLFastTimer::DeclareTimer FTM_UPDATE_WATER("Update Water");
+
 BOOL LLVOWater::updateGeometry(LLDrawable *drawable)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_UPDATE_WATER);
+	LLFastTimer ftm(FTM_UPDATE_WATER);
 	LLFace *face;
 
 	if (drawable->getNumFaces() < 1)
@@ -276,9 +275,8 @@ U32 LLVOWater::getPartitionType() const
 }
 
 LLWaterPartition::LLWaterPartition()
-: LLSpatialPartition(0)
+: LLSpatialPartition(0, FALSE, 0)
 {
-	mRenderByGroup = FALSE;
 	mInfiniteFarClip = TRUE;
 	mDrawableType = LLPipeline::RENDER_TYPE_WATER;
 	mPartitionType = LLViewerRegion::PARTITION_WATER;

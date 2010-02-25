@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,6 +40,7 @@
 
 #include "llworkerthread.h"
 
+class LLImageFormatted;
 class LLTextureCacheWorker;
 
 class LLTextureCache : public LLWorkerThread
@@ -58,7 +59,12 @@ private:
 	};
 	struct Entry
 	{
-		Entry() {}
+        	Entry() :
+		        mBodySize(0),
+			mImageSize(0),
+			mTime(0)
+		{
+		}
 		Entry(const LLUUID& id, S32 imagesize, S32 bodysize, U32 time) :
 			mID(id), mImageSize(imagesize), mBodySize(bodysize), mTime(time) {}
 		void init(const LLUUID& id, U32 time) { mID = id, mImageSize = 0; mBodySize = 0; mTime = time; }
@@ -131,6 +137,8 @@ public:
 	S64 getMaxUsage() { return sCacheMaxTexturesSize; }
 	U32 getEntries() { return mHeaderEntriesInfo.mEntries; }
 	U32 getMaxEntries() { return sCacheMaxEntries; };
+	BOOL isInCache(const LLUUID& id) ;
+	BOOL isInLocal(const LLUUID& id) ;
 
 protected:
 	// Accessed by LLTextureCacheWorker

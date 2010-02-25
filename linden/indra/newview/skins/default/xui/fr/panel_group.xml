@@ -1,13 +1,22 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<panel name="GroupInfo" title="Profil du groupe">
-	<text name="default_needs_apply_text">
-		Certains changements n&apos;ont pas été appliqués sur cet onglet.
-	</text>
-	<text name="want_apply_text">
-		Voulez-vous enregistrer les modifications ?
-	</text>
-	<button label="Appliquer" label_selected="Appliquer" name="btn_apply" />
-	<button label="Annuler" label_selected="Annuler" name="btn_cancel" />
-	<button label="OK" label_selected="OK" name="btn_ok" />
-	<button label="Rafraîchir" label_selected="Rafraîchir" name="btn_refresh" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Profil du groupe" name="GroupInfo" title="Profil du groupe">
+	<panel.string name="default_needs_apply_text">
+		Certaines modifications sur cet onglet n&apos;ont pas été enregistrées.
+	</panel.string>
+	<panel.string name="want_apply_text">
+		Voulez-vous enregistrer ces modifications ?
+	</panel.string>
+	<line_editor label="Saisissez le nom du groupe ici" name="group_name_editor"/>
+	<texture_picker name="insignia" tool_tip="Cliquez pour sélectionner une image"/>
+	<accordion name="groups_accordion">
+		<accordion_tab name="tab_general" title="Général"/>
+		<accordion_tab name="tab_roles" title="Rôles"/>
+		<accordion_tab name="tab_notices" title="Notices"/>
+		<accordion_tab name="tab_land" title="Terrain/Actifs"/>
+	</accordion>
+	<button label="Annuler" label_selected="Annuler" name="btn_cancel"/>
+	<button label="Enregistrer" label_selected="Enregistrer" name="btn_ok"/>
+	<button label="Rafraîchir" label_selected="Rafraîchir" name="btn_refresh"/>
+	<button label="Rejoindre (0 L$)" label_selected="Rejoindre (0 L$)" name="join_button"/>
+	<button label="Détails" label_selected="Affichage détaillé" name="info_button"/>
 </panel>

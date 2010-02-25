@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,12 +34,14 @@
 #define LL_LLWORLDMAP_H
 
 #include "llworldmipmap.h"
+#include <boost/function.hpp>
 
 #include "v3dmath.h"
 #include "lluuid.h"
-#include "llmemory.h"
+#include "llpointer.h"
+#include "llsingleton.h"
 #include "llviewerregion.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 // Description of objects like hubs, events, land for sale, people and more (TBD).
 // Note: we don't store a "type" in there so we need to store instances of this class in 
@@ -97,6 +99,7 @@ public:
 	LLVector3d getGlobalPos(const LLVector3& local_pos) const;
 	// Get the world coordinates of the SW corner of that region
 	LLVector3d getGlobalOrigin() const;
+	LLVector3 getLocalPos(LLVector3d global_pos) const;
 
 	void clearImage();					// Clears the reference to the Land for sale image for that region
 	void dropImagePriority();			// Drops the boost level of the Land for sale image for that region
@@ -110,12 +113,12 @@ public:
 //	void setWaterHeight (F32 water_height) { mWaterHeight = water_height; }
 
 	// Accessors
-	const std::string getName() const { return mName; }
+	std::string getName() const { return mName; }
 	const std::string getFlagsString() const { return LLViewerRegion::regionFlagsToString(mRegionFlags); }
 	const std::string getAccessString() const { return LLViewerRegion::accessToString((U8)mAccess); }
 
 	const S32 getAgentCount() const;				// Compute the total agents count
-	LLPointer<LLViewerImage> getLandForSaleImage();	// Get the overlay image, fetch it if necessary
+	LLPointer<LLViewerFetchedTexture> getLandForSaleImage();	// Get the overlay image, fetch it if necessary
 
 	bool isName(const std::string& name) const;
 	bool isDown() { return (mAccess == SIM_ACCESS_DOWN); }
@@ -160,7 +163,7 @@ private:
 
 	// Handling the "land for sale / land for auction" overlay image
 	LLUUID mMapImageID;						// Image ID of the overlay image
-	LLPointer<LLViewerImage> mOverlayImage;	// Reference to the overlay image
+	LLPointer<LLViewerFetchedTexture> mOverlayImage;	// Reference to the overlay image
 
 	// Items for this region
 	// Those are data received through item requests (as opposed to block requests for the rest of the data)
@@ -235,7 +238,7 @@ public:
 
 	// World Mipmap delegation: currently used when drawing the mipmap
 	void	equalizeBoostLevels();
-	LLPointer<LLViewerImage> getObjectsTile(U32 grid_x, U32 grid_y, S32 level, bool load = true) { return mWorldMipmap.getObjectsTile(grid_x, grid_y, level, load); }
+	LLPointer<LLViewerFetchedTexture> getObjectsTile(U32 grid_x, U32 grid_y, S32 level, bool load = true) { return mWorldMipmap.getObjectsTile(grid_x, grid_y, level, load); }
 
 private:
 	bool clearItems(bool force = false);	// Clears the item lists

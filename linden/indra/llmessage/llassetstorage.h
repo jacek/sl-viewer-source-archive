@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -315,15 +315,15 @@ public:
 	void		markAssetToxic( const LLUUID& uuid );
 
 protected:
-	virtual LLSD getPendingDetails(const request_list_t* requests,
+	virtual LLSD getPendingDetailsImpl(const request_list_t* requests,
 	 				LLAssetType::EType asset_type,
 	 				const std::string& detail_prefix) const;
 
-	virtual LLSD getPendingRequest(const request_list_t* requests,
+	virtual LLSD getPendingRequestImpl(const request_list_t* requests,
 							LLAssetType::EType asset_type,
 							const LLUUID& asset_id) const;
 
-	virtual bool deletePendingRequest(request_list_t* requests,
+	virtual bool deletePendingRequestImpl(request_list_t* requests,
 							LLAssetType::EType asset_type,
 							const LLUUID& asset_id);
 

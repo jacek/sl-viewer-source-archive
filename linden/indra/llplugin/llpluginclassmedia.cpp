@@ -2,9 +2,10 @@
  * @file llpluginclassmedia.cpp
  * @brief LLPluginClassMedia handles a plugin which knows about the "media" message class.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #include "linden_common.h"
@@ -35,6 +37,8 @@
 
 #include "llpluginclassmedia.h"
 #include "llpluginmessageclasses.h"
+
+#include "llqtwebkit.h"
 
 static int LOW_PRIORITY_TEXTURE_SIZE_DEFAULT = 256;
 
@@ -62,14 +66,15 @@ LLPluginClassMedia::~LLPluginClassMedia()
 	reset();
 }
 
-bool LLPluginClassMedia::init(const std::string &launcher_filename, const std::string &plugin_filename)
+bool LLPluginClassMedia::init(const std::string &launcher_filename, const std::string &plugin_filename, bool debug, const std::string &user_data_path)
 {	
 	LL_DEBUGS("Plugin") << "launcher: " << launcher_filename << LL_ENDL;
 	LL_DEBUGS("Plugin") << "plugin: " << plugin_filename << LL_ENDL;
+	LL_DEBUGS("Plugin") << "user_data_path: " << user_data_path << LL_ENDL;
 	
 	mPlugin = new LLPluginProcessParent(this);
 	mPlugin->setSleepTime(mSleepTime);
-	mPlugin->init(launcher_filename, plugin_filename);
+	mPlugin->init(launcher_filename, plugin_filename, debug, user_data_path);
 
 	return true;
 }
@@ -100,6 +105,10 @@ void LLPluginClassMedia::reset()
 	mSetMediaHeight = -1;
 	mRequestedMediaWidth = 0;
 	mRequestedMediaHeight = 0;
+	mRequestedTextureWidth = 0;
+	mRequestedTextureHeight = 0;
+	mFullMediaWidth = 0;
+	mFullMediaHeight = 0;
 	mTextureWidth = 0;
 	mTextureHeight = 0;
 	mMediaWidth = 0;
@@ -111,6 +120,8 @@ void LLPluginClassMedia::reset()
 	mLowPrioritySizeLimit = LOW_PRIORITY_TEXTURE_SIZE_DEFAULT;
 	mAllowDownsample = false;
 	mPadding = 0;
+	mLastMouseX = 0;
+	mLastMouseY = 0;
 	mStatus = LLPluginClassMediaOwner::MEDIA_NONE;
 	mSleepTime = 1.0f / 100.0f;
 	mCanCut = false;
@@ -118,7 +129,8 @@ void LLPluginClassMedia::reset()
 	mCanPaste = false;
 	mMediaName.clear();
 	mMediaDescription.clear();
-
+	mBackgroundColor = LLColor4(1.0f, 1.0f, 1.0f, 1.0f);
+	
 	// media_browser class
 	mNavigateURI.clear();
 	mNavigateResultCode = -1;
@@ -127,11 +139,15 @@ void LLPluginClassMedia::reset()
 	mHistoryForwardAvailable = false;
 	mStatusText.clear();
 	mProgressPercent = 0;	
+	mClickURL.clear();
+	mClickTarget.clear();
+	mClickTargetType = TARGET_NONE;
 	
 	// media_time class
 	mCurrentTime = 0.0f;
 	mDuration = 0.0f;
 	mCurrentRate = 0.0f;
+	mLoadedDuration = 0.0f;
 }
 
 void LLPluginClassMedia::idle(void)
@@ -227,6 +243,10 @@ void LLPluginClassMedia::idle(void)
 			message.setValueS32("height", mRequestedMediaHeight);
 			message.setValueS32("texture_width", mRequestedTextureWidth);
 			message.setValueS32("texture_height", mRequestedTextureHeight);
+			message.setValueReal("background_r", mBackgroundColor.mV[VX]);
+			message.setValueReal("background_g", mBackgroundColor.mV[VY]);
+			message.setValueReal("background_b", mBackgroundColor.mV[VZ]);
+			message.setValueReal("background_a", mBackgroundColor.mV[VW]);
 			mPlugin->sendMessage(message);	// DO NOT just use sendMessage() here -- we want this to jump ahead of the queue.
 			
 			LL_DEBUGS("Plugin") << "Sending size_change" << LL_ENDL;
@@ -267,8 +287,16 @@ unsigned char* LLPluginClassMedia::getBitsData()
 
 void LLPluginClassMedia::setSize(int width, int height)
 {
-	mSetMediaWidth = width;
-	mSetMediaHeight = height;
+	if((width > 0) && (height > 0))
+	{
+		mSetMediaWidth = width;
+		mSetMediaHeight = height;
+	}
+	else
+	{
+		mSetMediaWidth = -1;
+		mSetMediaHeight = -1;
+	}
 
 	setSizeInternal();
 }
@@ -280,16 +308,26 @@ void LLPluginClassMedia::setSizeInternal(void)
 		mRequestedMediaWidth = mSetMediaWidth;
 		mRequestedMediaHeight = mSetMediaHeight;
 	}
+	else if((mNaturalMediaWidth > 0) && (mNaturalMediaHeight > 0))
+	{
+		mRequestedMediaWidth = mNaturalMediaWidth;
+		mRequestedMediaHeight = mNaturalMediaHeight;
+	}
 	else
 	{
 		mRequestedMediaWidth = mDefaultMediaWidth;
 		mRequestedMediaHeight = mDefaultMediaHeight;
 	}
 	
+	// Save these for size/interest calculations
+	mFullMediaWidth = mRequestedMediaWidth;
+	mFullMediaHeight = mRequestedMediaHeight;
+	
 	if(mAllowDownsample)
 	{
 		switch(mPriority)
 		{
+			case PRIORITY_SLIDESHOW:
 			case PRIORITY_LOW:
 				// Reduce maximum texture dimension to (or below) mLowPrioritySizeLimit
 				while((mRequestedMediaWidth > mLowPrioritySizeLimit) || (mRequestedMediaHeight > mLowPrioritySizeLimit))
@@ -310,6 +348,12 @@ void LLPluginClassMedia::setSizeInternal(void)
 		mRequestedMediaWidth = nextPowerOf2(mRequestedMediaWidth);
 		mRequestedMediaHeight = nextPowerOf2(mRequestedMediaHeight);
 	}
+	
+	if(mRequestedMediaWidth > 2048)
+		mRequestedMediaWidth = 2048;
+
+	if(mRequestedMediaHeight > 2048)
+		mRequestedMediaHeight = 2048;
 }
 
 void LLPluginClassMedia::setAutoScale(bool auto_scale)
@@ -340,7 +384,7 @@ bool LLPluginClassMedia::textureValid(void)
 
 bool LLPluginClassMedia::getDirty(LLRect *dirty_rect)
 {
-	bool result = !mDirtyRect.isNull();
+	bool result = !mDirtyRect.isEmpty();
 
 	if(dirty_rect != NULL)
 	{
@@ -386,8 +430,20 @@ std::string LLPluginClassMedia::translateModifiers(MASK modifiers)
 	return result;
 }
 
-void LLPluginClassMedia::mouseEvent(EMouseEventType type, int x, int y, MASK modifiers)
+void LLPluginClassMedia::mouseEvent(EMouseEventType type, int button, int x, int y, MASK modifiers)
 {
+	if(type == MOUSE_EVENT_MOVE)
+	{
+		if((x == mLastMouseX) && (y == mLastMouseY))
+		{
+			// Don't spam unnecessary mouse move events.
+			return;
+		}
+		
+		mLastMouseX = x;
+		mLastMouseY = y;
+	}
+	
 	LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "mouse_event");
 	std::string temp;
 	switch(type)
@@ -398,6 +454,8 @@ void LLPluginClassMedia::mouseEvent(EMouseEventType type, int x, int y, MASK mod
 		case MOUSE_EVENT_DOUBLE_CLICK:	temp = "double_click";	break;
 	}
 	message.setValue("event", temp);
+
+	message.setValueS32("button", button);
 
 	message.setValueS32("x", x);
 	
@@ -414,7 +472,7 @@ void LLPluginClassMedia::mouseEvent(EMouseEventType type, int x, int y, MASK mod
 	sendMessage(message);
 }
 
-bool LLPluginClassMedia::keyEvent(EKeyEventType type, int key_code, MASK modifiers)
+bool LLPluginClassMedia::keyEvent(EKeyEventType type, int key_code, MASK modifiers, LLSD native_key_data)
 {
 	bool result = true;
 	
@@ -471,6 +529,7 @@ bool LLPluginClassMedia::keyEvent(EKeyEventType type, int key_code, MASK modifie
 		message.setValueS32("key", key_code);
 
 		message.setValue("modifiers", translateModifiers(modifiers));
+		message.setValueLLSD("native_key_data", native_key_data);
 		
 		sendMessage(message);
 	}
@@ -489,11 +548,13 @@ void LLPluginClassMedia::scrollEvent(int x, int y, MASK modifiers)
 	sendMessage(message);
 }
 	
-bool LLPluginClassMedia::textInput(const std::string &text)
+bool LLPluginClassMedia::textInput(const std::string &text, MASK modifiers, LLSD native_key_data)
 {
 	LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "text_event");
 
 	message.setValue("text", text);
+	message.setValue("modifiers", translateModifiers(modifiers));
+	message.setValueLLSD("native_key_data", native_key_data);
 	
 	sendMessage(message);
 	
@@ -509,6 +570,23 @@ void LLPluginClassMedia::loadURI(const std::string &uri)
 	sendMessage(message);
 }
 
+const char* LLPluginClassMedia::priorityToString(EPriority priority)
+{
+	const char* result = "UNKNOWN";
+	switch(priority)
+	{
+		case PRIORITY_UNLOADED:		result = "unloaded";	break;
+		case PRIORITY_STOPPED:		result = "stopped";		break;
+		case PRIORITY_HIDDEN:		result = "hidden";		break;
+		case PRIORITY_SLIDESHOW:	result = "slideshow";	break;
+		case PRIORITY_LOW:			result = "low";			break;
+		case PRIORITY_NORMAL:		result = "normal";		break;
+		case PRIORITY_HIGH:			result = "high";		break;
+	}
+	
+	return result;
+}
+
 void LLPluginClassMedia::setPriority(EPriority priority)
 {
 	if(mPriority != priority)
@@ -517,27 +595,28 @@ void LLPluginClassMedia::setPriority(EPriority priority)
 
 		LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "set_priority");
 		
-		std::string priority_string;
+		std::string priority_string = priorityToString(priority);
 		switch(priority)
 		{
+			case PRIORITY_UNLOADED:	
+				mSleepTime = 1.0f;
+			break;
 			case PRIORITY_STOPPED:	
-				priority_string = "stopped";	
 				mSleepTime = 1.0f;
 			break;
 			case PRIORITY_HIDDEN:	
-				priority_string = "hidden";	
+				mSleepTime = 1.0f;
+			break;
+			case PRIORITY_SLIDESHOW:
 				mSleepTime = 1.0f;
 			break;
 			case PRIORITY_LOW:		
-				priority_string = "low";		
-				mSleepTime = 1.0f / 50.0f;
+				mSleepTime = 1.0f / 25.0f;
 			break;
 			case PRIORITY_NORMAL:	
-				priority_string = "normal";	
-				mSleepTime = 1.0f / 100.0f;
+				mSleepTime = 1.0f / 50.0f;
 			break;
 			case PRIORITY_HIGH:		
-				priority_string = "high";		
 				mSleepTime = 1.0f / 100.0f;
 			break;
 		}
@@ -551,6 +630,8 @@ void LLPluginClassMedia::setPriority(EPriority priority)
 			mPlugin->setSleepTime(mSleepTime);
 		}
 		
+		LL_DEBUGS("PluginPriority") << this << ": setting priority to " << priority_string << LL_ENDL;
+		
 		// This may affect the calculated size, so recalculate it here.
 		setSizeInternal();
 	}
@@ -558,15 +639,27 @@ void LLPluginClassMedia::setPriority(EPriority priority)
 
 void LLPluginClassMedia::setLowPrioritySizeLimit(int size)
 {
-	if(mLowPrioritySizeLimit != size)
+	int power = nextPowerOf2(size);
+	if(mLowPrioritySizeLimit != power)
 	{
-		mLowPrioritySizeLimit = size;
+		mLowPrioritySizeLimit = power;
 
 		// This may affect the calculated size, so recalculate it here.
 		setSizeInternal();
 	}
 }
 
+F64 LLPluginClassMedia::getCPUUsage()
+{
+	F64 result = 0.0f;
+	
+	if(mPlugin)
+	{
+		result = mPlugin->getCPUUsage();
+	}
+	
+	return result;
+}
 
 void LLPluginClassMedia::cut()
 {
@@ -584,6 +677,26 @@ void LLPluginClassMedia::paste()
 {
 	LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "edit_paste");
 	sendMessage(message);
+}
+
+LLPluginClassMedia::ETargetType getTargetTypeFromLLQtWebkit(int target_type)
+{
+	// convert a LinkTargetType value from llqtwebkit to an ETargetType
+	// so that we don't expose the llqtwebkit header in viewer code
+	switch (target_type)
+	{
+	case LLQtWebKit::LTT_TARGET_NONE:
+		return LLPluginClassMedia::TARGET_NONE;
+
+	case LLQtWebKit::LTT_TARGET_BLANK:
+		return LLPluginClassMedia::TARGET_BLANK;
+
+	case LLQtWebKit::LTT_TARGET_EXTERNAL:
+		return LLPluginClassMedia::TARGET_EXTERNAL;
+
+	default:
+		return LLPluginClassMedia::TARGET_OTHER;
+	}
 }
 
 /* virtual */ 
@@ -633,7 +746,7 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 					newDirtyRect.mBottom = temp;
 				}
 				
-				if(mDirtyRect.isNull())
+				if(mDirtyRect.isEmpty())
 				{
 					mDirtyRect = newDirtyRect;
 				}
@@ -658,6 +771,7 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 			
 
 			bool time_duration_updated = false;
+			int previous_percent = mProgressPercent;
 
 			if(message.hasValue("current_time"))
 			{
@@ -675,11 +789,32 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 				mCurrentRate = message.getValueReal("current_rate");
 			}
 			
+			if(message.hasValue("loaded_duration"))
+			{
+				mLoadedDuration = message.getValueReal("loaded_duration");
+				time_duration_updated = true;
+			}
+			else
+			{
+				// If the message doesn't contain a loaded_duration param, assume it's equal to duration
+				mLoadedDuration = mDuration;
+			}
+			
+			// Calculate a percentage based on the loaded duration and total duration.
+			if(mDuration != 0.0f)	// Don't divide by zero.
+			{
+				mProgressPercent = (int)((mLoadedDuration * 100.0f)/mDuration);
+			}
+
 			if(time_duration_updated)
 			{
 				mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_TIME_DURATION_UPDATED);
 			}
 			
+			if(previous_percent != mProgressPercent)
+			{
+				mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_PROGRESS_UPDATED);
+			}
 		}
 		else if(message_name == "media_status")
 		{
@@ -707,6 +842,10 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 			{
 				mStatus = LLPluginClassMediaOwner::MEDIA_PAUSED;
 			}
+			else if(status == "done")
+			{
+				mStatus = LLPluginClassMediaOwner::MEDIA_DONE;
+			}
 			else
 			{
 				// empty string or any unknown string
@@ -723,7 +862,7 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 			mNaturalMediaWidth = width;
 			mNaturalMediaHeight = height;
 			
-			setSize(width, height);
+			setSizeInternal();
 		}
 		else if(message_name == "size_change_response")
 		{
@@ -764,6 +903,11 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 			{
 				mCanPaste = message.getValueBoolean("paste");
 			}
+		}
+		else if(message_name == "name_text")
+		{
+			mMediaName = message.getValue("name");
+			mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_NAME_CHANGED);
 		}
 		else
 		{
@@ -807,12 +951,15 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 		{
 			mClickURL = message.getValue("uri");
 			mClickTarget = message.getValue("target");
+			U32 target_type = message.getValueU32("target_type");
+			mClickTargetType = ::getTargetTypeFromLLQtWebkit(target_type);
 			mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_CLICK_LINK_HREF);
 		}
 		else if(message_name == "click_nofollow")
 		{
 			mClickURL = message.getValue("uri");
 			mClickTarget.clear();
+			mClickTargetType = TARGET_NONE;
 			mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_CLICK_LINK_NOFOLLOW);
 		}
 		else
@@ -834,6 +981,12 @@ void LLPluginClassMedia::receivePluginMessage(const LLPluginMessage &message)
 		}
 	}
 
+}
+
+/* virtual */ 
+void LLPluginClassMedia::pluginLaunchFailed()
+{
+	mediaEvent(LLPluginClassMediaOwner::MEDIA_EVENT_PLUGIN_FAILED_LAUNCH);
 }
 
 /* virtual */ 
@@ -1029,6 +1182,11 @@ void LLPluginClassMedia::setVolume(float volume)
 		
 		sendMessage(message);
 	}
+}
+
+float LLPluginClassMedia::getVolume()
+{
+	return mRequestedVolume;
 }
 
 void LLPluginClassMedia::initializeUrlHistory(const LLSD& url_history)

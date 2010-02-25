@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,11 +42,11 @@ class LLUICtrl;
 class LLSavedSettingsGlue
 {
 public:
-	static void setBOOL(LLUICtrl* ctrl, void* name);
-	static void setS32(LLUICtrl* ctrl, void* name);
-	static void setF32(LLUICtrl* ctrl, void* name);
-	static void setU32(LLUICtrl* ctrl, void* name);
-	static void setString(LLUICtrl* ctrl, void* name);
+	static void setBOOL(LLUICtrl* ctrl, const std::string& name);
+	static void setS32(LLUICtrl* ctrl, const std::string& name);
+	static void setF32(LLUICtrl* ctrl, const std::string& name);
+	static void setU32(LLUICtrl* ctrl, const std::string& name);
+	static void setString(LLUICtrl* ctrl, const std::string& name);
 };
 
 #endif

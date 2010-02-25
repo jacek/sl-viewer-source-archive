@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,10 +35,20 @@
 
 #include "llview.h"
 
+class LLAllocator;
+
 class LLMemoryView : public LLView
 {
 public:
-	LLMemoryView(const std::string& name, const LLRect& rect);
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
+	{
+		Params()
+		{
+			mouse_opaque = true;
+			visible = false;
+		}
+	};
+	LLMemoryView(const LLMemoryView::Params&);
 	virtual ~LLMemoryView();
 
 	virtual BOOL handleMouseDown(S32 x, S32 y, MASK mask);
@@ -46,14 +56,12 @@ public:
 	virtual BOOL handleHover(S32 x, S32 y, MASK mask);
 	virtual void draw();
 
-private:
-	void setDataDumpInterval(float delay);
-	void dumpData();
-
-	float mDelay;
-	LLFrameTimer mDumpTimer;
+	void refreshProfile();
 
 private:
+    std::vector<LLWString> mLines;
+	LLAllocator* mAlloc;
+
 };
 
 #endif

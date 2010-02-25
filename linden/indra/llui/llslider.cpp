@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,53 +40,68 @@
 #include "llfocusmgr.h"
 #include "llkeyboard.h"			// for the MASK constants
 #include "llcontrol.h"
-#include "llimagegl.h"
+#include "lluictrlfactory.h"
 
-static LLRegisterWidget<LLSlider> r1("slider_bar");
-static LLRegisterWidget<LLSlider> r2("volume_slider");
+static LLDefaultChildRegistry::Register<LLSlider> r1("slider_bar");
+//FIXME: make this into an unregistered template so that code constructed sliders don't
+// have ambigious template lookup problem
 
-
-LLSlider::LLSlider( 
-	const std::string& name,
-	const LLRect& rect,
-	void (*on_commit_callback)(LLUICtrl* ctrl, void* userdata),
-	void* callback_userdata,
-	F32 initial_value,
-	F32 min_value,
-	F32 max_value,
-	F32 increment,
-	BOOL volume,
-	const std::string& control_name)
-	:
-	LLUICtrl( name, rect, TRUE,	on_commit_callback, callback_userdata, 
-		FOLLOWS_LEFT | FOLLOWS_TOP),
-	mValue( initial_value ),
-	mInitialValue( initial_value ),
-	mMinValue( min_value ),
-	mMaxValue( max_value ),
-	mIncrement( increment ),
-	mVolumeSlider( volume ),
-	mMouseOffset( 0 ),
-	mTrackColor(		LLUI::sColorsGroup->getColor( "SliderTrackColor" ) ),
-	mThumbOutlineColor(	LLUI::sColorsGroup->getColor( "SliderThumbOutlineColor" ) ),
-	mThumbCenterColor(	LLUI::sColorsGroup->getColor( "SliderThumbCenterColor" ) ),
-	mMouseDownCallback( NULL ),
-	mMouseUpCallback( NULL )
+LLSlider::Params::Params()
+:	orientation ("orientation", std::string ("horizontal")),
+	track_color("track_color"),
+	thumb_outline_color("thumb_outline_color"),
+	thumb_center_color("thumb_center_color"),
+	thumb_image("thumb_image"),
+	thumb_image_pressed("thumb_image_pressed"),
+	thumb_image_disabled("thumb_image_disabled"),
+	track_image_horizontal("track_image_horizontal"),
+	track_image_vertical("track_image_vertical"),
+	track_highlight_horizontal_image("track_highlight_horizontal_image"),
+	track_highlight_vertical_image("track_highlight_vertical_image"),
+	mouse_down_callback("mouse_down_callback"),
+	mouse_up_callback("mouse_up_callback")
 {
-	mThumbImage = LLUI::sImageProvider->getUIImage("icn_slide-thumb_dark.tga");
-	mTrackImage = LLUI::sImageProvider->getUIImage("icn_slide-groove_dark.tga");
-	mTrackHighlightImage = LLUI::sImageProvider->getUIImage("icn_slide-highlight.tga");
-
-	// properly handle setting the starting thumb rect
-	// do it this way to handle both the operating-on-settings
-	// and standalone ways of using this
-	setControlName(control_name, NULL);
-	setValue(getValueF32());
-
-	updateThumbRect();
-	mDragStartThumbRect = mThumbRect;
+	follows.flags(FOLLOWS_LEFT | FOLLOWS_TOP);
 }
 
+LLSlider::LLSlider(const LLSlider::Params& p)
+:	LLF32UICtrl(p),
+	mMouseOffset( 0 ),
+	mOrientation ((p.orientation() == "horizontal") ? HORIZONTAL : VERTICAL),
+	mTrackColor(p.track_color()),
+	mThumbOutlineColor(p.thumb_outline_color()),
+	mThumbCenterColor(p.thumb_center_color()),
+	mThumbImage(p.thumb_image),
+	mThumbImagePressed(p.thumb_image_pressed),
+	mThumbImageDisabled(p.thumb_image_disabled),
+	mTrackImageHorizontal(p.track_image_horizontal),
+	mTrackImageVertical(p.track_image_vertical),
+	mTrackHighlightHorizontalImage(p.track_highlight_horizontal_image),
+	mTrackHighlightVerticalImage(p.track_highlight_vertical_image),
+	mMouseDownSignal(NULL),
+	mMouseUpSignal(NULL)
+{
+    mViewModel->setValue(p.initial_value);
+	updateThumbRect();
+	mDragStartThumbRect = mThumbRect;
+	setControlName(p.control_name, NULL);
+	setValue(getValueF32());
+	
+	if (p.mouse_down_callback.isProvided())
+	{
+		setMouseDownCallback(initCommitCallback(p.mouse_down_callback));
+	}
+	if (p.mouse_up_callback.isProvided())
+	{
+		setMouseUpCallback(initCommitCallback(p.mouse_up_callback));
+	}
+}
+
+LLSlider::~LLSlider()
+{
+	delete mMouseDownSignal;
+	delete mMouseUpSignal;
+}
 
 void LLSlider::setValue(F32 value, BOOL from_event)
 {
@@ -98,38 +113,54 @@ void LLSlider::setValue(F32 value, BOOL from_event)
 	value -= fmod(value, mIncrement);
 	value += mMinValue;
 
-	if (!from_event && mValue != value)
+	if (!from_event && getValueF32() != value)
 	{
 		setControlValue(value);
 	}
 
-	mValue = value;
+    LLF32UICtrl::setValue(value);
 	updateThumbRect();
 }
 
 void LLSlider::updateThumbRect()
 {
-	F32 t = (mValue - mMinValue) / (mMaxValue - mMinValue);
+	const S32 DEFAULT_THUMB_SIZE = 16;
+	F32 t = (getValueF32() - mMinValue) / (mMaxValue - mMinValue);
 
-	S32 thumb_width = mThumbImage->getWidth();
-	S32 thumb_height = mThumbImage->getHeight();
-	S32 left_edge = (thumb_width / 2);
-	S32 right_edge = getRect().getWidth() - (thumb_width / 2);
+	S32 thumb_width = mThumbImage ? mThumbImage->getWidth() : DEFAULT_THUMB_SIZE;
+	S32 thumb_height = mThumbImage ? mThumbImage->getHeight() : DEFAULT_THUMB_SIZE;
 
-	S32 x = left_edge + S32( t * (right_edge - left_edge) );
-	mThumbRect.mLeft = x - (thumb_width / 2);
-	mThumbRect.mRight = mThumbRect.mLeft + thumb_width;
-	mThumbRect.mBottom = getLocalRect().getCenterY() - (thumb_height / 2);
-	mThumbRect.mTop = mThumbRect.mBottom + thumb_height;
+	if ( mOrientation == HORIZONTAL )
+	{
+		S32 left_edge = (thumb_width / 2);
+		S32 right_edge = getRect().getWidth() - (thumb_width / 2);
+
+		S32 x = left_edge + S32( t * (right_edge - left_edge) );
+		mThumbRect.mLeft = x - (thumb_width / 2);
+		mThumbRect.mRight = mThumbRect.mLeft + thumb_width;
+		mThumbRect.mBottom = getLocalRect().getCenterY() - (thumb_height / 2);
+		mThumbRect.mTop = mThumbRect.mBottom + thumb_height;
+	}
+	else
+	{
+		S32 top_edge = (thumb_height / 2);
+		S32 bottom_edge = getRect().getHeight() - (thumb_height / 2);
+
+		S32 y = top_edge + S32( t * (bottom_edge - top_edge) );
+		mThumbRect.mLeft = getLocalRect().getCenterX() - (thumb_width / 2);
+		mThumbRect.mRight = mThumbRect.mLeft + thumb_width;
+		mThumbRect.mBottom = y  - (thumb_height / 2);
+		mThumbRect.mTop = mThumbRect.mBottom + thumb_height;
+	}
 }
 
 
 void LLSlider::setValueAndCommit(F32 value)
 {
-	F32 old_value = mValue;
+	F32 old_value = getValueF32();
 	setValue(value);
 
-	if (mValue != old_value)
+	if (getValueF32() != old_value)
 	{
 		onCommit();
 	}
@@ -140,18 +171,32 @@ BOOL LLSlider::handleHover(S32 x, S32 y, MASK mask)
 {
 	if( hasMouseCapture() )
 	{
-		S32 thumb_half_width = mThumbImage->getWidth()/2;
-		S32 left_edge = thumb_half_width;
-		S32 right_edge = getRect().getWidth() - (thumb_half_width);
+		if ( mOrientation == HORIZONTAL )
+		{
+			S32 thumb_half_width = mThumbImage->getWidth()/2;
+			S32 left_edge = thumb_half_width;
+			S32 right_edge = getRect().getWidth() - (thumb_half_width);
 
-		x += mMouseOffset;
-		x = llclamp( x, left_edge, right_edge );
+			x += mMouseOffset;
+			x = llclamp( x, left_edge, right_edge );
 
-		F32 t = F32(x - left_edge) / (right_edge - left_edge);
-		setValueAndCommit(t * (mMaxValue - mMinValue) + mMinValue );
+			F32 t = F32(x - left_edge) / (right_edge - left_edge);
+			setValueAndCommit(t * (mMaxValue - mMinValue) + mMinValue );
+		}
+		else // mOrientation == VERTICAL
+		{
+			S32 thumb_half_height = mThumbImage->getHeight()/2;
+			S32 top_edge = thumb_half_height;
+			S32 bottom_edge = getRect().getHeight() - (thumb_half_height);
 
+			y += mMouseOffset;
+			y = llclamp(y, top_edge, bottom_edge);
+
+			F32 t = F32(y - top_edge) / (bottom_edge - top_edge);
+			setValueAndCommit(t * (mMaxValue - mMinValue) + mMinValue );
+		}
 		getWindow()->setCursor(UI_CURSOR_ARROW);
-		lldebugst(LLERR_USER_INPUT) << "hover handled by " << getName() << " (active)" << llendl;		
+		lldebugst(LLERR_USER_INPUT) << "hover handled by " << getName() << " (active)" << llendl;
 	}
 	else
 	{
@@ -169,10 +214,9 @@ BOOL LLSlider::handleMouseUp(S32 x, S32 y, MASK mask)
 	{
 		gFocusMgr.setMouseCapture( NULL );
 
-		if( mMouseUpCallback )
-		{
-			mMouseUpCallback( this, mCallbackUserData );
-		}
+		if (mMouseUpSignal)
+			(*mMouseUpSignal)( this, getValueF32() );
+
 		handled = TRUE;
 		make_ui_sound("UISndClickRelease");
 	}
@@ -191,10 +235,8 @@ BOOL LLSlider::handleMouseDown(S32 x, S32 y, MASK mask)
 	{
 		setFocus(TRUE);
 	}
-	if( mMouseDownCallback )
-	{
-		mMouseDownCallback( this, mCallbackUserData );
-	}
+	if (mMouseDownSignal)
+		(*mMouseDownSignal)( this, getValueF32() );
 
 	if (MASK_CONTROL & mask) // if CTRL is modifying
 	{
@@ -205,7 +247,9 @@ BOOL LLSlider::handleMouseDown(S32 x, S32 y, MASK mask)
 		// Find the offset of the actual mouse location from the center of the thumb.
 		if (mThumbRect.pointInRect(x,y))
 		{
-			mMouseOffset = (mThumbRect.mLeft + mThumbImage->getWidth()/2) - x;
+			mMouseOffset = (mOrientation == HORIZONTAL)
+				? (mThumbRect.mLeft + mThumbImage->getWidth()/2) - x
+				: (mThumbRect.mBottom + mThumbImage->getHeight()/2) - y;
 		}
 		else
 		{
@@ -227,15 +271,12 @@ BOOL LLSlider::handleKeyHere(KEY key, MASK mask)
 	BOOL handled = FALSE;
 	switch(key)
 	{
-	case KEY_UP:
 	case KEY_DOWN:
-		// eat up and down keys to be consistent
-		handled = TRUE;
-		break;
 	case KEY_LEFT:
 		setValueAndCommit(getValueF32() - getIncrement());
 		handled = TRUE;
 		break;
+	case KEY_UP:
 	case KEY_RIGHT:
 		setValueAndCommit(getValueF32() + getIncrement());
 		handled = TRUE;
@@ -246,8 +287,21 @@ BOOL LLSlider::handleKeyHere(KEY key, MASK mask)
 	return handled;
 }
 
+BOOL LLSlider::handleScrollWheel(S32 x, S32 y, S32 clicks)
+{
+	if ( mOrientation == VERTICAL )
+	{
+		F32 new_val = getValueF32() - clicks * getIncrement();
+		setValueAndCommit(new_val);
+		return TRUE;
+	}
+	return LLF32UICtrl::handleScrollWheel(x,y,clicks);
+}
+
 void LLSlider::draw()
 {
+	F32 alpha = getDrawContext().mAlpha;
+
 	// since thumb image might still be decoding, need thumb to accomodate image size
 	updateThumbRect();
 
@@ -256,95 +310,83 @@ void LLSlider::draw()
 	// drawing solids requires texturing be disabled
 	gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
-	F32 opacity = getEnabled() ? 1.f : 0.3f;
-	LLColor4 center_color = (mThumbCenterColor % opacity);
-	LLColor4 track_color = (mTrackColor % opacity);
-
 	// Track
-	LLRect track_rect(mThumbImage->getWidth() / 2, 
-						getLocalRect().getCenterY() + (mTrackImage->getHeight() / 2), 
-						getRect().getWidth() - mThumbImage->getWidth() / 2, 
-						getLocalRect().getCenterY() - (mTrackImage->getHeight() / 2) );
-	LLRect highlight_rect(track_rect.mLeft, track_rect.mTop, mThumbRect.getCenterX(), track_rect.mBottom);
-	mTrackImage->draw(track_rect);
-	mTrackHighlightImage->draw(highlight_rect);
+	LLPointer<LLUIImage>& trackImage = ( mOrientation == HORIZONTAL )
+		? mTrackImageHorizontal
+		: mTrackImageVertical;
 
-	// Thumb
-	if( hasMouseCapture() )
+	LLPointer<LLUIImage>& trackHighlightImage = ( mOrientation == HORIZONTAL )
+		? mTrackHighlightHorizontalImage
+		: mTrackHighlightVerticalImage;
+
+	LLRect track_rect;
+	LLRect highlight_rect;
+
+	if ( mOrientation == HORIZONTAL )
 	{
-		// Show ghost where thumb was before dragging began.
-		mThumbImage->draw(mDragStartThumbRect, mThumbCenterColor % 0.3f);
-	}
-	if (hasFocus())
-	{
-		// Draw focus highlighting.
-		mThumbImage->drawBorder(mThumbRect, gFocusMgr.getFocusColor(), gFocusMgr.getFocusFlashWidth());
-	}
-	// Fill in the thumb.
-	mThumbImage->draw(mThumbRect, hasMouseCapture() ? mThumbOutlineColor : center_color);
-
-	LLUICtrl::draw();
-}
-
-// virtual
-LLXMLNodePtr LLSlider::getXML(bool save_children) const
-{
-	LLXMLNodePtr node = LLUICtrl::getXML();
-
-	if (mVolumeSlider)
-	{
-		node->setName(LL_VOLUME_SLIDER_CTRL_TAG);
+		track_rect.set(mThumbImage->getWidth() / 2,
+					   getLocalRect().getCenterY() + (trackImage->getHeight() / 2), 
+					   getRect().getWidth() - mThumbImage->getWidth() / 2,
+					   getLocalRect().getCenterY() - (trackImage->getHeight() / 2) );
+		highlight_rect.set(track_rect.mLeft, track_rect.mTop, mThumbRect.getCenterX(), track_rect.mBottom);
 	}
 	else
 	{
-		node->setName(LL_SLIDER_TAG);
+		track_rect.set(getLocalRect().getCenterX() - (trackImage->getWidth() / 2),
+					   getRect().getHeight(),
+					   getLocalRect().getCenterX() + (trackImage->getWidth() / 2),
+					   0);
+		highlight_rect.set(track_rect.mLeft, track_rect.mTop, track_rect.mRight, track_rect.mBottom);
 	}
 
-	node->createChild("initial_val", TRUE)->setFloatValue(getInitialValue());
-	node->createChild("min_val", TRUE)->setFloatValue(getMinValue());
-	node->createChild("max_val", TRUE)->setFloatValue(getMaxValue());
-	node->createChild("increment", TRUE)->setFloatValue(getIncrement());
-	node->createChild("volume", TRUE)->setBoolValue(mVolumeSlider);
+	trackImage->draw(track_rect, LLColor4::white % alpha);
+	trackHighlightImage->draw(highlight_rect, LLColor4::white % alpha);
 
-	return node;
+	// Thumb
+	if (hasFocus())
+	{
+		// Draw focus highlighting.
+		mThumbImage->drawBorder(mThumbRect, gFocusMgr.getFocusColor() % alpha, gFocusMgr.getFocusFlashWidth());
+	}
+
+	if( hasMouseCapture() ) // currently clicking on slider
+	{
+		// Show ghost where thumb was before dragging began.
+		if (mThumbImage.notNull())
+		{
+			mThumbImage->draw(mDragStartThumbRect, mThumbCenterColor.get() % (0.3f * alpha));
+		}
+		if (mThumbImagePressed.notNull())
+		{
+			mThumbImagePressed->draw(mThumbRect, mThumbOutlineColor % alpha);
+		}
+	}
+	else if (!isInEnabledChain())
+	{
+		if (mThumbImageDisabled.notNull())
+		{
+			mThumbImageDisabled->draw(mThumbRect, mThumbCenterColor % alpha);
+		}
+	}
+	else
+	{
+		if (mThumbImage.notNull())
+		{
+			mThumbImage->draw(mThumbRect, mThumbCenterColor % alpha);
+		}
+	}
+	
+	LLUICtrl::draw();
 }
 
+boost::signals2::connection LLSlider::setMouseDownCallback( const commit_signal_t::slot_type& cb ) 
+{ 
+	if (!mMouseDownSignal) mMouseDownSignal = new commit_signal_t();
+	return mMouseDownSignal->connect(cb); 
+}
 
-//static
-LLView* LLSlider::fromXML(LLXMLNodePtr node, LLView *parent, class LLUICtrlFactory *factory)
-{
-	std::string name("slider_bar");
-	node->getAttributeString("name", name);
-
-	LLRect rect;
-	createRect(node, rect, parent, LLRect());
-
-	F32 initial_value = 0.f;
-	node->getAttributeF32("initial_val", initial_value);
-
-	F32 min_value = 0.f;
-	node->getAttributeF32("min_val", min_value);
-
-	F32 max_value = 1.f; 
-	node->getAttributeF32("max_val", max_value);
-
-	F32 increment = 0.1f;
-	node->getAttributeF32("increment", increment);
-
-	BOOL volume = node->hasName("volume_slider") ? TRUE : FALSE;
-	node->getAttributeBOOL("volume", volume);
-
-	LLSlider* slider = new LLSlider(name,
-							rect,
-							NULL,
-							NULL,
-							initial_value,
-							min_value,
-							max_value,
-							increment,
-							volume);
-
-	slider->initFromXML(node, parent);
-
-	return slider;
+boost::signals2::connection LLSlider::setMouseUpCallback(	const commit_signal_t::slot_type& cb )   
+{ 
+	if (!mMouseUpSignal) mMouseUpSignal = new commit_signal_t();
+	return mMouseUpSignal->connect(cb); 
 }

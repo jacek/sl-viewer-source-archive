@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -53,7 +53,7 @@ class LLVector3d
 		inline LLVector3d(const F64 x, const F64 y, const F64 z);			// Initializes LLVector3d to (x. y, z)
 		inline explicit LLVector3d(const F64 *vec);				// Initializes LLVector3d to (vec[0]. vec[1], vec[2])
 		inline explicit LLVector3d(const LLVector3 &vec);
-		LLVector3d(const LLSD& sd)
+		explicit LLVector3d(const LLSD& sd)
 		{
 			setValue(sd);
 		}
@@ -63,12 +63,6 @@ class LLVector3d
 			mdV[0] = sd[0].asReal();
 			mdV[1] = sd[1].asReal();
 			mdV[2] = sd[2].asReal();
-		}
-
-		const LLVector3d& operator=(const LLSD& sd)
-		{
-			setValue(sd);
-			return *this;
 		}
 
 		LLSD getValue() const

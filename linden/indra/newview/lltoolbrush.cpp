@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,9 +35,10 @@
 #include "lltoolbrush.h"
 #include "lltoolselectland.h"
 
+// library headers
 #include "llgl.h"
+#include "llnotificationsutil.h"
 #include "llrender.h"
-
 #include "message.h"
 
 #include "llagent.h"
@@ -412,7 +413,7 @@ BOOL LLToolBrushLand::handleHover( S32 x, S32 y, MASK mask )
 	mMouseX = x;
 	mMouseY = y;
 	mGotHover = TRUE;
-	gViewerWindow->getWindow()->setCursor(UI_CURSOR_TOOLLAND);
+	gViewerWindow->setCursor(UI_CURSOR_TOOLLAND);
 	return TRUE;
 }
 
@@ -672,7 +673,7 @@ void LLToolBrushLand::alertNoTerraform(LLViewerRegion* regionp)
 	
 	LLSD args;
 	args["REGION"] = regionp->getName();
-	LLNotifications::instance().add("RegionNoTerraforming", args);
+	LLNotificationsUtil::add("RegionNoTerraforming", args);
 
 }
 

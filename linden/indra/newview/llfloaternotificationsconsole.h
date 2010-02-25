@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,18 +34,20 @@
 #define LL_LLFLOATER_NOTIFICATIONS_CONSOLE_H
 
 #include "llfloater.h"
-#include "llnotifications.h"
+#include "lllayoutstack.h"
+//#include "llnotificationsutil.h"
+
+class LLNotification;
 
 class LLFloaterNotificationConsole : 
-	public LLFloater, 
-	public LLFloaterSingleton<LLFloaterNotificationConsole>
+	public LLFloater
 {
+	friend class LLFloaterReg;
+
 public:
-	LLFloaterNotificationConsole(const LLSD& key);
 
 	// LLPanel
 	BOOL postBuild();
-	void onClose(bool app_quitting);
 
 	void addChannel(const std::string& type, bool open = false);
 	void updateResizeLimits(LLLayoutStack &stack);
@@ -54,7 +56,8 @@ public:
 	void updateResizeLimits();
 
 private:
-	static void onClickAdd(void* user_data);
+	LLFloaterNotificationConsole(const LLSD& key);	
+	void onClickAdd();
 };
 
 
@@ -69,7 +72,6 @@ public:
 	// LLPanel
 	BOOL postBuild();
 	void respond();
-	void onClose(bool app_quitting) { setVisible(FALSE); }
 
 private:
 	static void onCommitResponse(LLUICtrl* ctrl, void* data) { ((LLFloaterNotification*)data)->respond(); }

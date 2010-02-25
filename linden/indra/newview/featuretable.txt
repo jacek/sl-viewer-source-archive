@@ -1,4 +1,4 @@
-version 20
+version 21
 
 // NOTE: This is mostly identical to featuretable_mac.txt with a few differences
 // Should be combined into one table
@@ -28,6 +28,7 @@ RenderAvatarCloth			1	1
 RenderAvatarLODFactor		1	1.0
 RenderAvatarVP				1	1
 RenderCubeMap				1	1
+RenderDelayVBUpdate			1	0
 RenderFarClip				1	256
 RenderFlexTimeFactor		1	1.0
 RenderFogRatio				1	4.0
@@ -245,7 +246,6 @@ RenderVBOEnable				1	0
 list Intel
 RenderAnisotropic			1	0
 RenderLightingDetail		1	0
-RenderUseImpostors			0	0
 
 list GeForce2
 RenderAnisotropic			1	0
@@ -261,51 +261,63 @@ UseOcclusion				0	0
 list Intel_830M
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_845G					
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_855GM				
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_865G			
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_900		
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_915GM	
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_915G					
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_945GM			
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_945G
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_950
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_965
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
 UseOcclusion				0	0
+RenderUseImpostors			0	0
 
 list Intel_G33
 RenderTerrainDetail			1	0
 RenderVBOEnable				1	0
+RenderUseImpostors			0	0
 
 list Intel_G45
 WindLightUseAtmosShaders		0	0

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,25 +52,16 @@
 
 #include <boost/tokenizer.hpp>
 
-#include "llcrc.h"
-#include "lldir.h"
 #include "lldispatcher.h"
-#include "llsdserialize.h"
 #include "llxfermanager.h"
-#include "message.h"
 
 #include "llagent.h"
 #include "llviewergenericmessage.h"	// for gGenericDispatcher
-#include "llviewerwindow.h"
 #include "llworld.h" //for particle system banning
-#include "llchat.h"
-#include "llfloaterchat.h"
-#include "llimpanel.h"
 #include "llimview.h"
 #include "llnotifications.h"
-#include "lluistring.h"
-#include "llviewerobject.h" 
 #include "llviewerobjectlist.h"
+#include "lltrans.h"
 
 namespace 
 {
@@ -111,11 +102,6 @@ static LLDispatchEmptyMuteList sDispatchEmptyMuteList;
 //-----------------------------------------------------------------------------
 // LLMute()
 //-----------------------------------------------------------------------------
-const char BY_NAME_SUFFIX[] = " (by name)";
-const char AGENT_SUFFIX[] = " (resident)";
-const char OBJECT_SUFFIX[] = " (object)";
-const char GROUP_SUFFIX[] = " (group)";
-
 
 LLMute::LLMute(const LLUUID& id, const std::string& name, EType type, U32 flags)
   : mID(id),
@@ -149,16 +135,16 @@ std::string LLMute::getDisplayName() const
 	{
 		case BY_NAME:
 		default:
-			name_with_suffix += BY_NAME_SUFFIX;
+			name_with_suffix += " " + LLTrans::getString("MuteByName");
 			break;
 		case AGENT:
-			name_with_suffix += AGENT_SUFFIX;
+			name_with_suffix += " " + LLTrans::getString("MuteAgent");
 			break;
 		case OBJECT:
-			name_with_suffix += OBJECT_SUFFIX;
+			name_with_suffix += " " + LLTrans::getString("MuteObject");
 			break;
 		case GROUP:
-			name_with_suffix += GROUP_SUFFIX;
+			name_with_suffix += " " + LLTrans::getString("MuteGroup");
 			break;
 	}
 	return name_with_suffix;
@@ -169,7 +155,7 @@ void LLMute::setFromDisplayName(const std::string& display_name)
 	size_t pos = 0;
 	mName = display_name;
 	
-	pos = mName.rfind(GROUP_SUFFIX);
+	pos = mName.rfind(" " + LLTrans::getString("MuteGroup"));
 	if (pos != std::string::npos)
 	{
 		mName.erase(pos);
@@ -177,7 +163,7 @@ void LLMute::setFromDisplayName(const std::string& display_name)
 		return;
 	}
 	
-	pos = mName.rfind(OBJECT_SUFFIX);
+	pos = mName.rfind(" " + LLTrans::getString("MuteObject"));
 	if (pos != std::string::npos)
 	{
 		mName.erase(pos);
@@ -185,7 +171,7 @@ void LLMute::setFromDisplayName(const std::string& display_name)
 		return;
 	}
 	
-	pos = mName.rfind(AGENT_SUFFIX);
+	pos = mName.rfind(" " + LLTrans::getString("MuteAgent"));
 	if (pos != std::string::npos)
 	{
 		mName.erase(pos);
@@ -193,7 +179,7 @@ void LLMute::setFromDisplayName(const std::string& display_name)
 		return;
 	}
 	
-	pos = mName.rfind(BY_NAME_SUFFIX);
+	pos = mName.rfind(" " + LLTrans::getString("MuteByName"));
 	if (pos != std::string::npos)
 	{
 		mName.erase(pos);
@@ -224,36 +210,9 @@ LLMuteList* LLMuteList::getInstance()
 // LLMuteList()
 //-----------------------------------------------------------------------------
 LLMuteList::LLMuteList() :
-	mIsLoaded(FALSE),
-	mUserVolumesLoaded(FALSE)
+	mIsLoaded(FALSE)
 {
 	gGenericDispatcher.addHandler("emptymutelist", &sDispatchEmptyMuteList);
-}
-
-void LLMuteList::loadUserVolumes()
-{
-	// call once, after LLDir::setLindenUserDir() has been called
-	if (mUserVolumesLoaded)
-		return;
-	mUserVolumesLoaded = TRUE;
-	
-	// load per-resident voice volume information
-	// conceptually, this is part of the mute list information, although it is only stored locally
-	std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_PER_SL_ACCOUNT, "volume_settings.xml");
-
-	LLSD settings_llsd;
-	llifstream file;
-	file.open(filename);
-	if (file.is_open())
-	{
-		LLSDSerialize::fromXML(settings_llsd, file);
-	}
-
-	for (LLSD::map_const_iterator iter = settings_llsd.beginMap();
-		 iter != settings_llsd.endMap(); ++iter)
-	{
-		mUserVolumeSettings.insert(std::make_pair(LLUUID(iter->first), (F32)iter->second.asReal()));
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -261,24 +220,7 @@ void LLMuteList::loadUserVolumes()
 //-----------------------------------------------------------------------------
 LLMuteList::~LLMuteList()
 {
-	// If we quit from the login screen we will not have an SL account
-	// name.  Don't try to save, otherwise we'll dump a file in
-	// C:\Program Files\SecondLife\  JC
-	std::string user_dir = gDirUtilp->getLindenUserDir();
-	if (!user_dir.empty())
-	{
-		std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_PER_SL_ACCOUNT, "volume_settings.xml");
-		LLSD settings_llsd;
 
-		for(user_volume_map_t::iterator iter = mUserVolumeSettings.begin(); iter != mUserVolumeSettings.end(); ++iter)
-		{
-			settings_llsd[iter->first.asString()] = iter->second;
-		}
-
-		llofstream file;
-		file.open(filename);
-		LLSDSerialize::toPrettyXML(settings_llsd, file);
-	}
 }
 
 BOOL LLMuteList::isLinden(const std::string& name) const
@@ -303,7 +245,7 @@ BOOL LLMuteList::add(const LLMute& mute, U32 flags)
 	if ((mute.mType == LLMute::AGENT)
 		&& isLinden(mute.mName) && (flags & LLMute::flagTextChat || flags == 0))
 	{
-		LLNotifications::instance().add("MuteLinden");
+		LLNotifications::instance().add("MuteLinden", LLSD(), LLSD());
 		return FALSE;
 	}
 	
@@ -501,11 +443,8 @@ void LLMuteList::updateRemove(const LLMute& mute)
 	gAgent.sendReliableMessage();
 }
 
-void notify_automute_callback(const LLUUID& agent_id, const std::string& first_name, const std::string& last_name, BOOL is_group, void* user_data)
+void notify_automute_callback(const LLUUID& agent_id, const std::string& first_name, const std::string& last_name, BOOL is_group, LLMuteList::EAutoReason reason)
 {
-	U32 temp_data = (U32) (uintptr_t) user_data;
-	LLMuteList::EAutoReason reason = (LLMuteList::EAutoReason)temp_data;
-	
 	std::string notif_name;
 	switch (reason)
 	{
@@ -525,22 +464,15 @@ void notify_automute_callback(const LLUUID& agent_id, const std::string& first_n
 	args["FIRST"] = first_name;
 	args["LAST"] = last_name;
     
-	LLNotificationPtr notif_ptr = LLNotifications::instance().add(notif_name, args);
+	LLNotificationPtr notif_ptr = LLNotifications::instance().add(notif_name, args, LLSD());
 	if (notif_ptr)
 	{
 		std::string message = notif_ptr->getMessage();
 
 		if (reason == LLMuteList::AR_IM)
 		{
-			LLFloaterIMPanel *timp = gIMMgr->findFloaterBySession(agent_id);
-			if (timp)
-			{
-				timp->addHistoryLine(message);
-			}
+			LLIMModel::getInstance()->addMessage(agent_id, SYSTEM_FROM, LLUUID::null, message);
 		}
-
-		LLChat auto_chat(message);
-		LLFloaterChat::addChat(auto_chat, FALSE, FALSE);
 	}
 }
 
@@ -561,18 +493,18 @@ BOOL LLMuteList::autoRemove(const LLUUID& agent_id, const EAutoReason reason, co
 			if (gCacheName->getName(agent_id, cache_first, cache_last))
 			{
 				// name in cache, call callback directly
-				notify_automute_callback(agent_id, cache_first, cache_last, FALSE, (void *)reason);
+				notify_automute_callback(agent_id, cache_first, cache_last, FALSE, reason);
 			}
 			else
 			{
 				// not in cache, lookup name from cache
-				gCacheName->get(agent_id, FALSE, notify_automute_callback, (void *)reason);
+				gCacheName->get(agent_id, FALSE, boost::bind(&notify_automute_callback, _1, _2, _3, _4, reason));
 			}
 		}
 		else
 		{
 			// call callback directly
-			notify_automute_callback(agent_id, first_name, last_name, FALSE, (void *)reason);
+			notify_automute_callback(agent_id, first_name, last_name, FALSE, reason);
 		}
 	}
 
@@ -724,8 +656,6 @@ BOOL LLMuteList::isMuted(const LLUUID& id, const std::string& name, U32 flags) c
 //-----------------------------------------------------------------------------
 void LLMuteList::requestFromServer(const LLUUID& agent_id)
 {
-	loadUserVolumes();
-	
 	std::string agent_id_string;
 	std::string filename;
 	agent_id.toString(agent_id_string);
@@ -759,26 +689,6 @@ void LLMuteList::cache(const LLUUID& agent_id)
 		saveToFile(filename);
 	}
 }
-
-void LLMuteList::setSavedResidentVolume(const LLUUID& id, F32 volume)
-{
-	// store new value in volume settings file
-	mUserVolumeSettings[id] = volume;
-}
-
-F32 LLMuteList::getSavedResidentVolume(const LLUUID& id)
-{
-	const F32 DEFAULT_VOLUME = 0.5f;
-
-	user_volume_map_t::iterator found_it = mUserVolumeSettings.find(id);
-	if (found_it != mUserVolumeSettings.end())
-	{
-		return found_it->second;
-	}
-	//FIXME: assumes default, should get this from somewhere
-	return DEFAULT_VOLUME;
-}
-
 
 //-----------------------------------------------------------------------------
 // Static message handlers

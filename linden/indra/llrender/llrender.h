@@ -9,7 +9,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,13 +44,14 @@
 #include "v3math.h"
 #include "v4coloru.h"
 #include "llstrider.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llglheaders.h"
 
 class LLVertexBuffer;
 class LLCubeMap;
 class LLImageGL;
 class LLRenderTarget;
+class LLTexture ;
 
 class LLTexUnit
 {
@@ -149,6 +150,7 @@ public:
 	// Binds the LLImageGL to this texture unit 
 	// (automatically enables the unit for the LLImageGL's texture type)
 	bool bind(LLImageGL* texture, bool for_rendering = false, bool forceBind = false);
+	bool bind(LLTexture* texture, bool for_rendering = false, bool forceBind = false);
 
 	// Binds a cubemap to this texture unit 
 	// (automatically enables the texture unit for cubemaps)
@@ -252,6 +254,7 @@ public:
 		BT_ADD,
 		BT_ADD_WITH_ALPHA,	// Additive blend modulated by the fragment's alpha.
 		BT_MULT,
+		BT_MULT_ALPHA,
 		BT_MULT_X2,
 		BT_REPLACE
 	} eBlendType;
@@ -352,6 +355,7 @@ private:
 
 extern F64 gGLModelView[16];
 extern F64 gGLLastModelView[16];
+extern F64 gGLLastProjection[16];
 extern F64 gGLProjection[16];
 extern S32 gGLViewport[4];
 

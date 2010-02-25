@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -59,6 +59,8 @@ LLPostProcess::LLPostProcess(void) :
 	mSceneRenderTexture = NULL ; 
 	mNoiseTexture = NULL ;
 	mTempBloomTexture = NULL ;
+
+	noiseTextureScale = 1.0f;
 					
 	/*  Do nothing.  Needs to be updated to use our current shader system, and to work with the move into llrender.
 	std::string pathName(gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, "windlight", XML_FILENAME));

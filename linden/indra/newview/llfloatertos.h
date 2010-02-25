@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,6 +36,7 @@
 #include "llmodaldialog.h"
 #include "llassetstorage.h"
 #include "llmediactrl.h"
+#include <boost/function.hpp>
 
 class LLButton;
 class LLRadioGroup;
@@ -48,17 +49,8 @@ class LLFloaterTOS :
 	public LLViewerMediaObserver
 {
 public:
+	LLFloaterTOS(const LLSD& data);
 	virtual ~LLFloaterTOS();
-
-	// Types of dialog.
-	enum ETOSType
-	{
-		TOS_TOS = 0,
-		TOS_CRITICAL_MESSAGE = 1
-	};
-
-	// Asset_id is overwritten with LLUUID::null when agree is clicked.
-	static LLFloaterTOS* show(ETOSType type, const std::string & message);
 
 	BOOL postBuild();
 	
@@ -74,16 +66,10 @@ public:
 	/*virtual*/ void handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event);
 
 private:
-	// Asset_id is overwritten with LLUUID::null when agree is clicked.
-	LLFloaterTOS(ETOSType type, const std::string & message);
-
-private:
-	ETOSType		mType;
 	std::string		mMessage;
 	int				mWebBrowserWindowId;
 	int				mLoadCompleteCount;
-
-	static LLFloaterTOS* sInstance;
+	std::string		mReplyPumpName;
 };
 
 #endif // LL_LLFLOATERTOS_H

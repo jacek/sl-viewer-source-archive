@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 
 #include "llworldmipmap.h"
 
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "math.h"	// log()
 
 // Turn this on to output tile stats in the standard output
@@ -77,23 +77,23 @@ void LLWorldMipmap::equalizeBoostLevels()
 		// For each tile
 		for (sublevel_tiles_t::iterator iter = level_mipmap.begin(); iter != level_mipmap.end(); iter++)
 		{
-			LLPointer<LLViewerImage> img = iter->second;
+			LLPointer<LLViewerFetchedTexture> img = iter->second;
 			S32 current_boost_level = img->getBoostLevel();
-			if (current_boost_level == LLViewerImageBoostLevel::BOOST_MAP_VISIBLE)
+			if (current_boost_level == LLViewerTexture::BOOST_MAP_VISIBLE)
 			{
 				// If level was BOOST_MAP_VISIBLE, the tile has been used in the last draw so keep it high
-				img->setBoostLevel(LLViewerImageBoostLevel::BOOST_MAP);
+				img->setBoostLevel(LLViewerTexture::BOOST_MAP);
 			}
 			else
 			{
 				// If level was BOOST_MAP only (or anything else...), the tile wasn't used in the last draw 
 				// so we drop its boost level to BOOST_NONE.
-				img->setBoostLevel(LLViewerImageBoostLevel::BOOST_NONE);
+				img->setBoostLevel(LLViewerTexture::BOOST_NONE);
 			}
 #if DEBUG_TILES_STAT
 			// Increment some stats if compile option on
 			nb_tiles++;
-			if (current_boost_level == LLViewerImageBoostLevel::BOOST_MAP_VISIBLE)
+			if (current_boost_level == LLViewerTexture::BOOST_MAP_VISIBLE)
 			{
 				nb_visible++;
 			}
@@ -119,13 +119,13 @@ void LLWorldMipmap::dropBoostLevels()
 		// For each tile
 		for (sublevel_tiles_t::iterator iter = level_mipmap.begin(); iter != level_mipmap.end(); iter++)
 		{
-			LLPointer<LLViewerImage> img = iter->second;
-			img->setBoostLevel(LLViewerImageBoostLevel::BOOST_NONE);
+			LLPointer<LLViewerFetchedTexture> img = iter->second;
+			img->setBoostLevel(LLViewerTexture::BOOST_NONE);
 		}
 	}
 }
 
-LLPointer<LLViewerImage> LLWorldMipmap::getObjectsTile(U32 grid_x, U32 grid_y, S32 level, bool load)
+LLPointer<LLViewerFetchedTexture> LLWorldMipmap::getObjectsTile(U32 grid_x, U32 grid_y, S32 level, bool load)
 {
 	// Check the input data
 	llassert(level <= MAP_LEVELS);
@@ -152,7 +152,7 @@ LLPointer<LLViewerImage> LLWorldMipmap::getObjectsTile(U32 grid_x, U32 grid_y, S
 		if (load)
 		{
 			// Load it 
-			LLPointer<LLViewerImage> img = loadObjectsTile(grid_x, grid_y, level);
+			LLPointer<LLViewerFetchedTexture> img = loadObjectsTile(grid_x, grid_y, level);
 			// Insert the image in the map
 			level_mipmap.insert(sublevel_tiles_t::value_type( handle, img ));
 			// Find the element again in the map (it's there now...)
@@ -166,7 +166,7 @@ LLPointer<LLViewerImage> LLWorldMipmap::getObjectsTile(U32 grid_x, U32 grid_y, S
 	}
 
 	// Get the image pointer and check if this asset is missing
-	LLPointer<LLViewerImage> img = found->second;
+	LLPointer<LLViewerFetchedTexture> img = found->second;
 	if (img->isMissingAsset())
 	{
 		// Return NULL if asset missing
@@ -177,18 +177,17 @@ LLPointer<LLViewerImage> LLWorldMipmap::getObjectsTile(U32 grid_x, U32 grid_y, S
 		// Boost the tile level so to mark it's in use *if* load on
 		if (load)
 		{
-			img->setBoostLevel(LLViewerImageBoostLevel::BOOST_MAP_VISIBLE);
+			img->setBoostLevel(LLViewerTexture::BOOST_MAP_VISIBLE);
 		}
 		return img;
 	}
 }
 
-LLPointer<LLViewerImage> LLWorldMipmap::loadObjectsTile(U32 grid_x, U32 grid_y, S32 level)
+LLPointer<LLViewerFetchedTexture> LLWorldMipmap::loadObjectsTile(U32 grid_x, U32 grid_y, S32 level)
 {
 	// Get the grid coordinates
-//	std::string imageurl = llformat("http://map.secondlife.com.s3.amazonaws.com/%d/%05d/%05d/map-%d-%d-%d-objects.jpg",
 	std::string imageurl = llformat("http://map.secondlife.com.s3.amazonaws.com/map-%d-%d-%d-objects.jpg",
-									level, grid_x, grid_y, level, grid_x, grid_y);
+									level, grid_x, grid_y);
 
 	// DO NOT COMMIT!! DEBUG ONLY!!!
 	// Use a local jpeg for every tile to test map speed without S3 access
@@ -196,8 +195,8 @@ LLPointer<LLViewerImage> LLWorldMipmap::loadObjectsTile(U32 grid_x, U32 grid_y, 
 	// END DEBUG
 	//LL_INFOS("World Map") << "LLWorldMipmap::loadObjectsTile(), URL = " << imageurl << LL_ENDL;
 
-	LLPointer<LLViewerImage> img = gImageList.getImageFromUrl(imageurl);
-	img->setBoostLevel(LLViewerImageBoostLevel::BOOST_MAP);
+	LLPointer<LLViewerFetchedTexture> img = LLViewerTextureManager::getFetchedTextureFromUrl(imageurl, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
+	img->setBoostLevel(LLViewerTexture::BOOST_MAP);
 
 	// Return the smart pointer
 	return img;
@@ -225,7 +224,7 @@ void LLWorldMipmap::cleanMissedTilesFromLevel(S32 level)
 	sublevel_tiles_t::iterator it = level_mipmap.begin();
 	while (it != level_mipmap.end())
 	{
-		LLPointer<LLViewerImage> img = it->second;
+		LLPointer<LLViewerFetchedTexture> img = it->second;
 		if (img->isMissingAsset())
 		{
 			level_mipmap.erase(it++);

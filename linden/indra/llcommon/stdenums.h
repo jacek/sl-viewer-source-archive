@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -54,7 +54,8 @@ enum EDragAndDropType
 	DAD_BODYPART		= 11,
 	DAD_ANIMATION		= 12,
 	DAD_GESTURE			= 13,
-	DAD_COUNT			= 14,   // number of types in this enum
+	DAD_LINK			= 14,
+	DAD_COUNT			= 15,   // number of types in this enum
 };
 
 // Reasons for drags to be denied.

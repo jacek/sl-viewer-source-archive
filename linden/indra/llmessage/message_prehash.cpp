@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -174,6 +174,7 @@ char* _PREHASH_UpdateInventoryItem = LLMessageStringTable::getInstance()->getStr
 char* _PREHASH_UpdateCreateInventoryItem = LLMessageStringTable::getInstance()->getString("UpdateCreateInventoryItem");
 char* _PREHASH_MoveInventoryItem = LLMessageStringTable::getInstance()->getString("MoveInventoryItem");
 char* _PREHASH_CopyInventoryItem = LLMessageStringTable::getInstance()->getString("CopyInventoryItem");
+char* _PREHASH_LinkInventoryItem = LLMessageStringTable::getInstance()->getString("LinkInventoryItem");
 char* _PREHASH_RemoveInventoryItem = LLMessageStringTable::getInstance()->getString("RemoveInventoryItem");
 char* _PREHASH_CreateInventoryItem = LLMessageStringTable::getInstance()->getString("CreateInventoryItem");
 char* _PREHASH_PathTwistBegin = LLMessageStringTable::getInstance()->getString("PathTwistBegin");
@@ -405,7 +406,7 @@ char* _PREHASH_GlobalX = LLMessageStringTable::getInstance()->getString("GlobalX
 char* _PREHASH_GlobalY = LLMessageStringTable::getInstance()->getString("GlobalY");
 char* _PREHASH_CopyRotates = LLMessageStringTable::getInstance()->getString("CopyRotates");
 char* _PREHASH_KickUserAck = LLMessageStringTable::getInstance()->getString("KickUserAck");
-char* _PREHASH_TopPick = LLMessageStringTable::getInstance()->getString("TopPick");
+char* _PREHASH_TopPick = LLMessageStringTable::getInstance()->getString("TopPick"); 	//legacy var  need to be deleted -angela
 char* _PREHASH_SessionID = LLMessageStringTable::getInstance()->getString("SessionID");
 char* _PREHASH_GlobalZ = LLMessageStringTable::getInstance()->getString("GlobalZ");
 char* _PREHASH_DeclineFriendship = LLMessageStringTable::getInstance()->getString("DeclineFriendship");
@@ -631,6 +632,8 @@ char* _PREHASH_OfferCallingCard = LLMessageStringTable::getInstance()->getString
 char* _PREHASH_AcceptCallingCard = LLMessageStringTable::getInstance()->getString("AcceptCallingCard");
 char* _PREHASH_DeclineCallingCard = LLMessageStringTable::getInstance()->getString("DeclineCallingCard");
 char* _PREHASH_AgentAccess = LLMessageStringTable::getInstance()->getString("AgentAccess");
+char* _PREHASH_AgentLegacyAccess = LLMessageStringTable::getInstance()->getString("AgentLegacyAccess");
+char* _PREHASH_AgentMaxAccess = LLMessageStringTable::getInstance()->getString("AgentMaxAccess");
 char* _PREHASH_DataHomeLocationReply = LLMessageStringTable::getInstance()->getString("DataHomeLocationReply");
 char* _PREHASH_EventLocationReply = LLMessageStringTable::getInstance()->getString("EventLocationReply");
 char* _PREHASH_TerseDateID = LLMessageStringTable::getInstance()->getString("TerseDateID");
@@ -1378,4 +1381,3 @@ char* _PREHASH_VCoord = LLMessageStringTable::getInstance()->getString("VCoord")
 char* _PREHASH_FaceIndex = LLMessageStringTable::getInstance()->getString("FaceIndex");
 char* _PREHASH_StatusData = LLMessageStringTable::getInstance()->getString("StatusData");
 char* _PREHASH_ProductSKU = LLMessageStringTable::getInstance()->getString("ProductSKU");
-char* _PREHASH_Language = LLMessageStringTable::getInstance()->getString("Language");

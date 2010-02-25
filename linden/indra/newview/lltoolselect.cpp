@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -48,11 +48,11 @@
 #include "llviewerobjectlist.h" 
 #include "llviewerregion.h" 
 #include "llviewerwindow.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llworld.h"
 
 // Globals
-extern BOOL gAllowSelectAvatar;
+//extern BOOL gAllowSelectAvatar;
 
 const F32 SELECTION_ROTATION_TRESHOLD = 0.1f;
 
@@ -87,7 +87,7 @@ LLObjectSelectionHandle LLToolSelect::handleObjectSelection(const LLPickInfo& pi
 	BOOL select_movable = gSavedSettings.getBOOL("SelectMovableOnly");
 	
 	// *NOTE: These settings must be cleaned up at bottom of function.
-	if (temp_select || gAllowSelectAvatar)
+	if (temp_select || LLSelectMgr::getInstance()->mAllowSelectAvatar)
 	{
 		gSavedSettings.setBOOL("SelectOwnedOnly", FALSE);
 		gSavedSettings.setBOOL("SelectMovableOnly", FALSE);
@@ -217,7 +217,7 @@ LLObjectSelectionHandle LLToolSelect::handleObjectSelection(const LLPickInfo& pi
 	} //if(!object)
 
 	// Cleanup temp select settings above.
-	if (temp_select || gAllowSelectAvatar)
+	if (temp_select ||LLSelectMgr::getInstance()->mAllowSelectAvatar)
 	{
 		gSavedSettings.setBOOL("SelectOwnedOnly", select_owned);
 		gSavedSettings.setBOOL("SelectMovableOnly", select_movable);

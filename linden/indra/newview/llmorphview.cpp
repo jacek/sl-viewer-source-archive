@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,14 +40,14 @@
 #include "lldrawable.h"
 #include "lldrawpoolavatar.h"
 #include "llface.h"
-#include "llfirstuse.h"
+//#include "llfirstuse.h"
 #include "llfloatercustomize.h"
 #include "llfloatertools.h"
 #include "llresmgr.h"
 #include "lltoolmgr.h"
 #include "lltoolmorph.h"
 #include "llviewercamera.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llviewerwindow.h"
 #include "pipeline.h"
 
@@ -67,9 +67,8 @@ const F32 CAMERA_DIST_STEP = 1.5f;
 //-----------------------------------------------------------------------------
 // LLMorphView()
 //-----------------------------------------------------------------------------
-LLMorphView::LLMorphView(const std::string& name, const LLRect& rect)
-	: 
-	LLView(name, rect, FALSE, FOLLOWS_ALL),
+LLMorphView::LLMorphView(const LLMorphView::Params& p)
+: 	LLView(p),
 	mCameraTargetJoint( NULL ),
 	mCameraOffset(-0.5f, 0.05f, 0.07f ),
 	mCameraTargetOffset(0.f, 0.f, 0.05f ),
@@ -78,8 +77,7 @@ LLMorphView::LLMorphView(const std::string& name, const LLRect& rect)
 	mCameraYaw( 0.f ),
 	mCameraDist( -1.f ),
 	mCameraDrivenByKeys( FALSE )
-{
-}
+{}
 
 //-----------------------------------------------------------------------------
 // initialize()
@@ -110,7 +108,7 @@ void	LLMorphView::initialize()
 //-----------------------------------------------------------------------------
 void	LLMorphView::shutdown()
 {
-	LLVOAvatar::onCustomizeEnd();
+	LLVOAvatarSelf::onCustomizeEnd();
 
 	LLVOAvatar *avatarp = gAgent.getAvatarObject();
 	if(avatarp && !avatarp->isDead())
@@ -137,7 +135,7 @@ void LLMorphView::setVisible(BOOL visible)
 			llassert( !gFloaterCustomize );
 			gFloaterCustomize = new LLFloaterCustomize();
 			gFloaterCustomize->fetchInventory();
-			gFloaterCustomize->open();	/*Flawfinder: ignore*/
+			gFloaterCustomize->openFloater();
 
 			// Must do this _after_ gFloaterView is initialized.
 			gFloaterCustomize->switchToDefaultSubpart();
@@ -145,7 +143,7 @@ void LLMorphView::setVisible(BOOL visible)
 			initialize();
 
 			// First run dialog
-			LLFirstUse::useAppearance();
+			//LLFirstUse::useAppearance();
 		}
 		else
 		{

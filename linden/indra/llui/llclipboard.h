@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -50,6 +50,7 @@ public:
 	   (i.e. X11/Linux). */
 
 	void		copyFromSubstring(const LLWString &copy_from, S32 pos, S32 len, const LLUUID& source_id = LLUUID::null );
+	void		copyFromString(const LLWString &copy_from, const LLUUID& source_id = LLUUID::null );
 	BOOL		canPasteString() const;
 	const LLWString&	getPasteWString(LLUUID* source_id = NULL);
 

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,8 @@
 #ifndef LLVIEWERMENUFILE_H
 #define LLVIEWERMENUFILE_H
 
-#include "llassettype.h"
+#include "llfoldertype.h"
+#include "llassetstorage.h"
 #include "llinventorytype.h"
 
 class LLTransactionID;
@@ -45,7 +46,7 @@ void upload_new_resource(const std::string& src_filename,
 			 std::string name,
 			 std::string desc, 
 			 S32 compression_info,
-			 LLAssetType::EType destination_folder_type,
+			 LLFolderType::EType destination_folder_type,
 			 LLInventoryType::EType inv_type,
 			 U32 next_owner_perms,
 			 U32 group_perms,
@@ -60,7 +61,7 @@ void upload_new_resource(const LLTransactionID &tid,
 			 std::string name,
 			 std::string desc, 
 			 S32 compression_info,
-			 LLAssetType::EType destination_folder_type,
+			 LLFolderType::EType destination_folder_type,
 			 LLInventoryType::EType inv_type,
 			 U32 next_owner_perms,
 			 U32 group_perms,

@@ -1,29 +1,27 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<pie_menu name="Self Pie">
-	<menu_item_call label="Perfil..." name="Profile..." />
-	<menu_item_call label="Grupos..." name="Groups..." />
-	<menu_item_call label="Ir..." name="Go..." />
-	<menu_item_call label="Levantar" name="Stand Up" />
-	<menu_item_call label="Amigos..." name="Friends..." />
-	<menu_item_call label="Gestos..." name="Gestures..." />
-	<pie_menu label="Tirar &gt;" name="Take Off &gt;">
-		<pie_menu label="Roupas &gt;" name="Clothes &gt;">
-			<menu_item_call label="Camisa" name="Shirt" />
-			<menu_item_call label="Calça" name="Pants" />
-			<menu_item_call label="Sapatos" name="Shoes" />
-			<menu_item_call label="Meias" name="Socks" />
-			<menu_item_call label="Jaqueta" name="Jacket" />
-			<menu_item_call label="Luvas" name="Gloves" />
-			<pie_menu label="Mais &gt;" name="More &gt;">
-				<menu_item_call label="Anágoas" name="Self Undershirt" />
-				<menu_item_call label="Todas as roupas" name="All Clothes" />
-				<menu_item_call label="Roupa de baixo" name="Self Underpants" />
-			</pie_menu>
-			<menu_item_call label="Saia" name="Skirt" />
-		</pie_menu>
-		<pie_menu label="HUD &gt;" name="Object Detach HUD" />
-		<pie_menu label="Desanexar &gt;" name="Object Detach" />
-		<menu_item_call label="Desanexar todos" name="Detach All" />
-	</pie_menu>
-	<menu_item_call label="Aparência..." name="Appearance..." />
-</pie_menu>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<context_menu name="Self Pie">
+	<menu_item_call label="Levantar" name="Stand Up"/>
+	<context_menu label="Tirar &gt;" name="Take Off &gt;">
+		<context_menu label="Roupas &gt;" name="Clothes &gt;">
+			<menu_item_call label="Camisa" name="Shirt"/>
+			<menu_item_call label="Calça" name="Pants"/>
+			<menu_item_call label="Saia" name="Skirt"/>
+			<menu_item_call label="Sapatos" name="Shoes"/>
+			<menu_item_call label="Meias" name="Socks"/>
+			<menu_item_call label="Jaqueta" name="Jacket"/>
+			<menu_item_call label="Luvas" name="Gloves"/>
+			<menu_item_call label="Anágoas" name="Self Undershirt"/>
+			<menu_item_call label="Roupa de baixo" name="Self Underpants"/>
+			<menu_item_call label="Tatuagem" name="Self Tattoo"/>
+			<menu_item_call label="Alpha" name="Self Alpha"/>
+			<menu_item_call label="Todas as roupas" name="All Clothes"/>
+		</context_menu>
+		<context_menu label="HUD &gt;" name="Object Detach HUD"/>
+		<context_menu label="Desanexar &gt;" name="Object Detach"/>
+		<menu_item_call label="Desanexar todos" name="Detach All"/>
+	</context_menu>
+	<menu_item_call label="Minha aparência" name="Appearance..."/>
+	<menu_item_call label="Meus amigos" name="Friends..."/>
+	<menu_item_call label="Meus grupos" name="Groups..."/>
+	<menu_item_call label="Meu perfil" name="Profile..."/>
+</context_menu>

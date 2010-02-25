@@ -4,7 +4,7 @@
 *
 * $LicenseInfo:firstyear=2007&license=viewergpl$
 * 
-* Copyright (c) 2007-2009, Linden Research, Inc.
+* Copyright (c) 2007-2010, Linden Research, Inc.
 * 
 * Second Life Viewer Source Code
 * The source code in this file ("Source Code") is provided by Linden Lab
@@ -76,7 +76,7 @@ public:
 	 *
 	 * @param service_name The name of the service you want to call.
 	 */
-	std::string buildServiceURI(const std::string& service_name);
+	std::string buildServiceURI(const std::string& service_name) const;
 
 	/** 
 	 * @brief Build a service url if the url with construction parameters.
@@ -88,7 +88,7 @@ public:
 	 */
 	std::string buildServiceURI(
 		const std::string& service_name,
-		const LLSD& option_map);	
+		const LLSD& option_map) const;	
 
 public:
 	/** 
@@ -108,4 +108,3 @@ protected:
 
 
 #endif
-

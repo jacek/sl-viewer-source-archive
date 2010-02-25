@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,15 @@ class LLFloaterCustomize;
 class LLMorphView : public LLView
 {
 public:
-	LLMorphView(const std::string& name, const LLRect& rect);
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
+	{
+		Params()
+		{
+			mouse_opaque(false);
+			follows.flags(FOLLOWS_ALL);
+		}
+	};
+	LLMorphView(const LLMorphView::Params&);
 	
 	void		initialize();
 	void		shutdown();

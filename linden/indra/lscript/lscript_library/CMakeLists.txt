@@ -30,4 +30,3 @@ include_directories(
     )
 
 add_library (lscript_library ${lscript_library_SOURCE_FILES})
-add_dependencies(lscript_library prepare)

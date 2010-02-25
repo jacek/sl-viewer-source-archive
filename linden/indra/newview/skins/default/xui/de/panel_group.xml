@@ -1,13 +1,22 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<panel name="GroupInfo" title="Gruppeninfo">
-	<text name="default_needs_apply_text">
-		Das Register enthält nicht übernommene Änderungen.
-	</text>
-	<text name="want_apply_text">
-		Diese Änderungen übernehmen?
-	</text>
-	<button label="Übernehmen" label_selected="Übernehmen" name="btn_apply" />
-	<button label="Abbrechen" label_selected="Abbrechen" name="btn_cancel" />
-	<button label="OK" label_selected="OK" name="btn_ok" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Gruppeninfo" name="GroupInfo" title="Gruppeninfo">
+	<panel.string name="default_needs_apply_text">
+		In der aktuellen Registerkarte befinden sich ungesicherte Änderungen.
+	</panel.string>
+	<panel.string name="want_apply_text">
+		Möchten Sie diese Änderungen speichern?
+	</panel.string>
+	<line_editor label="Geben Sie Ihren neuen Gruppennamen hier ein" name="group_name_editor"/>
+	<texture_picker name="insignia" tool_tip="Zum Auswählen eines Bildes hier klicken"/>
+	<accordion name="groups_accordion">
+		<accordion_tab name="tab_general" title="Allgemein"/>
+		<accordion_tab name="tab_roles" title="Rollen"/>
+		<accordion_tab name="tab_notices" title="Mitteilungen"/>
+		<accordion_tab name="tab_land" title="Land/Kapital"/>
+	</accordion>
+	<button label="Abbrechen" label_selected="Abbrechen" name="btn_cancel"/>
+	<button label="OK" label_selected="OK" name="btn_ok"/>
 	<button label="Aktualisieren" label_selected="Aktualisieren" name="btn_refresh"/>
+	<button label="Beitreten (0 L$)" label_selected="Beitreten (0 L$)" name="join_button"/>
+	<button label="Details" label_selected="Detailansicht" name="info_button"/>
 </panel>

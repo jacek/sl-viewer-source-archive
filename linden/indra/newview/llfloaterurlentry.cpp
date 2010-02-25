@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,12 +32,15 @@
 
 #include "llviewerprecompiledheaders.h"
 
+#include "llhttpclient.h"
+
 #include "llfloaterurlentry.h"
 
 #include "llpanellandmedia.h"
+#include "llpanelface.h"
 
-// project includes
 #include "llcombobox.h"
+#include "llnotificationsutil.h"
 #include "llurlhistory.h"
 #include "lluictrlfactory.h"
 #include "llwindow.h"
@@ -86,12 +89,22 @@ public:
 // LLFloaterURLEntry()
 //-----------------------------------------------------------------------------
 LLFloaterURLEntry::LLFloaterURLEntry(LLHandle<LLPanel> parent)
-	:
-	LLFloater(),
-	mPanelLandMediaHandle(parent)
+	: LLFloater(LLSD()),
+	  mPanelLandMediaHandle(parent)
 {
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_url_entry.xml");
+	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_url_entry.xml", NULL);
+}
 
+//-----------------------------------------------------------------------------
+// ~LLFloaterURLEntry()
+//-----------------------------------------------------------------------------
+LLFloaterURLEntry::~LLFloaterURLEntry()
+{
+	sInstance = NULL;
+}
+
+BOOL LLFloaterURLEntry::postBuild()
+{
 	mMediaURLEdit = getChild<LLComboBox>("media_entry");
 
 	// Cancel button
@@ -99,7 +112,6 @@ LLFloaterURLEntry::LLFloaterURLEntry(LLHandle<LLPanel> parent)
 
 	// Cancel button
 	childSetAction("clear_btn", onBtnClear, this);
-
 	// clear media list button
 	LLSD parcel_history = LLURLHistory::getURLHistory("parcel");
 	bool enable_clear_button = parcel_history.size() > 0 ? true : false;
@@ -111,17 +123,8 @@ LLFloaterURLEntry::LLFloaterURLEntry(LLHandle<LLPanel> parent)
 	setDefaultBtn("ok_btn");
 	buildURLHistory();
 
-	sInstance = this;
+	return TRUE;
 }
-
-//-----------------------------------------------------------------------------
-// ~LLFloaterURLEntry()
-//-----------------------------------------------------------------------------
-LLFloaterURLEntry::~LLFloaterURLEntry()
-{
-	sInstance = NULL;
-}
-
 void LLFloaterURLEntry::buildURLHistory()
 {
 	LLCtrlListInterface* url_list = childGetListInterface("media_entry");
@@ -145,43 +148,42 @@ void LLFloaterURLEntry::buildURLHistory()
 
 void LLFloaterURLEntry::headerFetchComplete(U32 status, const std::string& mime_type)
 {
-	LLPanelLandMedia* panel_media = (LLPanelLandMedia*)mPanelLandMediaHandle.get();
+	LLPanelLandMedia* panel_media = dynamic_cast<LLPanelLandMedia*>(mPanelLandMediaHandle.get());
 	if (panel_media)
 	{
 		// status is ignored for now -- error = "none/none"
 		panel_media->setMediaType(mime_type);
 		panel_media->setMediaURL(mMediaURLEdit->getValue().asString());
 	}
+	else
+	{
+		LLPanelFace* panel_face = dynamic_cast<LLPanelFace*>(mPanelLandMediaHandle.get());
+		if(panel_face)
+		{
+			panel_face->setMediaType(mime_type);
+			panel_face->setMediaURL(mMediaURLEdit->getValue().asString());
+		}
+
+	}
 	// Decrement the cursor
 	getWindow()->decBusyCount();
 	childSetVisible("loading_label", false);
-	close();
+	closeFloater();
 }
 
 // static
-LLHandle<LLFloater> LLFloaterURLEntry::show(LLHandle<LLPanel> parent)
+LLHandle<LLFloater> LLFloaterURLEntry::show(LLHandle<LLPanel> parent, const std::string media_url)
 {
-	if (sInstance)
-	{
-		sInstance->open();
-	}
-	else
+	if (!sInstance)
 	{
 		sInstance = new LLFloaterURLEntry(parent);
 	}
-	sInstance->updateFromLandMediaPanel();
+	sInstance->openFloater();
+	sInstance->addURLToCombobox(media_url);
 	return sInstance->getHandle();
 }
 
-void LLFloaterURLEntry::updateFromLandMediaPanel()
-{
-	LLPanelLandMedia* panel_media = (LLPanelLandMedia*)mPanelLandMediaHandle.get();
-	if (panel_media)
-	{
-		std::string media_url = panel_media->getMediaURL();
-		addURLToCombobox(media_url);
-	}
-}
+
 
 bool LLFloaterURLEntry::addURLToCombobox(const std::string& media_url)
 {
@@ -254,7 +256,7 @@ void LLFloaterURLEntry::onBtnOK( void* userdata )
 void LLFloaterURLEntry::onBtnCancel( void* userdata )
 {
 	LLFloaterURLEntry *self =(LLFloaterURLEntry *)userdata;
-	self->close();
+	self->closeFloater();
 }
 
 // static
@@ -263,13 +265,13 @@ void LLFloaterURLEntry::onBtnCancel( void* userdata )
 //-----------------------------------------------------------------------------
 void LLFloaterURLEntry::onBtnClear( void* userdata )
 {
-	LLNotifications::instance().add( "ConfirmClearMediaUrlList", LLSD(), LLSD(), 
+	LLNotificationsUtil::add( "ConfirmClearMediaUrlList", LLSD(), LLSD(), 
 									boost::bind(&LLFloaterURLEntry::callback_clear_url_list, (LLFloaterURLEntry*)userdata, _1, _2) );
 }
 
 bool LLFloaterURLEntry::callback_clear_url_list(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if ( option == 0 ) // YES
 	{
 		// clear saved list

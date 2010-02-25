@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -30,11 +30,11 @@
  * $/LicenseInfo$
  */
 
-#ifndef LL_CALLBACK_MAP_H
-#define LL_CALLBACK_MAP_H
+#ifndef LLCALLBACKMAP_H
+#define LLCALLBACKMAP_H
 
 #include <map>
-#include "llstring.h"
+#include <string>
 
 class LLCallbackMap
 {
@@ -45,12 +45,19 @@ public:
 	typedef std::map<std::string, LLCallbackMap> map_t;
 	typedef map_t::iterator map_iter_t;
 	typedef map_t::const_iterator map_const_iter_t;
-
+	
+	template <class T>
+	static void* buildPanel(void* data)
+	{
+		T* panel = new T();
+		return (void*)panel;
+	}
+	
 	LLCallbackMap() : mCallback(NULL), mData(NULL) { }
-	LLCallbackMap(callback_t callback, void* data) : mCallback(callback), mData(data) { }
+	LLCallbackMap(callback_t callback, void* data = NULL) : mCallback(callback), mData(data) { }
 
 	callback_t	mCallback;
 	void*		mData;
 };
 
-#endif // LL_CALLBACK_MAP_H
+#endif // LLCALLBACKMAP_H

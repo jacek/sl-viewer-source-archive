@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater label="(unbekannt)" name="im_floater" title="(unbekannt)" min_width="426" >
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater label="(unbekannt)" min_width="426" name="im_floater" title="(UNBEKANNT)">
 	<layout_stack name="panels">
 		<layout_panel name="im_contents_panel">
 			<button label="Gruppeninfo" name="group_info_btn" width="85"/>
 			<button label="Gespräch beitreten" left_delta="90" name="start_call_btn" width="145"/>
 			<button halign="center" label="Anruf beenden" name="end_call_btn" width="145"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Klicken Sie hier um eine Liste der aktiven Teilnehmer dieser IM-Sitzung anzuzeigen."/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Klicken Sie hier, um eine Liste der aktiven Teilnehmer an dieser IM-Sitzung durchzublättern."/>
 			<line_editor label="Für Instant Message hier klicken" name="chat_editor"/>
 			<button label="Senden" name="send_btn"/>
 			<text name="live_help_dialog">
@@ -41,13 +41,13 @@
 		</layout_panel>
 	</layout_stack>
 	<string name="ringing">
-		Voice-Chat wird beigetreten...
+		Verbindung wird hergestellt...
 	</string>
 	<string name="connected">
 		Verbunden. Klicken Sie auf „Anruf beenden“, um die Verbindung zu trennen
 	</string>
 	<string name="hang_up">
-		Voice-Chat verlassen
+		Anruf wurde beendet
 	</string>
 	<string name="voice_icon">
 		icn_voice-groupfocus.tga

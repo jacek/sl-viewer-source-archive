@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Look-Info" name="look_info">
+	<panel.string name="not_available">
+		k.A.
+	</panel.string>
+	<panel.string name="unknown">
+		(unbekannt)
+	</panel.string>
+	<panel label="Outfit" name="look_management_panel">
+		<accordion name="look_management_accordion">
+			<accordion_tab name="look_group" title="Outfit-Gruppe">
+				<panel name="look_info_group_bar">
+					<text name="curr_look_name">
+						Look: [LOOK]
+					</text>
+					<button label="Anziehen" name="wear_look_btn"/>
+					<scroll_list name="look_items_list">
+						<scroll_list.columns label="Look-Artikel" name="look_item"/>
+						<scroll_list.columns label="Outfit-Artikel sortieren" name="look_item_sort"/>
+					</scroll_list>
+					<button label="-" name="remove_from_look_btn"/>
+				</panel>
+			</accordion_tab>
+			<accordion_tab name="inventory_group" title="Mein Inventar">
+				<panel name="lower_look_accordion">
+					<panel name="inventory_bar">
+						<text name="inventory_info_text">
+							Mein Inventar
+						</text>
+						<combo_box name="inventory_filter" tool_tip="Nur die ausgewählten Inventartypen anzeigen"/>
+					</panel>
+					<panel name="look_item_filter_bar">
+						<filter_editor label="Filter: Outfit-Artikel" name="look_item_filter"/>
+					</panel>
+				</panel>
+			</accordion_tab>
+		</accordion>
+	</panel>
+	<panel name="button_bar">
+		<button label="Hinzufügen" name="add_item_btn" width="70"/>
+		<button label="Entfernen" name="remove_item_btn" width="60"/>
+		<button label="NACH OBEN" name="up_btn" width="76"/>
+		<button label="NACH UNTEN" name="down_btn" width="80"/>
+	</panel>
+</panel>

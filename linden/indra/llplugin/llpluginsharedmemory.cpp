@@ -1,10 +1,11 @@
 /** 
  * @file llpluginsharedmemory.cpp
- * @brief LLPluginSharedMemory manages a shared memory segment for use by the LLPlugin API.
+ * LLPluginSharedMemory manages a shared memory segment for use by the LLPlugin API.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #include "linden_common.h"
@@ -95,6 +97,10 @@ std::string LLPluginSharedMemory::createName(void)
 	return newname.str();
 }
 
+/**
+ * @brief LLPluginSharedMemoryImpl is the platform-dependent implementation of LLPluginSharedMemory. TODO:DOC is this necessary/sufficient? kinda obvious.
+ *
+ */
 class LLPluginSharedMemoryPlatformImpl
 {
 public:
@@ -111,6 +117,9 @@ public:
 
 };
 
+/**
+ * Constructor. Creates a shared memory segment.
+ */
 LLPluginSharedMemory::LLPluginSharedMemory()
 {
 	mSize = 0;
@@ -120,6 +129,9 @@ LLPluginSharedMemory::LLPluginSharedMemory()
 	mImpl = new LLPluginSharedMemoryPlatformImpl;
 }
 
+/**
+ * Destructor. Uses destroy() and detach() to ensure shared memory segment is cleaned up.
+ */
 LLPluginSharedMemory::~LLPluginSharedMemory()
 {
 	if(mNeedsDestroy)

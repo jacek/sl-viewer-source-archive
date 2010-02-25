@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,10 +36,9 @@
 
 #include "llworldmapmessage.h"
 #include "message.h"
-#include "llappviewer.h"	// for gPacificDaylightTime
 #include "lltracker.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
+#include "lltrans.h"
 
 // Timers to temporise database requests
 const F32 AGENTS_UPDATE_TIMER = 60.0;			// Seconds between 2 agent requests for a region
@@ -84,7 +83,7 @@ void LLSimInfo::setLandForSaleImage (LLUUID image_id)
 	// Fetch the image
 	if (mMapImageID.notNull())
 	{
-		mOverlayImage = gImageList.getImage(mMapImageID, MIPMAP_TRUE, FALSE);
+		mOverlayImage = LLViewerTextureManager::getFetchedTexture(mMapImageID, MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
 		mOverlayImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 	}
 	else
@@ -93,18 +92,18 @@ void LLSimInfo::setLandForSaleImage (LLUUID image_id)
 	}
 }
 
-LLPointer<LLViewerImage> LLSimInfo::getLandForSaleImage () 
+LLPointer<LLViewerFetchedTexture> LLSimInfo::getLandForSaleImage () 
 {
 	if (mOverlayImage.isNull() && mMapImageID.notNull())
 	{
 		// Fetch the image if it hasn't been done yet (unlikely but...)
-		mOverlayImage = gImageList.getImage(mMapImageID, MIPMAP_TRUE, FALSE);
+		mOverlayImage = LLViewerTextureManager::getFetchedTexture(mMapImageID, MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
 		mOverlayImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 	}
 	if (!mOverlayImage.isNull())
 	{
 		// Boost the fetch level when we try to access that image
-		mOverlayImage->setBoostLevel(LLViewerImageBoostLevel::BOOST_MAP);
+		mOverlayImage->setBoostLevel(LLViewerTexture::BOOST_MAP);
 	}
 	return mOverlayImage;
 }
@@ -121,6 +120,11 @@ LLVector3d LLSimInfo::getGlobalPos(const LLVector3& local_pos) const
 LLVector3d LLSimInfo::getGlobalOrigin() const
 {
 	return from_region_handle(mHandle);
+}
+LLVector3 LLSimInfo::getLocalPos(LLVector3d global_pos) const
+{
+	LLVector3d sim_origin = from_region_handle(mHandle);
+	return LLVector3(global_pos - sim_origin);
 }
 
 void LLSimInfo::clearImage()
@@ -386,6 +390,7 @@ void LLWorldMap::reloadItems(bool force)
 	}
 }
 
+
 // static public
 // Insert a region in the region map
 // returns true if region inserted, false otherwise
@@ -490,19 +495,13 @@ bool LLWorldMap::insertItem(U32 x_world, U32 y_world, std::string& name, LLUUID&
 		case MAP_ITEM_MATURE_EVENT:
 		case MAP_ITEM_ADULT_EVENT:
 		{
-			struct tm* timep;
-			// Convert to Pacific, based on server's opinion of whether
-			// it's daylight savings time there.
-			timep = utc_to_pacific_time(extra, gPacificDaylightTime);
-
-			S32 display_hour = timep->tm_hour % 12;
-			if (display_hour == 0) display_hour = 12;
-
-			std::string tooltip = llformat( "%d:%02d %s",
-										  display_hour,
-										  timep->tm_min,
-										  (timep->tm_hour < 12 ? "AM" : "PM") );
-			new_item.setTooltip(tooltip);
+			std::string timeStr = "["+ LLTrans::getString ("TimeHour")+"]:["
+					                   +LLTrans::getString ("TimeMin")+"] ["
+									   +LLTrans::getString ("TimeAMPM")+"]";
+			LLSD substitution;
+			substitution["datetime"] = (S32) extra;
+			LLStringUtil::format (timeStr, substitution);				
+			new_item.setTooltip(timeStr);
 
 			// HACK: store Z in extra2
 			new_item.setElevation((F64)extra2);

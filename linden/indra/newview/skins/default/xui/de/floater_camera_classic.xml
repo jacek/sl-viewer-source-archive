@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="camera_floater">
+	<floater.string name="rotate_tooltip">
+		Kamera um Fokus drehen
+	</floater.string>
+	<floater.string name="zoom_tooltip">
+		Kamera auf Fokus zoomen
+	</floater.string>
+	<floater.string name="move_tooltip">
+		Kamera nach oben, unten, links und rechts bewegen
+	</floater.string>
+	<joystick_rotate name="cam_rotate_stick" tool_tip="rotate_tooltip"/>
+	<joystick_zoom name="zoom" tool_tip="zoom_tooltip"/>
+	<joystick_track name="cam_track_stick" tool_tip="move_tooltip"/>
+</floater>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<floater
+ legacy_header_height="18"
+ can_minimize="false"
+ can_resize="true"
+ can_tear_off="false"
+ follows="top|right"
+ height="220"
+ layout="topleft"
+ min_height="64"
+ min_width="64"
+ name="minimap"
+ help_topic="minimap"
+ left="0"
+ top="0"
+ width="200">
+    <panel
+     follows="left|top|right|bottom"
+     height="216"
+     label="Mini Map"
+     layout="topleft"
+     left="2"
+     mouse_opaque="false"
+     name="mini_mapview"
+     tool_tip="(Double-click to open Map)"
+     top="2"
+     width="196" />
+</floater>

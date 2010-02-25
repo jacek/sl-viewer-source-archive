@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,7 @@
 #include "llgroupmgr.h"
 #include "llpanel.h"
 #include "lltimer.h"
+#include "llvoiceclient.h"
 
 struct LLOfferInfo;
 
@@ -45,100 +46,100 @@ class LLPanelGroupTab;
 class LLTabContainer;
 class LLAgent;
 
-class LLPanelGroupTabObserver
-{
-public:
-	LLPanelGroupTabObserver() {};
-	virtual ~LLPanelGroupTabObserver(){};
-	virtual void tabChanged() = 0;
-};
 
 class LLPanelGroup : public LLPanel,
-					 public LLGroupMgrObserver, 
-					 public LLPanelGroupTabObserver
+					 public LLGroupMgrObserver,
+					 public LLVoiceClientStatusObserver
 {
 public:
-	LLPanelGroup(const std::string& filename,
-				 const std::string& name,
-				 const LLUUID& group_id,
-				 const std::string& initial_tab_selected = std::string());
+	LLPanelGroup();
 	virtual ~LLPanelGroup();
 
 	virtual BOOL postBuild();
 
-	static void onBtnOK(void*);
-	static void onBtnCancel(void*);
-	static void onBtnApply(void*);
-	static void onBtnRefresh(void*);
-	static void onClickTab(void*,bool);
-	void handleClickTab();
-
 	void setGroupID(const LLUUID& group_id);
-	void selectTab(std::string tab_name);
 
-	// Called when embedded in a floater during a close attempt.
-	BOOL canClose();
-	
-	// Checks if the current tab needs to be applied, and tries to switch to the requested tab.
-	BOOL attemptTransition();
-	
-	// Switches to the requested tab (will close() if requested is NULL)
-	void transitionToTab();
-
-	void updateTabVisibility();
-
-	// Used by attemptTransition to query the user's response to a tab that needs to apply. 
-	bool handleNotifyCallback(const LLSD& notification, const LLSD& response);
-
-	bool apply();
-	void refreshData();
-	void close();
 	void draw();
+
+	void onOpen(const LLSD& key);
 
 	// Group manager observer trigger.
 	virtual void changed(LLGroupChange gc);
 
-	// PanelGroupTab observer trigger
-	virtual void tabChanged();
-
-	void setAllowEdit(BOOL v) { mAllowEdit = v; }
+	// Implements LLVoiceClientStatusObserver::onChange() to enable the call
+	// button when voice is available
+	/*virtual*/ void onChange(EStatusType status, const std::string &channelURI, bool proximal);
 
 	void showNotice(const std::string& subject,
 					const std::string& message,
 					const bool& has_inventory,
 					const std::string& inventory_name,
 					LLOfferInfo* inventory_offer);
-protected:
-	LLPanelGroupTab*		mCurrentTab;
-	LLPanelGroupTab*		mRequestedTab;
-	LLTabContainer*	mTabContainer;
-	BOOL mIgnoreTransition;
 
-	LLButton* mApplyBtn;
+	void notifyObservers();
+
+	bool apply();
+	void refreshData();
+	void callGroup();
+	void chatGroup();
+
+	virtual void reshape(S32 width, S32 height, BOOL called_from_parent = TRUE);
+
+	static void refreshCreatedGroup(const LLUUID& group_id);
+
+	static void showNotice(const std::string& subject,
+						   const std::string& message,
+						   const LLUUID& group_id,
+						   const bool& has_inventory,
+						   const std::string& inventory_name,
+						   LLOfferInfo* inventory_offer);
+
+
+	bool	notifyChildren		(const LLSD& info);
+	bool	handleNotifyCallback(const LLSD&, const LLSD&);
+
+protected:
+	virtual void update(LLGroupChange gc);
+
+	void onBtnCreate();
+	void onBackBtnClick();
+	void onBtnJoin();
+	void onBtnCancel();
+
+	static void onBtnApply(void*);
+	static void onBtnRefresh(void*);
+	static void onBtnGroupCallClicked(void*);
+	static void onBtnGroupChatClicked(void*);
+
+	void reposButton(const std::string& name);
+	void reposButtons();
+	
+
+protected:
+	bool	apply(LLPanelGroupTab* tab);
+	bool	canClose();
+
+	bool	mShowingNotifyDialog;
 
 	LLTimer mRefreshTimer;
 
-	BOOL mForceClose;
-
-	std::string mInitialTab;
-	std::string mFilename;
+	BOOL mSkipRefresh;
 
 	std::string mDefaultNeedsApplyMesg;
 	std::string mWantApplyMesg;
 
-	BOOL mAllowEdit;
-	BOOL mShowingNotifyDialog;
+	std::vector<LLPanelGroupTab* > mTabs;
+
+	LLButton*		mButtonJoin;
+	LLUICtrl*		mJoinText;
+
 };
 
 class LLPanelGroupTab : public LLPanel
 {
 public:
-	LLPanelGroupTab(const std::string& name, const LLUUID& group_id)
-	: LLPanel(name), mGroupID(group_id), mAllowEdit(TRUE), mHasModal(FALSE) { }
+	LLPanelGroupTab();
 	virtual ~LLPanelGroupTab();
-
-	// Factory that returns a new LLPanelGroupFoo tab.
-	static void* createTab(void* data);
 
 	// Triggered when the tab becomes active.
 	virtual void activate() { }
@@ -163,34 +164,23 @@ public:
 	// Triggered when group information changes in the group manager.
 	virtual void update(LLGroupChange gc) { }
 
-	// This is the text to be displayed when a help button is pressed.
-	virtual std::string getHelpText() const { return mHelpText; }
-
-	// Display anything returned by getHelpText
-	static void onClickHelp(void* data);
-	void handleClickHelp();
-
 	// This just connects the help button callback.
 	virtual BOOL postBuild();
 
 	virtual BOOL isVisibleByAgent(LLAgent* agentp);
 
-	void setAllowEdit(BOOL v) { mAllowEdit = v; }
+	virtual void setGroupID(const LLUUID& id) {mGroupID = id;};
 
-	void addObserver(LLPanelGroupTabObserver *obs);
-	void removeObserver(LLPanelGroupTabObserver *obs);
-	void notifyObservers();
+	void notifyObservers() {};
+
+	const LLUUID& getGroupID() const { return mGroupID;}
+
+	virtual void setupCtrls	(LLPanel* parent) {};
 
 protected:
 	LLUUID	mGroupID;
-	LLTabContainer*	mTabContainer;
-	std::string	mHelpText;
-
 	BOOL mAllowEdit;
 	BOOL mHasModal;
-
-	typedef std::set<LLPanelGroupTabObserver*> observer_list_t;
-	observer_list_t mObservers;
 };
 
 #endif // LL_LLPANELGROUP_H

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -30,149 +30,127 @@
  * $/LicenseInfo$
  */
 
-#ifndef LL_LLASSETTYPE
-#define LL_LLASSETTYPE
+#ifndef LL_LLASSETTYPE_H
+#define LL_LLASSETTYPE_H
 
 #include <string>
 
 #include "stdenums.h" 	// for EDragAndDropType
 
-class LLAssetType
+class LL_COMMON_API LLAssetType
 {
 public:
 	enum EType
 	{
-		// Used for painting the faces of geometry.
-		// Stored in typical j2c stream format
 		AT_TEXTURE = 0,
+			// Used for painting the faces of geometry.
+			// Stored in typical j2c stream format.
 
-		// Used to fill the aural spectrum.
 		AT_SOUND = 1, 
+			// Used to fill the aural spectrum.
 
-		// Links instant message access to the user on the card. eg, a
-		// card for yourself, a card for linden support, a card for
-		// the guy you were talking to in the coliseum.
 		AT_CALLINGCARD = 2,
+		    // Links instant message access to the user on the card.
+			// : E.G. A card for yourself, for linden support, for
+			// : the guy you were talking to in the coliseum.
 
-		// Links to places in the world with location and a screen
-		// shot or image saved. eg, home, linden headquarters, the
-		// coliseum, or destinations where we want to increase
-		// traffic.
 		AT_LANDMARK = 3,
+			// Links to places in the world with location and a screen shot or image saved.
+			// : E.G. Home, linden headquarters, the coliseum, destinations where 
+			// : we want to increase traffic.
 
-		// Valid scripts that can be attached to an object. eg. open a
-		// door, jump into the air.
 		AT_SCRIPT = 4,
+			// Valid scripts that can be attached to an object.
+			// : E.G. Open a door, jump into the air.
 
-		// A collection of textures and parameters that can be worn
-		// by an avatar.
 		AT_CLOTHING = 5,
+			// A collection of textures and parameters that can be worn by an avatar.
 
-		// Any combination of textures, sounds, and scripts that are
-		// associated with a fixed piece of geometry. eg, a hot tub, a
-		// house with working door.
 		AT_OBJECT = 6,
+			// Any combination of textures, sounds, and scripts that are
+			// associated with a fixed piece of geometry.
+			// : E.G. A hot tub, a house with working door.
 
-		// Just text
 		AT_NOTECARD = 7,
+			// Just text.
 
-		// A category holds a collection of inventory items. It's
-		// treated as an item in the inventory, and therefore needs a
-		// type.
 		AT_CATEGORY = 8,
+			// Holds a collection of inventory items.
+			// It's treated as an item in the inventory and therefore needs a type.
 
-		// A root category is a user's root inventory category. We
-		// decided to expose it visually, so it seems logical to fold
-		// it into the asset types.
-		AT_ROOT_CATEGORY = 9,
-
-		// The LSL is the brand spanking new scripting language. We've
-		// split it into a text and bytecode representation.
 		AT_LSL_TEXT = 10,
 		AT_LSL_BYTECODE = 11,
+			// The LSL is the scripting language. 
+			// We've split it into a text and bytecode representation.
 		
-		// uncompressed TGA texture
 		AT_TEXTURE_TGA = 12,
+			// Uncompressed TGA texture.
 
-		// A collection of textures and parameters that can be worn
-		// by an avatar.
 		AT_BODYPART = 13,
+			// A collection of textures and parameters that can be worn by an avatar.
 
-		// This asset type is meant to only be used as a marker for a
-		// category preferred type. Using this, we can throw things in
-		// the trash before completely deleting.
-		AT_TRASH = 14,
-
-		// This is a marker for a folder meant for snapshots. No
-		// actual assets will be snapshots, though if there were, you
-		// could interpret them as textures.
-		AT_SNAPSHOT_CATEGORY = 15,
-
-		// This is used to stuff lost&found items into
-		AT_LOST_AND_FOUND = 16,
-
-		// uncompressed sound
 		AT_SOUND_WAV = 17,
+			// Uncompressed sound.
 
-		// uncompressed image, non-square, and not appropriate for use
-		// as a texture.
 		AT_IMAGE_TGA = 18,
+			// Uncompressed image, non-square.
+			// Not appropriate for use as a texture.
 
-		// compressed image, non-square, and not appropriate for use
-		// as a texture.
 		AT_IMAGE_JPEG = 19,
+			// Compressed image, non-square.
+			// Not appropriate for use as a texture.
 
-		// animation
 		AT_ANIMATION = 20,
+			// Animation.
 
-		// gesture, sequence of animations, sounds, chat, wait steps
 		AT_GESTURE = 21,
+			// Gesture, sequence of animations, sounds, chat, wait steps.
 
-		// simstate file
 		AT_SIMSTATE = 22,
+			// Simstate file.
 
-		// +*********************************************+
-		// |  TO ADD AN ELEMENT TO THIS ENUM:            |
-		// +*********************************************+
-		// | 1. INSERT BEFORE AT_COUNT                   |
-		// | 2. INCREMENT AT_COUNT BY 1                  |
-		// | 3. ADD TO LLAssetType::mAssetTypeNames      |
-		// | 4. ADD TO LLAssetType::mAssetTypeHumanNames |
-		// +*********************************************+
+		AT_LINK = 24,
+			// Inventory symbolic link
 
-		AT_COUNT = 23,
+		AT_LINK_FOLDER = 25,
+			// Inventory folder link
+		
+		AT_COUNT = 26,
+
+			// +*********************************************************+
+			// |  TO ADD AN ELEMENT TO THIS ENUM:                        |
+			// +*********************************************************+
+			// | 1. INSERT BEFORE AT_COUNT                               |
+			// | 2. INCREMENT AT_COUNT BY 1                              |
+			// | 3. ADD TO LLAssetType.cpp                               |
+			// | 4. ADD TO LLViewerAssetType.cpp                         |
+			// | 5. ADD TO DEFAULT_ASSET_FOR_INV in LLInventoryType.cpp  |
+			// +*********************************************************+
 
 		AT_NONE = -1
 	};
 
 	// machine transation between type and strings
-	static EType lookup(const char* name); // safe conversion to std::string, *TODO: deprecate
-	static EType lookup(const std::string& name);
-	static const char* lookup(EType type);
+	static EType 				lookup(const char* name); // safe conversion to std::string, *TODO: deprecate
+	static EType 				lookup(const std::string& type_name);
+	static const char*			lookup(EType asset_type);
 
 	// translation from a type to a human readable form.
-	static EType lookupHumanReadable( const char* name ); // safe conversion to std::string, *TODO: deprecate
-	static EType lookupHumanReadable( const std::string& name );
-	static const char* lookupHumanReadable(EType type);
+	static EType 				lookupHumanReadable(const char* desc_name); // safe conversion to std::string, *TODO: deprecate
+	static EType 				lookupHumanReadable(const std::string& readable_name);
+	static const char*			lookupHumanReadable(EType asset_type);
 
-	static EDragAndDropType lookupDragAndDropType( EType );
+	static EType 				getType(const std::string& desc_name);
+	static const std::string&	getDesc(EType asset_type);
 
-	// Generate a good default description. You may want to add a verb
-	// or agent name after this depending on your application.
-	static void generateDescriptionFor(LLAssetType::EType type,
-									   std::string& desc);
+	static bool 				lookupCanLink(EType asset_type);
+	static bool 				lookupIsLinkType(EType asset_type);
 
-	static EType getType(const std::string& sin);
-	static std::string getDesc(EType type);
-	
-private:
-	// don't instantiate or derive one of these objects
-	LLAssetType( void ) {}
-	~LLAssetType( void ) {}
+	static const std::string&	badLookup(); // error string when a lookup fails
 
-private:
-	static const char* mAssetTypeNames[];
-	static const char* mAssetTypeHumanNames[];
+protected:
+	LLAssetType() {}
+	~LLAssetType() {}
 };
 
-#endif // LL_LLASSETTYPE
+#endif // LL_LLASSETTYPE_H

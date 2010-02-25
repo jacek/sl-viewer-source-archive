@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,6 @@
 #include "llagent.h"          // gAgent
 #include "llbutton.h"
 #include "llinventory.h"
-#include "llinventoryview.h"
 #include "lllineeditor.h"
 #include "llpreviewsound.h"
 #include "llresmgr.h"
@@ -49,12 +48,23 @@ extern LLAgent gAgent;
 
 const F32 SOUND_GAIN = 1.0f;
 
-LLPreviewSound::LLPreviewSound(const std::string& name, const LLRect& rect, const std::string& title, const LLUUID& item_uuid, const LLUUID& object_uuid)	:
-	LLPreview( name, rect, title, item_uuid, object_uuid)
+LLPreviewSound::LLPreviewSound(const LLSD& key)
+  : LLPreview( key )
 {
-	
-	LLUICtrlFactory::getInstance()->buildFloater(this,"floater_preview_sound.xml");
+	//Called from floater reg: LLUICtrlFactory::getInstance()->buildFloater(this,"floater_preview_sound.xml", FALSE);
+}
 
+// virtual
+BOOL	LLPreviewSound::postBuild()
+{
+	const LLInventoryItem* item = getItem();
+	if (item)
+	{
+		childSetText("desc", item->getDescription());
+		if (gAudiop)
+			gAudiop->preloadSound(item->getAssetUUID()); // preload the sound
+	}
+	
 	childSetAction("Sound play btn",&LLPreviewSound::playSound,this);
 	childSetAction("Sound audition btn",&LLPreviewSound::auditionSound,this);
 
@@ -64,26 +74,10 @@ LLPreviewSound::LLPreviewSound(const std::string& name, const LLRect& rect, cons
 	button = getChild<LLButton>("Sound audition btn");
 	button->setSoundFlags(LLView::SILENT);
 
-	const LLInventoryItem* item = getItem();
-	
 	childSetCommitCallback("desc", LLPreview::onText, this);
-	childSetText("desc", item->getDescription());
-	childSetPrevalidate("desc", &LLLineEditor::prevalidatePrintableNotPipe);	
-	
-	// preload the sound
-	if(item && gAudiop)
-	{
-		gAudiop->preloadSound(item->getAssetUUID());
-	}
-	
-	setTitle(title);
+	childSetPrevalidate("desc", &LLTextValidate::validateASCIIPrintableNoPipe);	
 
-	if (!getHost())
-	{
-		LLRect curRect = getRect();
-		translate(rect.mLeft - curRect.mLeft, rect.mTop - curRect.mTop);
-	}
-
+	return LLPreview::postBuild();
 }
 
 // static

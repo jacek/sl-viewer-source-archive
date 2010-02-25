@@ -1,23 +1,16 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="media_controls">
-	<icon name="music_icon"
-	     tool_tip="ストリーミング・ミュージックの再生/一時停止" />
-	<button name="music_play"
-	     tool_tip="ストリーミング・ミュージックの再生/一時停止" />
-	<button name="music_pause"
-	     tool_tip="ストリーミング・ミュージックの一時停止" />
-	<button name="music_stop"
-	     tool_tip="ストリーミング・ミュージックの停止" />
-	<icon name="media_icon"
-	     tool_tip="ストリーミング・ミュージックの再生/一時停止" />
-	<button name="media_play"
-	     tool_tip="ストリーミング・ミュージックの再生/一時停止" />
-	<button name="media_pause"
-	     tool_tip="ストリーミング・メディアの一時停止" />
-	<button name="media_stop" tool_tip="ストリーミング・メディアの停止" />
-	<volume_slider name="volume_slider" tool_tip="マスター・ボリューム" />
-	<button name="mute_master" tool_tip="マスター・ミュート" />
-	<button name="expand" tool_tip="個別のボリューム・レベルを調節する。" />
+	<icon name="music_icon" tool_tip="ストリーミングミュージックの再生・一時停止"/>
+	<button name="music_play" tool_tip="ストリーミングミュージックの再生・一時停止"/>
+	<button name="music_pause" tool_tip="ストリーミングミュージックの一時停止"/>
+	<button name="music_stop" tool_tip="ストリーミングミュージックの停止"/>
+	<icon name="media_icon" tool_tip="ストリーミングミュージックの再生・一時停止"/>
+	<button name="media_play" tool_tip="ストリーミングミュージックの再生・一時停止"/>
+	<button name="media_pause" tool_tip="ストリーミングメディアの一時停止"/>
+	<button name="media_stop" tool_tip="ストリーミングメディアの停止"/>
+	<volume_slider name="volume_slider" tool_tip="全体の音量"/>
+	<button name="mute_master" tool_tip="全体の音量をミュート"/>
+	<button name="expand" tool_tip="個別の音量を調節します。"/>
 	<string name="play_label">
 		再生
 	</string>
@@ -34,12 +27,12 @@
 		（区画オーナーが URL を非表示に設定）
 	</string>
 	<string name="media_icon_tooltip_web">
-		このロケーションではワールド・ワイド・ウェブの内容が表示されます。 ウェブ・コンテンツを表示するには「再生」ボタンをクリックしてください。
+		このロケーションではワールドワイドウェブの内容が表示されます。 Webコンテンツを表示するには「再生」ボタンをクリックしてください。
 	</string>
 	<string name="media_icon_tooltip_movie">
-		このロケーションではビデオ・コンテンツが表示されます。 ビデオを再生するには「再生」ボタンをクリックしてください。
+		このロケーションではビデオコンテンツが表示されます。 ビデオを再生するには「再生」ボタンをクリックしてください。
 	</string>
 	<string name="media_play_tooltip">
-		このロケーションでウェブ・コンテンツを表示します。
+		このロケーションでWebコンテンツを表示します。
 	</string>
 </panel>

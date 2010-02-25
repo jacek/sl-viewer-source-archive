@@ -1,116 +1,46 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Text Chat" name="chat">
-	<text name="text_box">
-		Grandezza carattere
-chat:
-	</text>
 	<radio_group name="chat_font_size">
-		<radio_item name="radio">
-			Piccolo
-		</radio_item>
-		<radio_item name="radio2">
-			Medio
-		</radio_item>
-		<radio_item name="radio3">
-			Grande
-		</radio_item>
+		<radio_item label="Piccolo" name="radio"/>
+		<radio_item label="Medio" name="radio2"/>
+		<radio_item label="Grande" name="radio3"/>
 	</radio_group>
-	<text name="text_box2">
-		Colore carattere chat:
-	</text>
 	<color_swatch label="Tuo" name="user"/>
-	<color_swatch label="Altri" name="agent" width="60" left_delta="48"/>
-	<color_swatch label="IM" name="im" left_delta="64" />
-	<color_swatch label="Sistema" name="system"/>
-	<color_swatch label="Errori" name="script_error"/>
-	<color_swatch label="Oggetti" name="objects"/>
-	<color_swatch label="Proprietario" name="owner" width="60" left_delta="48"/>
-	<color_swatch label="Vignetta" name="background" left_delta="64" />
-	<color_swatch label="URLs" name="links"/>
-	<text name="text_box8">
-		Errori script:
+	<text name="text_box1">
+		Io
 	</text>
-	<check_box label="Mostra errori script ed avvertimenti nella chat principale" name="script_errors_as_chat"/>
+	<color_swatch label="Altri" name="agent"/>
+	<text name="text_box2">
+		Altri
+	</text>
+	<color_swatch label="IM" name="im"/>
 	<text name="text_box3">
-		Console della chat:
+		IM
 	</text>
-	<spinner label="Dissolvi la chat dopo" name="fade_chat_time" label_width="112" width="162"/>
-	<text name="text_box4" left="313" >
-		(s)
+	<color_swatch label="Sistema" name="system"/>
+	<text name="text_box4">
+		Sistema
 	</text>
+	<color_swatch label="Errori script" name="script_error"/>
 	<text name="text_box5">
-		(# linee)
+		Errori script
 	</text>
-	<slider label="Opacità" name="console_opacity"/>
-	<check_box label="Utilzza la larghezza intera dello schermo  (Richiede riavvio)" name="chat_full_width_check"/>
+	<color_swatch label="Oggetti" name="objects"/>
 	<text name="text_box6">
-		Opzioni chat:
+		Oggetti
 	</text>
-	<check_box label="Chiudi la barra chat dopo aver premuto invio" name="close_chat_on_return_check"/>
-	<check_box label="Le frecce muovono comunque l&apos;avatar quando si sta scrivendo" name="arrow_keys_move_avatar_check"/>
-	<check_box label="Mostra orario nella chat principale" name="show_timestamps_check"/>
-	<check_box label="Simula la battitura tasti quando scrivi" name="play_typing_animation"/>
+	<color_swatch label="Proprietario" name="owner"/>
 	<text name="text_box7">
-		Chat con vignette:
+		Proprietario
 	</text>
-	<check_box label="Mostra vignette chat" name="bubble_text_chat"/>
-	<slider label="Opacità" name="bubble_chat_opacity"/>
-	<combo_box name="translate_language_combobox" width="166">
-		<combo_item name="System Default Language">
-			Default di sistema
-		</combo_item>
-		<combo_item name="English">
-			English
-		</combo_item>
-		<combo_item name="Danish">
-			Dansk (Danese) - Beta
-		</combo_item>
-		<combo_item name="Deutsch(German)">
-			Deutsch (Tedesco) - Beta
-		</combo_item>
-		<combo_item name="Spanish">
-			Español (Spagnolo) - Beta
-		</combo_item>
-		<combo_item name="French">
-			Français (Francese) - Beta
-		</combo_item>
-		<combo_item name="Italian">
-			Italiano - Beta
-		</combo_item>
-		<combo_item name="Hungarian">
-			Magyar (Ungherese) - Beta
-		</combo_item>
-		<combo_item name="Dutch">
-			Nederlands (Olandese) - Beta
-		</combo_item>
-		<combo_item name="Polish">
-			Polski (Polacco) - Beta
-		</combo_item>
-		<combo_item name="Portugese">
-			Portugués (Portoghese) - Beta
-		</combo_item>
-		<combo_item name="Russian">
-			Русский (Russo) - Beta
-		</combo_item>
-		<combo_item name="Turkish">
-			Türkçe (Turco) - Beta
-		</combo_item>
-		<combo_item name="Ukrainian">
-			Українська (Ukraino) - Beta
-		</combo_item>
-		<combo_item name="Chinese">
-			中文 (简体) (Cinese) - Beta
-		</combo_item>
-		<combo_item name="(Japanese)">
-			日本語 (Giapponese) - Beta
-		</combo_item>
-		<combo_item name="(Korean)">
-			한국어 (Coreano) - Beta
-		</combo_item>
-	</combo_box>
-	<text type="string" length="1" name="text_chat_language">
-		Chat Lingua:
+	<color_swatch label="URLs" name="links"/>
+	<text name="text_box9">
+		URLs
 	</text>
-	<text type="string" length="1" name="translate_chat" label="Traduci Chat">
-	</text>
+	<check_box initial_value="true" label="Simula la battitura tasti quando scrivi" name="play_typing_animation"/>
+	<check_box label="Spediscimi nella email gli IM quando sono OFF-LINE" name="send_im_to_email"/>
+	<radio_group name="chat_window" tool_tip="Mostra i tuoi Instant Messages in finestre separate, o in una finestra con diverse tabelle (Requires restart)">
+		<radio_item label="Finestre multiple" name="radio"/>
+		<radio_item label="Una finestra" name="radio2"/>
+	</radio_group>
 </panel>

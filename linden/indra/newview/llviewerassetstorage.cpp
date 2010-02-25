@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,13 +32,13 @@
 
 #include "llviewerprecompiledheaders.h"
 
-#include "linden_common.h"
-
-#include "llagent.h"
 #include "llviewerassetstorage.h"
-#include "llviewerbuild.h"
+
 #include "llvfile.h"
 #include "llvfs.h"
+#include "message.h"
+
+#include "llagent.h"
 
 LLViewerAssetStorage::LLViewerAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
 										   LLVFS *vfs, const LLHost &upstream_host)
@@ -79,7 +79,6 @@ void LLViewerAssetStorage::storeAssetData(
 
 			LLVFile vfile(mVFS, asset_id, asset_type, LLVFile::READ);
 			S32 asset_size = vfile.getSize();
-
 
 			LLAssetRequest *req = new LLAssetRequest(asset_id, asset_type);
 			req->mUpCallback = callback;

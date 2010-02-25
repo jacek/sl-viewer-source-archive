@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="mute floater" title="Blokerede beboere &amp; objekter" short_title="Blok Liste">
+<floater name="mute floater" title="BLOKEREDE BEBOERE &amp; OBJEKTER" short_title="BLOK LISTE">
 	<scroll_list name="mutes" tool_tip="Liste over blokerede beboere" />
 	<button label="Blokér beboer..." label_selected="Blokér beboer..."
 	     name="Mute resident..."

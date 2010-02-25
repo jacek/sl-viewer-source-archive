@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,38 +40,32 @@ class LLProgressBar
 	: public LLView
 {
 public:
-	LLProgressBar(const std::string& name, const LLRect &rect);
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
+	{
+		Optional<LLUIImage*>	image_bar,
+								image_fill;
+
+		Optional<LLUIColor>		color_bar,
+								color_bg;
+
+		Params();
+	};
+	LLProgressBar(const Params&);
 	virtual ~LLProgressBar();
 
 	void setPercent(const F32 percent);
 
-	void setImageBar(const std::string &bar_name);
-	void setImageShadow(const std::string &shadow_name);
-
-	void setColorBar(const LLColor4 &c);
-	void setColorBar2(const LLColor4 &c);
-	void setColorShadow(const LLColor4 &c);
-	void setColorBackground(const LLColor4 &c);
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-
 	/*virtual*/ void draw();
 
-protected:
+private:
 	F32 mPercentDone;
 
-	LLPointer<LLImageGL>  mImageBar;
-	//LLUUID                mImageBarID;
-	//LLString              mImageBarName;
-	LLColor4              mColorBar;
-	LLColor4              mColorBar2;
+	LLPointer<LLUIImage>	mImageBar;
+	LLUIColor	mColorBar;
 
-	LLPointer<LLImageGL>  mImageShadow;
-	//LLUUID                mImageShadowID;
-	//LLString              mImageShadowName;
-	LLColor4              mColorShadow;
-	LLColor4              mColorBackground;
+	LLUIColor    mColorBackground;
+	
+	LLPointer<LLUIImage>	mImageFill;
 };
 
 #endif // LL_LLPROGRESSBAR_H

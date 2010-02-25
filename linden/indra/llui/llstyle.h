@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,60 +34,65 @@
 #define LL_LLSTYLE_H
 
 #include "v4color.h"
-#include "llresmgr.h"
-#include "llfont.h"
 #include "llui.h"
+#include "llinitparam.h"
+
+class LLFontGL;
 
 class LLStyle : public LLRefCount
 {
 public:
-	LLStyle();
-	LLStyle(const LLStyle &style);
-	LLStyle(BOOL is_visible, const LLColor4 &color, const std::string& font_name);
+	struct Params : public LLInitParam::Block<Params>
+	{
+		Optional<bool>					visible;
+		Optional<LLFontGL::ShadowType>	drop_shadow;
+		Optional<LLUIColor>				color,
+										readonly_color;
+		Optional<const LLFontGL*>		font;
+		Optional<LLUIImage*>			image;
+		Optional<std::string>			link_href;
+		Params();
+	};
+	LLStyle(const Params& p = Params());
+public:
+	const LLColor4& getColor() const { return mColor; }
+	void setColor(const LLColor4 &color) { mColor = color; }
 
-	LLStyle &operator=(const LLStyle &rhs);
+	const LLColor4& getReadOnlyColor() const { return mReadOnlyColor; }
+	void setReadOnlyColor(const LLColor4& color) { mReadOnlyColor = color; }
 
-	virtual void init (BOOL is_visible, const LLColor4 &color, const std::string& font_name);
+	BOOL isVisible() const;
+	void setVisible(BOOL is_visible);
 
-	virtual const LLColor4& getColor() const { return mColor; }
-	virtual void setColor(const LLColor4 &color) { mColor = color; }
+	LLFontGL::ShadowType getShadowType() const { return mDropShadow; }
 
-	virtual BOOL isVisible() const;
-	virtual void setVisible(BOOL is_visible);
+	void setFont(const LLFontGL* font);
+	const LLFontGL* getFont() const;
 
-	virtual const std::string& getFontString() const { return mFontName; }
-	virtual void setFontName(const std::string& fontname);
-	virtual LLFONT_ID getFontID() const { return mFontID; }
+	const std::string& getLinkHREF() const { return mLink; }
+	void setLinkHREF(const std::string& href);
+	BOOL isLink() const;
 
-	virtual const std::string& getLinkHREF() const { return mLink; }
-	virtual void setLinkHREF(const std::string& href);
-	virtual BOOL isLink() const;
+	LLUIImagePtr getImage() const;
+	void setImage(const LLUUID& src);
+	void setImage(const std::string& name);
 
-	virtual LLUIImagePtr getImage() const;
-	virtual void setImage(const LLUUID& src);
-
-	virtual BOOL isImage() const { return ((mImageWidth != 0) && (mImageHeight != 0)); }
-	virtual void setImageSize(S32 width, S32 height);
-
-	BOOL	getIsEmbeddedItem() const	{ return mIsEmbeddedItem; }
-	void	setIsEmbeddedItem( BOOL b ) { mIsEmbeddedItem = b; }
+	BOOL isImage() const { return mImagep.notNull(); }
 
 	// inlined here to make it easier to compare to member data below. -MG
 	bool operator==(const LLStyle &rhs) const
 	{
 		return 
-			mVisible == rhs.isVisible()
-			&& mColor == rhs.getColor()
-			&& mFontName == rhs.getFontString()
-			&& mLink == rhs.getLinkHREF()
+			mVisible == rhs.mVisible
+			&& mColor == rhs.mColor
+			&& mReadOnlyColor == rhs.mReadOnlyColor
+			&& mFont == rhs.mFont
+			&& mLink == rhs.mLink
 			&& mImagep == rhs.mImagep
-			&& mImageHeight == rhs.mImageHeight
-			&& mImageWidth == rhs.mImageWidth
 			&& mItalic == rhs.mItalic
 			&& mBold == rhs.mBold
 			&& mUnderline == rhs.mUnderline
-			&& mDropShadow == rhs.mDropShadow
-			&& mIsEmbeddedItem == rhs.mIsEmbeddedItem;
+			&& mDropShadow == rhs.mDropShadow;
 	}
 
 	bool operator!=(const LLStyle& rhs) const { return !(*this == rhs); }
@@ -96,23 +101,22 @@ public:
 	BOOL        mItalic;
 	BOOL        mBold;
 	BOOL        mUnderline;
-	BOOL		mDropShadow;
-	S32         mImageWidth;
-	S32         mImageHeight;
+	LLFontGL::ShadowType		mDropShadow;
 
 protected:
-	virtual ~LLStyle() { }
+	~LLStyle() { }
 
 private:
 	BOOL		mVisible;
-	LLColor4	mColor;
+	LLUIColor	mColor;
+	LLUIColor   mReadOnlyColor;
 	std::string	mFontName;
-	LLFONT_ID   mFontID;
+	const LLFontGL*   mFont;		// cached for performance
 	std::string	mLink;
 	LLUIImagePtr mImagep;
-	BOOL		mIsEmbeddedItem;
 };
 
 typedef LLPointer<LLStyle> LLStyleSP;
+typedef LLPointer<const LLStyle> LLStyleConstSP;
 
 #endif  // LL_LLSTYLE_H

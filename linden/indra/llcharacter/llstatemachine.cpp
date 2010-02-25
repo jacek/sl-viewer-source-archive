@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -54,6 +54,7 @@ bool	operator!=(const LLUniqueID &a, const LLUniqueID &b)
 //-----------------------------------------------------------------------------
 LLStateDiagram::LLStateDiagram()
 {
+	mDefaultState = NULL;
 	mUseDefaultState = FALSE;
 }
 
@@ -210,7 +211,7 @@ LLFSMState* LLStateDiagram::getState(U32 state_id)
 BOOL LLStateDiagram::saveDotFile(const std::string& filename)
 {
 	LLAPRFile outfile ;
-	outfile.open(filename, LL_APR_W, LLAPRFile::global);
+	outfile.open(filename, LL_APR_W);
 	apr_file_t* dot_file = outfile.getFileHandle() ;
 
 	if (!dot_file)
@@ -305,6 +306,7 @@ LLStateMachine::LLStateMachine()
 	// we haven't received a starting state yet
 	mCurrentState = NULL;
 	mLastState = NULL;
+	mLastTransition = NULL;
 	mStateDiagram = NULL;
 }
 

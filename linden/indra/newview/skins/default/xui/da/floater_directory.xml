@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="directory" title="Søg i Second Life">
+<floater name="directory" title="SØG I [SECOND_LIFE]">
 	<tab_container name="Directory Tabs">
 		<panel label="Alt" name="find_all_panel">
 			<string name="searching_text">
@@ -11,29 +11,17 @@
 			<text name="find">
 				Find:
 			</text>
-			<line_editor label="Søg" name="search_editor" tool_tip="Søg i Second Life"/>
+			<line_editor label="Søg" name="search_editor" tool_tip="Søg i [SECOND_LIFE]"/>
 			<button label="Retur" name="back_btn"/>
 			<button label="Frem" name="forward_btn"/>
 			<button label="Søg" name="search_btn"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					Enhver kategori
-				</combo_item>
-				<combo_item name="Events">
-					Events
-				</combo_item>
-				<combo_item name="Groups">
-					Grupper
-				</combo_item>
-				<combo_item name="People">
-					Personer
-				</combo_item>
-				<combo_item name="Places">
-					Steder
-				</combo_item>
-				<combo_item name="Wiki">
-					Wiki
-				</combo_item>
+				<combo_box.item name="item0" label="Enhver kategori"/>
+				<combo_box.item name="item1" label="Events"/>
+				<combo_box.item name="item2" label="Grupper"/>
+				<combo_box.item name="item3" label="Personer"/>
+				<combo_box.item name="item4" label="Steder"/>
+				<combo_box.item name="item5" label="Wiki"/>
 			</combo_box>
 			<check_box label="PG indhold" name="incpg"/>
 			<check_box label="Mature indhold" name="incmature"/>
@@ -66,36 +54,16 @@
 			<check_box label="Mature indhold" name="incmature"/>
 			<check_box label="Adult indhold" name="incadult"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					Enhver kategori
-				</combo_item>
-				<combo_item name="Shopping">
-					Shopping
-				</combo_item>
-				<combo_item name="LandRental">
-					Land til leje
-				</combo_item>
-				<combo_item name="PropertyRental">
-					Grund til leje
-				</combo_item>
-				<combo_item name="SpecialAttraction">
-					Speciel attraktion
-				</combo_item>
-				<combo_item name="NewProducts">
-					Nye produkter
-				</combo_item>
-				<combo_item name="Employment">
-					Jobs
-				</combo_item>
-				<combo_item name="Wanted">
-					Søges
-				</combo_item>
-				<combo_item name="Service">
-					Service
-				</combo_item>
-				<combo_item name="Personal">
-					Personlig
-				</combo_item>
+				<combo_box.item name="item0" label="Enhver kategori"/>
+				<combo_box.item name="item1" label="Shopping"/>
+				<combo_box.item name="item2" label="Land til leje"/>
+				<combo_box.item name="item3" label="Grund til leje"/>
+				<combo_box.item name="item4" label="Speciel attraktion"/>
+				<combo_box.item name="item5" label="Nye produkter"/>
+				<combo_box.item name="item6" label="Jobs"/>
+				<combo_box.item name="item7" label="Søges"/>
+				<combo_box.item name="item8" label="Service"/>
+				<combo_box.item name="item9" label="Personlig"/>
 			</combo_box>
 			<button label="Gennemse" label_selected="Browse" name="Browse"/>
 			<button label="Søg" label_selected="Søg" name="Search"/>
@@ -121,12 +89,8 @@
 				Find:
 			</text>
 			<radio_group name="date_mode">
-				<radio_item name="current">
-					Igang eller kommende
-				</radio_item>
-				<radio_item name="date">
-					Dato
-				</radio_item>
+				<radio_item name="current" label="Igang eller kommende" />
+				<radio_item name="date" label="Dato" />
 			</radio_group>
 			<button label="&lt;&lt;" label_selected="&lt;&lt;" name="&lt;&lt;" tool_tip="Gå en dag tilbage"/>
 			<text name="date_text">
@@ -138,42 +102,18 @@
 				Kategori:
 			</text>
 			<combo_box name="category combo" width="175">
-				<combo_item name="All">
-					Enhver kategori
-				</combo_item>
-				<combo_item name="Discussion">
-					Diskussion
-				</combo_item>
-				<combo_item name="Sports">
-					Sport
-				</combo_item>
-				<combo_item name="LiveMusic">
-					Live musik
-				</combo_item>
-				<combo_item name="Commercial">
-					Kommercielt
-				</combo_item>
-				<combo_item name="Nightlife/Entertainment">
-					Natteliv/Underholdning
-				</combo_item>
-				<combo_item name="Games/Contests">
-					Spil/Konkurrencer
-				</combo_item>
-				<combo_item name="Pageants">
-					Modelkonkurrencer
-				</combo_item>
-				<combo_item name="Education">
-					Undervisning
-				</combo_item>
-				<combo_item name="ArtsandCulture">
-					Kunst og kultur
-				</combo_item>
-				<combo_item name="Charity/SupportGroups">
-					Velgørenhed/Støtte grupper
-				</combo_item>
-				<combo_item name="Miscellaneous">
-					Blandet
-				</combo_item>
+				<combo_box.item name="item0" label="Alt"/>
+				<combo_box.item name="item18" label="Diskussion"/>
+				<combo_box.item name="item19" label="Sport"/>
+				<combo_box.item name="item20" label="Live musik"/>
+				<combo_box.item name="item22" label="Kommercielt"/>
+				<combo_box.item name="item23" label="Natteliv/Underholdning"/>
+				<combo_box.item name="item24" label="Spil/Konkurrencer"/>
+				<combo_box.item name="item25" label="Modelkonkurrencer"/>
+				<combo_box.item name="item26" label="Undervisning"/>
+				<combo_box.item name="item27" label="Kunst og kultur"/>
+				<combo_box.item name="item28" label="Velgørenhed/Støtte grupper"/>
+				<combo_box.item name="item29" label="Blandet"/>
 			</combo_box>
 			<check_box label="PG indhold" name="incpg"/>
 			<check_box label="Mature indhold" name="incmature"/>
@@ -231,18 +171,10 @@ for at købe direkte, besøg landet du vil købe og klik på stedets navn i den 
 			<check_box label="Mature indhold" name="incmature"/>
 			<check_box label="Adult indhold" name="incadult"/>
 			<combo_box name="type">
-				<combo_item name="AllTypes">
-					Alle typer
-				</combo_item>
-				<combo_item name="Auction">
-					Auktioner
-				</combo_item>
-				<combo_item name="MainlandSales">
-					Til salg - Mainland
-				</combo_item>
-				<combo_item name="EstateSales">
-					Til salg - Estate
-				</combo_item>
+				<combo_box.item name="AllTypes" label="Alle typer"/>
+				<combo_box.item name="Auction" label="Auktioner"/>
+				<combo_box.item name="MainlandSales" label="Til salg - Mainland"/>
+				<combo_box.item name="EstateSales" label="Til salg - Estate"/>
 			</combo_box>
 			<check_box label="Pris &#8804; " name="pricecheck"/>
 			<text name="pricecheck_symbol">
@@ -281,83 +213,46 @@ for at købe direkte, besøg landet du vil købe og klik på stedets navn i den 
 			<check_box label="Mature indhold" name="incmature"/>
 			<check_box label="Adult indhold" name="incadult"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					Enhver kategori
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Linden steder
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					Kunst &amp; kultur
-				</combo_item>
-				<combo_item name="Business">
-					Forretning
-				</combo_item>
-				<combo_item name="Educational">
-					Uddannelse
-				</combo_item>
-				<combo_item name="Gaming">
-					Spil
-				</combo_item>
-				<combo_item name="Hangout">
-					Opholdssteder
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					Nybegynder venligt
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					Parker &amp; natur
-				</combo_item>
-				<combo_item name="Residential">
-					Beboelse
-				</combo_item>
-				<combo_item name="Shopping">
-					Shopping
-				</combo_item>
-				<combo_item name="Other">
-					Andet
-				</combo_item>
+				<combo_box.item name="item0" label="Enhver kategori"/>
+				<combo_box.item name="item1" label="Linden steder"/>
+				<combo_box.item name="item3" label="Kunst &amp; kultur"/>
+				<combo_box.item name="item4" label="Forretning"/>
+				<combo_box.item name="item5" label="Uddannelse"/>
+				<combo_box.item name="item6" label="Spil"/>
+				<combo_box.item name="item7" label="Opholdssteder"/>
+				<combo_box.item name="item8" label="Nybegynder venligt"/>
+				<combo_box.item name="item9" label="Parker &amp; natur"/>
+				<combo_box.item name="item10" label="Beboelse"/>
+				<combo_box.item name="item11" label="Shopping"/>
+				<combo_box.item name="item12" label="Andet"/>
 			</combo_box>
 			<combo_box name="Category_Adult">
-				<combo_item name="AnyCategory">
-					Enhver kategori
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Linden sted
-				</combo_item>
-				<combo_item name="Adult">
-					Adult
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					Kunst &amp; kultur
-				</combo_item>
-				<combo_item name="Business">
-					Business
-				</combo_item>
-				<combo_item name="Educational">
-					Uddannelse
-				</combo_item>
-				<combo_item name="Gaming">
-					Spil
-				</combo_item>
-				<combo_item name="Hangout">
-					Opholdssteder
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					Nybegynder venligt
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					Parker &amp; natur
-				</combo_item>
-				<combo_item name="Residential">
-					Beboelse
-				</combo_item>
-				<combo_item name="Shopping">
-					Shopping
-				</combo_item>
-				<combo_item name="Other">
-					Andet
-				</combo_item>
+				<combo_box.item name="AnyCategory" label="Enhver kategori"
+				/>
+				<combo_box.item name="LindenLocation" label="Linden sted"
+				/>
+				<combo_box.item name="Adult" label="Adult"
+				/>
+				<combo_box.item name="Arts&amp;Culture" label="Kunst &amp; kultur"
+				/>
+				<combo_box.item name="Business" label="Business"
+				/>
+				<combo_box.item name="Educational" label="Uddannelse"
+				/>
+				<combo_box.item name="Gaming" label="Spil"
+				/>
+				<combo_box.item name="Hangout" label="Opholdssteder"
+				/>
+				<combo_box.item name="NewcomerFriendly" label="Nybegynder venligt"
+				/>
+				<combo_box.item name="Parks&amp;Nature" label="Parker &amp; natur"
+				/>
+				<combo_box.item name="Residential" label="Beboelse"
+				/>
+				<combo_box.item name="Shopping" label="Shopping"
+				/>
+				<combo_box.item name="Other" label="Andet"
+				/>
 			</combo_box>
 			<button label="Søg" label_selected="Søg" name="Search"/>
 			<scroll_list name="results">
@@ -398,7 +293,7 @@ for at købe direkte, besøg landet du vil købe og klik på stedets navn i den 
 			<text name="find">
 				Find:
 			</text>
-			<line_editor label="Søg" name="search_editor" tool_tip="Søg i Second Life"/>
+			<line_editor label="Søg" name="search_editor" tool_tip="Søg i [SECOND_LIFE]"/>
 			<button label="Retur" name="back_btn"/>
 			<button label="Frem" name="forward_btn"/>
 			<button label="Søg" name="search_btn"/>

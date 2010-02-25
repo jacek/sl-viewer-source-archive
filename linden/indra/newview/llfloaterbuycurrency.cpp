@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,8 @@
 // viewer includes
 #include "llcurrencyuimanager.h"
 #include "llfloater.h"
+#include "llfloaterreg.h"
+#include "llnotificationsutil.h"
 #include "llstatusbar.h"
 #include "lltextbox.h"
 #include "llviewchildren.h"
@@ -53,12 +55,7 @@ class LLFloaterBuyCurrencyUI
 :	public LLFloater
 {
 public:
-	static LLFloaterBuyCurrencyUI* soleInstance(bool createIfNeeded);
-
-private:
-	static LLFloaterBuyCurrencyUI* sInstance;
-
-	LLFloaterBuyCurrencyUI();
+	LLFloaterBuyCurrencyUI(const LLSD& key);
 	virtual ~LLFloaterBuyCurrencyUI();
 
 
@@ -80,31 +77,17 @@ public:
 
 	virtual void draw();
 	virtual BOOL canClose();
-	virtual void onClose(bool app_quitting);
 
-	static void onClickBuy(void* data);
-	static void onClickCancel(void* data);
-	static void onClickErrorWeb(void* data);
+	void onClickBuy();
+	void onClickCancel();
+	void onClickErrorWeb();
 };
 
-
-// static
-LLFloaterBuyCurrencyUI* LLFloaterBuyCurrencyUI::sInstance = NULL;
-
-// static
-LLFloaterBuyCurrencyUI* LLFloaterBuyCurrencyUI::soleInstance(bool createIfNeeded)
+LLFloater* LLFloaterBuyCurrency::buildFloater(const LLSD& key)
 {
-	if (!sInstance  &&  createIfNeeded)
-	{
-		sInstance = new LLFloaterBuyCurrencyUI();
-
-		LLUICtrlFactory::getInstance()->buildFloater(sInstance, "floater_buy_currency.xml");
-		sInstance->center();
-	}
-	
-	return sInstance;
+	LLFloaterBuyCurrencyUI* floater = new LLFloaterBuyCurrencyUI(key);
+	return floater;
 }
-
 
 #if LL_WINDOWS
 // passing 'this' during construction generates a warning. The callee
@@ -113,8 +96,8 @@ LLFloaterBuyCurrencyUI* LLFloaterBuyCurrencyUI::soleInstance(bool createIfNeeded
 // warning so that we can compile without generating a warning.
 #pragma warning(disable : 4355)
 #endif 
-LLFloaterBuyCurrencyUI::LLFloaterBuyCurrencyUI()
-:	LLFloater(std::string("Buy Currency")),
+LLFloaterBuyCurrencyUI::LLFloaterBuyCurrencyUI(const LLSD& key)
+:	LLFloater(key),
 	mChildren(*this),
 	mManager(*this)
 {
@@ -122,10 +105,6 @@ LLFloaterBuyCurrencyUI::LLFloaterBuyCurrencyUI()
 
 LLFloaterBuyCurrencyUI::~LLFloaterBuyCurrencyUI()
 {
-	if (sInstance == this)
-	{
-		sInstance = NULL;
-	}
 }
 
 
@@ -157,10 +136,12 @@ BOOL LLFloaterBuyCurrencyUI::postBuild()
 {
 	mManager.prepare();
 	
-	childSetAction("buy_btn", onClickBuy, this);
-	childSetAction("cancel_btn", onClickCancel, this);
-	childSetAction("error_web", onClickErrorWeb, this);
-
+	getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickBuy, this));
+	getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickCancel, this));
+	getChild<LLUICtrl>("error_web")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickErrorWeb, this));
+	
+	center();
+	
 	updateUI();
 	
 	return TRUE;
@@ -172,12 +153,16 @@ void LLFloaterBuyCurrencyUI::draw()
 	{
 		if (mManager.bought())
 		{
-			close();
+			LLNotificationsUtil::add("BuyLindenDollarSuccess");
+			closeFloater();
 			return;
 		}
 		
 		updateUI();
 	}
+
+	// disable the Buy button when we are not able to buy
+	childSetEnabled("buy_btn", mManager.canBuy());
 
 	LLFloater::draw();
 }
@@ -187,70 +172,58 @@ BOOL LLFloaterBuyCurrencyUI::canClose()
 	return mManager.canCancel();
 }
 
-void LLFloaterBuyCurrencyUI::onClose(bool app_quitting)
-{
-	LLFloater::onClose(app_quitting);
-	destroy();
-}
-
 void LLFloaterBuyCurrencyUI::updateUI()
 {
 	bool hasError = mManager.hasError();
 	mManager.updateUI(!hasError && !mManager.buying());
 
-	// section zero: title area
-	{
-		childSetVisible("info_buying", false);
-		childSetVisible("info_cannot_buy", false);
-		childSetVisible("info_need_more", false);
-		if (hasError)
-		{
-			childSetVisible("info_cannot_buy", true);
-		}
-		else if (mHasTarget)
-		{
-			childSetVisible("info_need_more", true);
-		}
-		else
-		{
-			childSetVisible("info_buying", true);
-		}
-	}
-	
-	// error section
+	// hide most widgets - we'll turn them on as needed next
+	childHide("info_buying");
+	childHide("info_cannot_buy");
+	childHide("info_need_more");	
+	childHide("purchase_warning_repurchase");
+	childHide("purchase_warning_notenough");
+	childHide("contacting");
+	childHide("buy_action");
+
 	if (hasError)
 	{
-		mChildren.setBadge(std::string("step_error"), LLViewChildren::BADGE_ERROR);
-		
-		LLTextBox* message = getChild<LLTextBox>("error_message");
-		if (message)
+		// display an error from the server
+		childHide("normal_background");
+		childShow("error_background");
+		childShow("info_cannot_buy");
+		childShow("cannot_buy_message");
+		childHide("balance_label");
+		childHide("balance_amount");
+		childHide("buying_label");
+		childHide("buying_amount");
+		childHide("total_label");
+		childHide("total_amount");
+
+        LLTextBox* message = getChild<LLTextBox>("cannot_buy_message");
+        if (message)
 		{
-			message->setVisible(true);
-			message->setWrappedText(mManager.errorMessage());
+			message->setText(mManager.errorMessage());
 		}
 
 		childSetVisible("error_web", !mManager.errorURI().empty());
-		if (!mManager.errorURI().empty())
-		{
-			childHide("getting_data");
-		}
 	}
 	else
 	{
-		childHide("step_error");
-		childHide("error_message");
+		// display the main Buy L$ interface
+		childShow("normal_background");
+		childHide("error_background");
+		childHide("cannot_buy_message");
 		childHide("error_web");
-	}
-	
-	
-	//  currency
-	childSetVisible("contacting", false);
-	childSetVisible("buy_action", false);
-	childSetVisible("buy_action_unknown", false);
-	
-	if (!hasError)
-	{
-		mChildren.setBadge(std::string("step_1"), LLViewChildren::BADGE_NOTE);
+
+		if (mHasTarget)
+		{
+			childShow("info_need_more");
+		}
+		else
+		{
+			childShow("info_buying");
+		}
 
 		if (mManager.buying())
 		{
@@ -263,10 +236,6 @@ void LLFloaterBuyCurrencyUI::updateUI()
 				childSetVisible("buy_action", true);
 				childSetTextArg("buy_action", "[NAME]", mTargetName);
 				childSetTextArg("buy_action", "[PRICE]", llformat("%d",mTargetPrice));
-			}
-			else
-			{
-				childSetVisible("buy_action_unknown", true);
 			}
 		}
 		
@@ -285,8 +254,6 @@ void LLFloaterBuyCurrencyUI::updateUI()
 		childShow("total_amount");
 		childSetTextArg("total_amount", "[AMT]", llformat("%d", total));
 
-		childSetVisible("purchase_warning_repurchase", false);
-		childSetVisible("purchase_warning_notenough", false);
 		if (mHasTarget)
 		{
 			if (total >= mTargetPrice)
@@ -299,78 +266,41 @@ void LLFloaterBuyCurrencyUI::updateUI()
 			}
 		}
 	}
-	else
-	{
-		childHide("step_1");
-		childHide("balance_label");
-		childHide("balance_amount");
-		childHide("buying_label");
-		childHide("buying_amount");
-		childHide("total_label");
-		childHide("total_amount");
-		childHide("purchase_warning_repurchase");
-		childHide("purchase_warning_notenough");
-	}
-	
-	childSetEnabled("buy_btn", mManager.canBuy());
 
-	if (!mManager.canBuy() && !childIsVisible("error_web"))
-	{
-		childShow("getting_data");
-	}
+	childSetVisible("getting_data", !mManager.canBuy() && !hasError);
 }
 
-// static
-void LLFloaterBuyCurrencyUI::onClickBuy(void* data)
+void LLFloaterBuyCurrencyUI::onClickBuy()
 {
-	LLFloaterBuyCurrencyUI* self = LLFloaterBuyCurrencyUI::soleInstance(false);
-	if (self)
-	{
-		self->mManager.buy(self->getString("buy_currency"));
-		self->updateUI();
-		// JC: updateUI() doesn't get called again until progress is made
-		// with transaction processing, so the "Purchase" button would be
-		// left enabled for some time.  Pre-emptively disable.
-		self->childSetEnabled("buy_btn", false);
-	}
+	mManager.buy(getString("buy_currency"));
+	updateUI();
 }
 
-// static
-void LLFloaterBuyCurrencyUI::onClickCancel(void* data)
+void LLFloaterBuyCurrencyUI::onClickCancel()
 {
-	LLFloaterBuyCurrencyUI* self = LLFloaterBuyCurrencyUI::soleInstance(false);
-	if (self)
-	{
-		self->close();
-	}
+	closeFloater();
 }
 
-// static
-void LLFloaterBuyCurrencyUI::onClickErrorWeb(void* data)
+void LLFloaterBuyCurrencyUI::onClickErrorWeb()
 {
-	LLFloaterBuyCurrencyUI* self = LLFloaterBuyCurrencyUI::soleInstance(false);
-	if (self)
-	{
-		LLWeb::loadURLExternal(self->mManager.errorURI());
-		self->close();
-	}
+	LLWeb::loadURLExternal(mManager.errorURI());
+	closeFloater();
 }
 
 // static
 void LLFloaterBuyCurrency::buyCurrency()
 {
-	LLFloaterBuyCurrencyUI* ui = LLFloaterBuyCurrencyUI::soleInstance(true);
+	LLFloaterBuyCurrencyUI* ui = LLFloaterReg::showTypedInstance<LLFloaterBuyCurrencyUI>("buy_currency");
 	ui->noTarget();
 	ui->updateUI();
-	ui->open();
 }
 
+// static
 void LLFloaterBuyCurrency::buyCurrency(const std::string& name, S32 price)
 {
-	LLFloaterBuyCurrencyUI* ui = LLFloaterBuyCurrencyUI::soleInstance(true);
+	LLFloaterBuyCurrencyUI* ui = LLFloaterReg::showTypedInstance<LLFloaterBuyCurrencyUI>("buy_currency");
 	ui->target(name, price);
 	ui->updateUI();
-	ui->open();
 }
 
 

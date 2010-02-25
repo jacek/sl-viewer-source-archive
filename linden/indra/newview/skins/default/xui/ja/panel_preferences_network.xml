@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="ネットワーク" name="network">
-	<text length="1" name="text_box" type="string">
+	<text name="text_box">
 		最大帯域幅：
 	</text>
-	<text length="1" name="text_box2" type="string">
+	<text name="text_box2">
 		kbps
 	</text>
-	<text length="1" name="cache_size_label_l" type="string">
+	<text name="cache_size_label_l">
 		キャッシュ：
 	</text>
 	<text name="text_box5">
 		MB
 	</text>
 	<button label="クリア" name="clear_cache"/>
-	<text length="1" name="cache_location_label" type="string">
+	<text name="cache_location_label">
 		キャッシュの場所：
 	</text>
 	<button label="設定" label_selected="設定" name="set_cache"/>

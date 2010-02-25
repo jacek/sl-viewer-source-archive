@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,10 @@
 #ifndef LL_LLVIEWERNETWORK_H
 #define LL_LLVIEWERNETWORK_H
 
+#include <boost/scoped_ptr.hpp>
+
 class LLHost;
+class LLLogin;
 
 enum EGridInfo
 {
@@ -74,6 +77,7 @@ class LLViewerLogin : public LLSingleton<LLViewerLogin>
 {
 public:
 	LLViewerLogin();
+	~LLViewerLogin();
 
 	void setGridChoice(EGridInfo grid);
 	void setGridChoice(const std::string& grid_name);

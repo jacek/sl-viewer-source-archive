@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,14 +41,15 @@
 #include "llfloater.h"
 
 class LLObjectSelection;
-class LLPanelInventory;
+class LLPanelObjectInventory;
 
 class LLFloaterOpenObject
 : public LLFloater
 {
+	friend class LLFloaterReg;
 public:
-	static void show();
-	static void dirty();
+	
+	void dirty();
 	
 	struct LLCatAndWear
 	{
@@ -57,23 +58,26 @@ public:
 	};
 
 protected:
-	LLFloaterOpenObject();
-	~LLFloaterOpenObject();
 
+	/*virtual*/	BOOL	postBuild();
 	void refresh();
 	void draw();
+	virtual void onOpen(const LLSD& key);
 
 	void moveToInventory(bool wear);
 
-	static void onClickMoveToInventory(void* data);
-	static void onClickMoveAndWear(void* data);
+	void onClickMoveToInventory();
+	void onClickMoveAndWear();
 	static void callbackMoveInventory(S32 result, void* data);
-	static void* createPanelInventory(void* data);
 
+private:
+	
+	LLFloaterOpenObject(const LLSD& key);
+	~LLFloaterOpenObject();
+	
 protected:
-	static LLFloaterOpenObject* sInstance;
 
-	LLPanelInventory*	mPanelInventory;
+	LLPanelObjectInventory*	mPanelInventoryObject;
 	LLSafeHandle<LLObjectSelection> mObjectSelection;
 	BOOL mDirty;
 };

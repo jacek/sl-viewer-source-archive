@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <floater name="Linden Land, Da Boom (154, 135, 35)"
-     title="  Linden Land, Da Boom (154, 135, 35)">
-	<text type="string" length="1" name="desc txt">
+     title="  LINDEN LAND, DA BOOM (154, 135, 35)">
+	<text name="desc txt">
 		Description :
 	</text>
 	<button label="Téléportation" label_selected="" name="Teleport btn" />

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="Inventory Finder" title="Nowe Obiekty">
+<floater name="Inventory Finder" title="NOWE OBIEKTY">
 	<check_box label="Animacje" name="check_animation" />
 	<check_box label="Wizytówki" name="check_calling_card" />
 	<check_box label="Ubrania" name="check_clothing" />
@@ -15,7 +15,7 @@
 	<button label="Żadne" label_selected="Żadne" name="None" />
 	<check_box label="Zawsze pokazuj foldery" name="check_show_empty" />
 	<check_box label="Od czasu wylogowania" name="check_since_logoff" />
-	<text type="string" length="1" name="- OR -">
+	<text name="- OR -">
 		- LUB -
 	</text>
 	<spinner label="Od godzin" name="spin_hours_ago" />

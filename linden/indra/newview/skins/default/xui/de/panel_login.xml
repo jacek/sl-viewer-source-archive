@@ -1,49 +1,45 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="panel_login">
-	<text name="first_name_text">
-		Vorname:
-	</text>
-	<text name="last_name_text">
-		Nachname:
-	</text>
-	<text name="password_text">
-		Kennwort:
-	</text>
-	<text name="start_location_text">
-		Startposition:
-	</text>
-	<combo_box name="start_location_combo">
-		<combo_item name="MyHome">
-			Mein Heimatort
-		</combo_item>
-		<combo_item name="MyLastLocation">
-			Mein letzter Standort
-		</combo_item>
-		<combo_item name="Typeregionname">
-			&lt;Region eingeben&gt;
-		</combo_item>
-	</combo_box>
-	<check_box label="Kennwort merken" name="remember_check"/>
-	<text name="full_screen_text">
-		Die Anzeige schaltet bei Anmeldung auf Vollbild um.
-	</text>
-	<button label="Neues Konto..." label_selected="Neues Konto..." name="new_account_btn"/>
-	<button label="Einstellungen..." label_selected="Einstellungen..." name="preferences_btn"/>
-	<button label="Anmelden" label_selected="Anmelden" name="connect_btn"/>
-	<button label="Beenden" label_selected="Beenden" name="quit_btn"/>
-	<text name="version_text">
-		1.23.4 (5)
-	</text>
-	<text name="create_new_account_text">
-		Konto erstellen
-	</text>
-	<text name="channel_text">
-		[VERSION]
-	</text>
-	<text name="forgot_password_text">
-		Namen oder Kennwort vergessen?
-	</text>
-	<text name="forgot_password_url">
-		http://secondlife.com/account/request.php
-	</text>
+	<panel.string name="create_account_url">
+		http://de.secondlife.com/registration/
+	</panel.string>
+	<panel.string name="forgot_password_url">
+		http://secondlife.com/account/request.php?lang=de
+	</panel.string>
+	<layout_stack name="login_widgets">
+		<layout_panel name="login">
+			<text name="first_name_text">
+				Vorname:
+			</text>
+			<line_editor label="Vorname" name="first_name_edit" tool_tip="[SECOND_LIFE] Vorname"/>
+			<text name="last_name_text">
+				Nachname:
+			</text>
+			<line_editor label="Nachname" name="last_name_edit" tool_tip="[SECOND_LIFE] Nachname"/>
+			<text name="password_text">
+				Kennwort:
+			</text>
+			<check_box label="Kennwort merken" name="remember_check"/>
+			<text name="start_location_text">
+				Hier anfangen:
+			</text>
+			<combo_box name="start_location_combo" width="150">
+				<combo_box.item label="Mein letzter Standort" name="MyLastLocation"/>
+				<combo_box.item label="Mein Zuhause" name="MyHome"/>
+				<combo_box.item label="&lt;Region eingeben&gt;" name="Typeregionname"/>
+			</combo_box>
+			<button label="Anmelden" name="connect_btn"/>
+		</layout_panel>
+		<layout_panel name="links">
+			<text name="create_new_account_text">
+				Registrieren
+			</text>
+			<text name="forgot_password_text">
+				Namen oder Kennwort vergessen?
+			</text>
+			<text name="login_help">
+				Sie brauchen Hilfe?
+			</text>
+		</layout_panel>
+	</layout_stack>
 </panel>

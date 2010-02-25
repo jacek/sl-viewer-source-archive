@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -31,8 +31,10 @@
 
 #ifndef LL_LLFLOATERSELLLAND_H
 #define LL_LLFLOATERSELLLAND_H
-#include "llmemory.h"
 
+#include "llsafehandle.h"
+
+class LLFloater;
 class LLParcel;
 class LLViewerRegion;
 class LLParcelSelection;
@@ -42,6 +44,8 @@ class LLFloaterSellLand
 public:
 	static void sellLand(LLViewerRegion* region,
 						LLSafeHandle<LLParcelSelection> parcel);
+	
+	static LLFloater* buildFloater(const LLSD& key);
 };
 
 #endif // LL_LLFLOATERSELLLAND_H

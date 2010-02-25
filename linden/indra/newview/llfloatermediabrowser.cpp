@@ -1,10 +1,10 @@
 /** 
- * @file llfloaterhtmlhelp.cpp
- * @brief HTML Help floater - uses embedded web browser control
+ * @file llfloatermediabrowser.cpp
+ * @brief media browser floater - uses embedded media browser control
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,8 +33,8 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llfloatermediabrowser.h"
-#include "llfloaterhtml.h"
 
+#include "llfloaterreg.h"
 #include "llparcel.h"
 #include "llpluginclassmedia.h"
 #include "lluictrlfactory.h"
@@ -56,9 +56,10 @@
 // TEMP
 #include "llsdutil.h"
 
-LLFloaterMediaBrowser::LLFloaterMediaBrowser(const LLSD& media_data)
+LLFloaterMediaBrowser::LLFloaterMediaBrowser(const LLSD& key)
+	: LLFloater(key)
 {
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_media_browser.xml");
+//	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_media_browser.xml");
 
 }
 
@@ -103,8 +104,7 @@ BOOL LLFloaterMediaBrowser::postBuild()
 	mBrowser->addObserver(this);
 
 	mAddressCombo = getChild<LLComboBox>("address");
-	mAddressCombo->setCommitCallback(onEnterAddress);
-	mAddressCombo->setCallbackUserData(this);
+	mAddressCombo->setCommitCallback(onEnterAddress, this);
 
 	childSetAction("back", onClickBack, this);
 	childSetAction("forward", onClickForward, this);
@@ -146,13 +146,18 @@ void LLFloaterMediaBrowser::buildURLHistory()
 	}
 
 	// initialize URL history in the plugin
-	mBrowser->getMediaPlugin()->initializeUrlHistory(browser_history);
+	if(mBrowser && mBrowser->getMediaPlugin())
+	{
+		mBrowser->getMediaPlugin()->initializeUrlHistory(browser_history);
+	}
 }
 
 std::string LLFloaterMediaBrowser::getSupportURL()
 {
 	return getString("support_page_url");
 }
+
+//virtual
 void LLFloaterMediaBrowser::onClose(bool app_quitting)
 {
 	//setVisible(FALSE);
@@ -192,12 +197,10 @@ void LLFloaterMediaBrowser::setCurrentURL(const std::string& url)
 	childSetEnabled("reload", TRUE);
 }
 
-LLFloaterMediaBrowser* LLFloaterMediaBrowser::showInstance(const LLSD& media_url)
+void LLFloaterMediaBrowser::onOpen(const LLSD& media_url)
 {
-	LLFloaterMediaBrowser* floaterp = LLUISingleton<LLFloaterMediaBrowser, VisibilityPolicy<LLFloater> >::showInstance(media_url);
-
-	floaterp->openMedia(media_url.asString());
-	return floaterp;
+	LLFloater::onOpen(media_url);
+	openMedia(media_url.asString());
 }
 
 //static 
@@ -245,7 +248,7 @@ void LLFloaterMediaBrowser::onClickClose(void* user_data)
 {
 	LLFloaterMediaBrowser* self = (LLFloaterMediaBrowser*)user_data;
 
-	self->close();
+	self->closeFloater();
 }
 
 //static 
@@ -331,68 +334,3 @@ void LLFloaterMediaBrowser::openMedia(const std::string& media_url)
 	mBrowser->navigateTo(media_url);
 	setCurrentURL(media_url);
 }
-////////////////////////////////////////////////////////////////////////////////
-//
-
-LLViewerHtmlHelp gViewerHtmlHelp;
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-LLViewerHtmlHelp::LLViewerHtmlHelp()
-{
-
-	LLUI::setHtmlHelp(this);
-}
-
-LLViewerHtmlHelp::~LLViewerHtmlHelp()
-{
-
-	LLUI::setHtmlHelp(NULL);
-}
-
-void LLViewerHtmlHelp::show()
-{
-	show("");
-}
-
-void LLViewerHtmlHelp::show(std::string url)
-{
-	LLFloaterMediaBrowser* floater_html = LLFloaterMediaBrowser::getInstance();
-	floater_html->setVisible(FALSE);
-
-	if (url.empty())
-	{
-		url = floater_html->getSupportURL();
-	}
-
-	if (gSavedSettings.getBOOL("UseExternalBrowser"))
-	{
-		LLSD notificationData;
-		notificationData["url"] = url;                                                                     	    
-
-		LLNotifications::instance().add("ClickOpenF1Help", notificationData, LLSD(), onClickF1HelpLoadURL);	    
-		floater_html->close();
-	}
-	else
-	{
-		// don't wait, just do it
-		floater_html->setVisible(TRUE);
-		floater_html->openMedia(url);
-	}
-}
-// static 
-bool LLViewerHtmlHelp::onClickF1HelpLoadURL(const LLSD& notification, const LLSD& response)
-{
-	LLFloaterMediaBrowser* floater_html = LLFloaterMediaBrowser::getInstance();
-	floater_html->setVisible(FALSE);
-	std::string url = floater_html->getSupportURL();
-	S32 option = LLNotification::getSelectedOption(notification, response);
-	if (option == 0)
-	{
-		LLWeb::loadURL(url);
-	}
-	floater_html->close();
-	return false;
-}
-

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,8 +36,8 @@
 
 #include "llfloater.h"
 #include "lluuid.h"
-#include "llmemory.h"
-#include "llviewerimage.h"
+#include "llpointer.h"
+#include "llviewertexture.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Class LLFloaterAuction
@@ -45,34 +45,47 @@
 // Class which holds the functionality to start auctions.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class LLParcelSelection;
+class LLParcel;
+class LLViewerRegion;
 
 class LLFloaterAuction : public LLFloater
 {
+	friend class LLFloaterReg;
 public:
 	// LLFloater interface
-	/*virtual*/ void onClose(bool app_quitting) { setVisible(FALSE); }
+	/*virtual*/ void onOpen(const LLSD& key);
 	/*virtual*/ void draw();
 
-	// LLFloaterAuction interface
-	static void show();
-	
 private:
-	LLFloaterAuction();
+	
+	LLFloaterAuction(const LLSD& key);
 	~LLFloaterAuction();
+	
 	void initialize();
 
 	static void onClickSnapshot(void* data);
-	static void onClickOK(void* data);
+	static void onClickResetParcel(void* data);
+	static void onClickSellToAnyone(void* data);		// Sell to anyone clicked
+	bool onSellToAnyoneConfirmed(const LLSD& notification, const LLSD& response);	// Sell confirmation clicked
+	static void onClickStartAuction(void* data);
 
-	static LLFloaterAuction* sInstance;
+	/*virtual*/ BOOL postBuild();
+
+	void doResetParcel();
+	void doSellToAnyone();
+	void clearParcelAccessLists( LLParcel* parcel, LLViewerRegion* region );
+	void cleanupAndClose();
 
 private:
+
 	LLTransactionID mTransactionID;
 	LLAssetID mImageID;
-	LLPointer<LLImageGL> mImage;
+	LLPointer<LLViewerTexture> mImage;
 	LLSafeHandle<LLParcelSelection> mParcelp;
 	S32 mParcelID;
 	LLHost mParcelHost;
+
+	std::string mParcelUpdateCapUrl;	// "ParcelPropertiesUpdate" capability
 };
 
 

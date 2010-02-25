@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,9 +32,9 @@
  */
 
 #ifndef LLBASE32_H
-#define LLBASE32_h
+#define LLBASE32_H
 
-class LLBase32
+class LL_COMMON_API LLBase32
 {
 public:
 	static std::string encode(const U8* input, size_t input_size);

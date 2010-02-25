@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <panel label="Sieć" name="network">
-	<text type="string" length="1" name="text_box">
+	<text name="text_box">
 		Maksymalna Przepustowość:
 	</text>
-	<text type="string" length="1" name="text_box2">
+	<text name="text_box2">
 		kbps (kilobity na sekundę)
 	</text>
-	<text type="string" length="1" name="cache_size_label_l">
+	<text name="cache_size_label_l">
 		Rozmiar Bufora Danych:
 	</text>
-	<text type="string" length="1" name="text_box5">
+	<text name="text_box5">
 		MB
 	</text>
 	<button label="Wyczyść" name="clear_cache" />
-	<text type="string" length="1" name="cache_location_label">
+	<text name="cache_location_label">
 		Lokacja Bufora Danych na Dysku:
 	</text>
 	<button label="Ustaw" label_selected="Ustaw" name="set_cache" />

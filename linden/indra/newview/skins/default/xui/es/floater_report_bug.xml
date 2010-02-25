@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="bug_reporter" title="Informar Bug">
+<floater name="bug_reporter" title="INFORMAR BUG">
 	<text name="reporter_title">
 		Relator:
 	</text>
@@ -27,60 +27,24 @@
 	</text>
 	<combo_box name="category_combo"
 	     tool_tip="Category -- select the category that best describes this report">
-		<combo_item name="Selectcategory">
-			Elige la categoría
-		</combo_item>
-		<combo_item name="Building">
-			Construyendo
-		</combo_item>
-		<combo_item name="Character">
-			Personaje
-		</combo_item>
-		<combo_item name="Chat/IM">
-			Chat/MI
-		</combo_item>
-		<combo_item name="Documentation">
-			Documentación
-		</combo_item>
-		<combo_item name="Exploit">
-			Hazaña
-		</combo_item>
-		<combo_item name="Graphics">
-			Gráficos
-		</combo_item>
-		<combo_item name="Inventory">
-			Inventario
-		</combo_item>
-		<combo_item name="Lag">
-			Atraso
-		</combo_item>
-		<combo_item name="MissingContent">
-			Contenido perdido
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			Linden Dólares (L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			Permisos
-		</combo_item>
-		<combo_item name="Physics">
-			Física
-		</combo_item>
-		<combo_item name="Script">
-			Script
-		</combo_item>
-		<combo_item name="Sound">
-			Sonido
-		</combo_item>
-		<combo_item name="Stipends">
-			Salario
-		</combo_item>
-		<combo_item name="Userinterface">
-			Pantalla del usuario
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			Miscelánea
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="Elige la categoría" />
+		<combo_box.item name="Building" label="Construyendo" />
+		<combo_box.item name="Character" label="Personaje" />
+		<combo_box.item name="Chat/IM" label="Chat/MI" />
+		<combo_box.item name="Documentation" label="Documentación" />
+		<combo_box.item name="Exploit" label="Hazaña" />
+		<combo_box.item name="Graphics" label="Gráficos" />
+		<combo_box.item name="Inventory" label="Inventario" />
+		<combo_box.item name="Lag" label="Atraso" />
+		<combo_box.item name="MissingContent" label="Contenido perdido" />
+		<combo_box.item name="LindenDollars(L$)" label="Linden Dólares (L$)" />
+		<combo_box.item name="Permissions" label="Permisos" />
+		<combo_box.item name="Physics" label="Física" />
+		<combo_box.item name="Script" label="Script" />
+		<combo_box.item name="Sound" label="Sonido" />
+		<combo_box.item name="Stipends" label="Salario" />
+		<combo_box.item name="Userinterface" label="Pantalla del usuario" />
+		<combo_box.item name="Miscellaneous" label="Miscelánea" />
 	</combo_box>
 	<text name="sum_title">
 		Resumen:

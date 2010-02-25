@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,12 +36,12 @@
 #include "stdtypes.h"
 
 // forward declaration so that we don't have to include the whole class
-class LLControlGroupReader;
+class LLControlGroup;
 
 class LLAgentAccess
 {
 public:
-	LLAgentAccess(LLControlGroupReader& savedSettings);
+	LLAgentAccess(LLControlGroup& savedSettings);
 	
 	bool getAdminOverride() const;
 	void setAdminOverride(bool b);
@@ -71,6 +71,7 @@ public:
 	
 	void setTransition();	// sets the transition bit, which defaults to false
 	bool isInTransition() const;
+	bool canSetMaturity(S32 maturity);
 	
 private:
 	U8 mAccess;	// SIM_ACCESS_MATURE etc
@@ -84,9 +85,7 @@ private:
 	// all of the code that depends on it.
 	bool mAOTransition;
 	
-	// we want this to be const but the getters for it aren't, so we're 
-	// overriding it for now
-	/* const */ LLControlGroupReader& mSavedSettings;
+	LLControlGroup& mSavedSettings;
 };
 
 #endif // LL_LLAGENTACCESS_H

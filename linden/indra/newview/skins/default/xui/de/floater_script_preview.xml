@@ -1,6 +1,9 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="preview lsl text" title="Skript: Rotationsskript">
-	<text type="string" length="1" name="desc txt">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="preview lsl text" title="SKRIPT: ROTATIONS-SKRIPT">
+	<floater.string name="Title">
+		SKRIPT: [NAME]
+	</floater.string>
+	<text name="desc txt" width="120">
 		Beschreibung:
 	</text>
 </floater>

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -50,7 +50,7 @@ class LLWorkerClass;
 // Note: ~LLWorkerThread is O(N) N=# of worker threads, assumed to be small
 //   It is assumed that LLWorkerThreads are rarely created/destroyed.
 
-class LLWorkerThread : public LLQueuedThread
+class LL_COMMON_API LLWorkerThread : public LLQueuedThread
 {
 	friend class LLWorkerClass;
 public:
@@ -117,7 +117,7 @@ private:
 // Only one background task can be active at a time (per instance).
 //  i.e. don't call addWork() if haveWork() returns true
 
-class LLWorkerClass
+class LL_COMMON_API LLWorkerClass
 {
 	friend class LLWorkerThread;
 	friend class LLWorkerThread::WorkRequest;

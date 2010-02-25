@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,32 +36,33 @@
 #include "llviewerthrottle.h"
 
 #include "message.h"
+#include "llfloaterreg.h"
+#include "llmemory.h"
 #include "lltimer.h"
+#include "llvfile.h"
 
 #include "llappviewer.h"
 
 #include "pipeline.h" 
 #include "lltexturefetch.h" 
 #include "llviewerobjectlist.h" 
-#include "llviewerimagelist.h" 
+#include "llviewertexturelist.h" 
 #include "lltexlayer.h"
+#include "lltexlayerparams.h"
 #include "llsurface.h"
 #include "llvlmanager.h"
 #include "llagent.h"
 #include "llviewercontrol.h"
-#include "llfloaterdirectory.h"
 #include "llfloatertools.h"
 #include "lldebugview.h"
 #include "llfasttimerview.h"
 #include "llviewerregion.h"
 #include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llviewerwindow.h"		// *TODO: remove, only used for width/height
 #include "llworld.h"
 #include "llfeaturemanager.h"
 #include "llviewernetwork.h"
-#if LL_LCD_COMPILE
-#include "lllcd.h"
-#endif
 
 
 class StatAttributes
@@ -198,16 +199,76 @@ const StatAttributes STAT_INFO[LLViewerStats::ST_COUNT] =
 	// ST_TEX_BAKES
 	StatAttributes("Texture Bakes", FALSE, FALSE),
 	// ST_TEX_REBAKES
-	StatAttributes("Texture Rebakes", FALSE, FALSE),
-
-	// ST_LOGITECH_KEYBOARD
-	StatAttributes("Logitech LCD", FALSE, FALSE)
+	StatAttributes("Texture Rebakes", FALSE, FALSE)
 
 };
 
-LLViewerStats::LLViewerStats()
-	: mPacketsLostPercentStat(64),
-	  mLastTimeDiff(0.0)
+LLViewerStats::LLViewerStats() :
+	mKBitStat("kbitstat"),
+	mLayersKBitStat("layerskbitstat"),
+	mObjectKBitStat("objectkbitstat"),
+	mAssetKBitStat("assetkbitstat"),
+	mTextureKBitStat("texturekbitstat"),
+	mVFSPendingOperations("vfspendingoperations"),
+	mObjectsDrawnStat("objectsdrawnstat"),
+	mObjectsCulledStat("objectsculledstat"),
+	mObjectsTestedStat("objectstestedstat"),
+	mObjectsComparedStat("objectscomparedstat"),
+	mObjectsOccludedStat("objectsoccludedstat"),
+	mFPSStat("fpsstat"),
+	mPacketsInStat("packetsinstat"),
+	mPacketsLostStat("packetsloststat"),
+	mPacketsOutStat("packetsoutstat"),
+	mPacketsLostPercentStat("packetslostpercentstat", 64),
+	mTexturePacketsStat("texturepacketsstat"),
+	mActualInKBitStat("actualinkbitstat"),
+	mActualOutKBitStat("actualoutkbitstat"),
+	mTrianglesDrawnStat("trianglesdrawnstat"),
+	mSimTimeDilation("simtimedilation"),
+	mSimFPS("simfps"),
+	mSimPhysicsFPS("simphysicsfps"),
+	mSimAgentUPS("simagentups"),
+	mSimScriptEPS("simscripteps"),
+	mSimFrameMsec("simframemsec"),
+	mSimNetMsec("simnetmsec"),
+	mSimSimOtherMsec("simsimothermsec"),
+	mSimSimPhysicsMsec("simsimphysicsmsec"),
+	mSimSimPhysicsStepMsec("simsimphysicsstepmsec"),
+	mSimSimPhysicsShapeUpdateMsec("simsimphysicsshapeupdatemsec"),
+	mSimSimPhysicsOtherMsec("simsimphysicsothermsec"),
+	mSimAgentMsec("simagentmsec"),
+	mSimImagesMsec("simimagesmsec"),
+	mSimScriptMsec("simscriptmsec"),
+	mSimSpareMsec("simsparemsec"),
+	mSimSleepMsec("simsleepmsec"),
+	mSimPumpIOMsec("simpumpiomsec"),
+	mSimMainAgents("simmainagents"),
+	mSimChildAgents("simchildagents"),
+	mSimObjects("simobjects"),
+	mSimActiveObjects("simactiveobjects"),
+	mSimActiveScripts("simactivescripts"),
+	mSimInPPS("siminpps"),
+	mSimOutPPS("simoutpps"),
+	mSimPendingDownloads("simpendingdownloads"),
+	mSimPendingUploads("simpendinguploads"),
+	mSimPendingLocalUploads("simpendinglocaluploads"),
+	mSimTotalUnackedBytes("simtotalunackedbytes"),
+	mPhysicsPinnedTasks("physicspinnedtasks"),
+	mPhysicsLODTasks("physicslodtasks"),
+	mPhysicsMemoryAllocated("physicsmemoryallocated"),
+	mSimPingStat("simpingstat"),
+	mNumImagesStat("numimagesstat", 32, TRUE),
+	mNumRawImagesStat("numrawimagesstat", 32, TRUE),
+	mGLTexMemStat("gltexmemstat", 32, TRUE),
+	mGLBoundMemStat("glboundmemstat", 32, TRUE),
+	mRawMemStat("rawmemstat", 32, TRUE),
+	mFormattedMemStat("formattedmemstat", 32, TRUE),
+	mNumObjectsStat("numobjectsstat"),
+	mNumActiveObjectsStat("numactiveobjectsstat"),
+	mNumNewObjectsStat("numnewobjectsstat"),
+	mNumSizeCulledStat("numsizeculledstat"),
+	mNumVisCulledStat("numvisculledstat"),
+	mLastTimeDiff(0.0)
 {
 	for (S32 i = 0; i < ST_COUNT; i++)
 	{
@@ -352,7 +413,6 @@ void reset_statistics()
 {
 	if (LLSurface::sTextureUpdateTime)
 	{
-		LLSurface::sTexelsUpdatedPerSecStat.addValue(0.001f*(LLSurface::sTexelsUpdated / LLSurface::sTextureUpdateTime));
 		LLSurface::sTexelsUpdated = 0;
 		LLSurface::sTextureUpdateTime = 0.f;
 	}
@@ -363,7 +423,7 @@ void output_statistics(void*)
 {
 	llinfos << "Number of orphans: " << gObjectList.getOrphanCount() << llendl;
 	llinfos << "Number of dead objects: " << gObjectList.mNumDeadObjects << llendl;
-	llinfos << "Num images: " << gImageList.getNumImages() << llendl;
+	llinfos << "Num images: " << gTextureList.getNumImages() << llendl;
 	llinfos << "Texture usage: " << LLImageGL::sGlobalTextureMemoryInBytes << llendl;
 	llinfos << "Texture working set: " << LLImageGL::sBoundTextureMemoryInBytes << llendl;
 	llinfos << "Raw usage: " << LLImageRaw::sGlobalRawMemory << llendl;
@@ -448,10 +508,10 @@ void output_statistics(void*)
 
 	llinfos << "--------------------------------" << llendl;
 	llinfos << "Avatar Memory (partly overlaps with above stats):" << llendl;
-	gTexStaticImageList.dumpByteCount();
-	LLVOAvatar::dumpScratchTextureByteCount();
+	LLTexLayerStaticImageList::getInstance()->dumpByteCount();
+	LLVOAvatarSelf::dumpScratchTextureByteCount();
 	LLTexLayerSetBuffer::dumpTotalByteCount();
-	LLVOAvatar::dumpTotalLocalTextureByteCount();
+	LLVOAvatarSelf::dumpTotalLocalTextureByteCount();
 	LLTexLayerParamAlpha::dumpCacheByteCount();
 	LLVOAvatar::dumpBakedStatus();
 
@@ -525,7 +585,7 @@ void update_statistics(U32 frame_count)
 		{
 			LLViewerStats::getInstance()->incStat(LLViewerStats::ST_AVATAR_EDIT_SECONDS, gFrameIntervalSeconds);
 		}
-		else if (gFloaterTools && gFloaterTools->getVisible())
+		else if (LLFloaterReg::instanceVisible("build"))
 		{
 			LLViewerStats::getInstance()->incStat(LLViewerStats::ST_TOOLBOX_SECONDS, gFrameIntervalSeconds);
 		}
@@ -539,14 +599,14 @@ void update_statistics(U32 frame_count)
 	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_SHADER_AVATAR, (F64)gSavedSettings.getBOOL("VertexShaderLevelAvatar"));
 	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_SHADER_ENVIRONMENT, (F64)gSavedSettings.getBOOL("VertexShaderLevelEnvironment"));
 #endif
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_FRAME_SECS, gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_FRAME));
-	F64 idle_secs = gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_IDLE);
-	F64 network_secs = gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_NETWORK);
+	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_FRAME_SECS, gDebugView->mFastTimerView->getTime("Frame"));
+	F64 idle_secs = gDebugView->mFastTimerView->getTime("Idle");
+	F64 network_secs = gDebugView->mFastTimerView->getTime("Network");
 	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_UPDATE_SECS, idle_secs - network_secs);
 	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_NETWORK_SECS, network_secs);
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_IMAGE_SECS, gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_IMAGE_UPDATE));
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_REBUILD_SECS, gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_STATESORT ));
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_RENDER_SECS, gDebugView->mFastTimerView->getTime(LLFastTimer::FTM_RENDER_GEOMETRY));
+	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_IMAGE_SECS, gDebugView->mFastTimerView->getTime("Update Images"));
+	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_REBUILD_SECS, gDebugView->mFastTimerView->getTime("Sort Draw State"));
+	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_RENDER_SECS, gDebugView->mFastTimerView->getTime("Geometry"));
 		
 	LLCircuitData *cdp = gMessageSystem->mCircuitInfo.findCircuit(gAgent.getRegion()->getHost());
 	if (cdp)
@@ -596,27 +656,21 @@ void update_statistics(U32 frame_count)
 	gObjectBits = 0;
 //	gDecodedBits = 0;
 
-	// Only update texture stats ones per second so that they are less noisy
+	// Only update texture stats periodically so that they are less noisy
 	{
-		static const F32 texture_stats_freq = 1.f;
+		static const F32 texture_stats_freq = 10.f;
 		static LLFrameTimer texture_stats_timer;
 		if (texture_stats_timer.getElapsedTimeF32() >= texture_stats_freq)
 		{
-			LLViewerStats::getInstance()->mTextureKBitStat.addValue(LLViewerImageList::sTextureBits/1024.f);
-			LLViewerStats::getInstance()->mTexturePacketsStat.addValue(LLViewerImageList::sTexturePackets);
-			gTotalTextureBytes += LLViewerImageList::sTextureBits / 8;
-			LLViewerImageList::sTextureBits = 0;
-			LLViewerImageList::sTexturePackets = 0;
+			LLViewerStats::getInstance()->mTextureKBitStat.addValue(LLViewerTextureList::sTextureBits/1024.f);
+			LLViewerStats::getInstance()->mTexturePacketsStat.addValue(LLViewerTextureList::sTexturePackets);
+			gTotalTextureBytes += LLViewerTextureList::sTextureBits / 8;
+			LLViewerTextureList::sTextureBits = 0;
+			LLViewerTextureList::sTexturePackets = 0;
 			texture_stats_timer.reset();
 		}
 	}
 
-#if LL_LCD_COMPILE
-	bool LCDenabled = gLcdScreen->Enabled();
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_LOGITECH_LCD, LCDenabled);
-#else
-	LLViewerStats::getInstance()->setStat(LLViewerStats::ST_LOGITECH_LCD, false);
-#endif
 }
 
 class ViewerStatsResponder : public LLHTTPClient::Responder
@@ -706,7 +760,7 @@ void send_stats()
 	agent["ping"] = gAvgSimPing;
 	agent["meters_traveled"] = gAgent.getDistanceTraveled();
 	agent["regions_visited"] = gAgent.getRegionsVisited();
-	agent["mem_use"] = getCurrentRSS() / 1024.0;
+	agent["mem_use"] = LLMemory::getCurrentRSS() / 1024.0;
 
 	LLSD &system = body["system"];
 	
@@ -769,13 +823,11 @@ void send_stats()
 	// Screen size so the UI team can figure out how big the widgets
 	// appear and use a "typical" size for end user tests.
 
-	S32 window_width = gViewerWindow->getWindowDisplayWidth();
-	S32 window_height = gViewerWindow->getWindowDisplayHeight();
+	S32 window_width = gViewerWindow->getWindowWidthRaw();
+	S32 window_height = gViewerWindow->getWindowHeightRaw();
 	S32 window_size = (window_width * window_height) / 1024;
 	misc["string_1"] = llformat("%d", window_size);
 	// misc["string_2"] = 
-// 	misc["int_1"] = LLFloaterDirectory::sOldSearchCount; // Steve: 1.18.6
-// 	misc["int_2"] = LLFloaterDirectory::sNewSearchCount; // Steve: 1.18.6
 // 	misc["int_1"] = LLSD::Integer(gSavedSettings.getU32("RenderQualityPerformance")); // Steve: 1.21
 // 	misc["int_2"] = LLSD::Integer(gFrameStalls); // Steve: 1.21
 

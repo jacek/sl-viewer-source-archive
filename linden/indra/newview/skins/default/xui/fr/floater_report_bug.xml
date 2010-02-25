@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="bug_reporter" title="Signaler un bug">
+<floater name="bug_reporter" title="SIGNALER UN BUG">
 	<text name="reporter_title">
 		Signalant :
 	</text>
@@ -31,60 +31,24 @@
 		Hendrerit Vulputate
 	</text>
 	<combo_box name="category_combo" tool_tip="Choisissez la catégorie qui décrit le mieux ce rapport">
-		<combo_item name="Selectcategory">
-			Sélectionnez une catégorie
-		</combo_item>
-		<combo_item name="Building">
-			Construire
-		</combo_item>
-		<combo_item name="Character">
-			Personnage
-		</combo_item>
-		<combo_item name="Chat/IM">
-			Chat/IM
-		</combo_item>
-		<combo_item name="Documentation">
-			Documentation
-		</combo_item>
-		<combo_item name="Exploit">
-			Exploit
-		</combo_item>
-		<combo_item name="Graphics">
-			Graphiques
-		</combo_item>
-		<combo_item name="Inventory">
-			Inventaire
-		</combo_item>
-		<combo_item name="Lag">
-			Lag
-		</combo_item>
-		<combo_item name="MissingContent">
-			Contenu manquant
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			Dollar Linden (L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			Autorisations
-		</combo_item>
-		<combo_item name="Physics">
-			Propriétés physiques
-		</combo_item>
-		<combo_item name="Script">
-			Script
-		</combo_item>
-		<combo_item name="Sound">
-			Son
-		</combo_item>
-		<combo_item name="Stipends">
-			Subsides
-		</combo_item>
-		<combo_item name="Userinterface">
-			Interface utilisateur
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			Divers
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="Sélectionnez une catégorie" />
+		<combo_box.item name="Building" label="Construire" />
+		<combo_box.item name="Character" label="Personnage" />
+		<combo_box.item name="Chat/IM" label="Chat/IM" />
+		<combo_box.item name="Documentation" label="Documentation" />
+		<combo_box.item name="Exploit" label="Exploit" />
+		<combo_box.item name="Graphics" label="Graphiques" />
+		<combo_box.item name="Inventory" label="Inventaire" />
+		<combo_box.item name="Lag" label="Lag" />
+		<combo_box.item name="MissingContent" label="Contenu manquant" />
+		<combo_box.item name="LindenDollars(L$)" label="Dollar Linden (L$)" />
+		<combo_box.item name="Permissions" label="Autorisations" />
+		<combo_box.item name="Physics" label="Propriétés physiques" />
+		<combo_box.item name="Script" label="Script" />
+		<combo_box.item name="Sound" label="Son" />
+		<combo_box.item name="Stipends" label="Subsides" />
+		<combo_box.item name="Userinterface" label="Interface utilisateur" />
+		<combo_box.item name="Miscellaneous" label="Divers" />
 	</combo_box>
 	<text name="sum_title">
 		Récapitulatif :

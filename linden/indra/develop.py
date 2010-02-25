@@ -6,7 +6,7 @@
 #
 # $LicenseInfo:firstyear=2007&license=viewergpl$
 # 
-# Copyright (c) 2007-2009, Linden Research, Inc.
+# Copyright (c) 2007-2010, Linden Research, Inc.
 # 
 # Second Life Viewer Source Code
 # The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,6 +41,7 @@ import shutil
 import socket
 import sys
 import commands
+import subprocess
 
 class CommandError(Exception):
     pass
@@ -76,6 +77,7 @@ class PlatformSetup(object):
     build_type = build_types['relwithdebinfo']
     standalone = 'OFF'
     unattended = 'OFF'
+    universal = 'OFF'
     project_name = 'SecondLife'
     distcc = True
     cmake_opts = []
@@ -238,6 +240,7 @@ class UnixSetup(PlatformSetup):
 
     def run(self, command, name=None):
         '''Run a program.  If the program fails, raise an exception.'''
+        sys.stdout.flush()
         ret = os.system(command)
         if ret:
             if name is None:
@@ -383,16 +386,20 @@ class LinuxSetup(UnixSetup):
 
         if job_count is None:
             hosts, job_count = count_distcc_hosts()
+            hostname = socket.gethostname()
             if hosts == 1:
-                hostname = socket.gethostname()
                 if hostname.startswith('station'):
                     hosts, job_count = mk_distcc_hosts('station', 36, 2)
                     os.environ['DISTCC_HOSTS'] = hosts
                 if hostname.startswith('eniac'):
                     hosts, job_count = mk_distcc_hosts('eniac', 71, 2)
                     os.environ['DISTCC_HOSTS'] = hosts
-            if job_count > 4:
-                job_count = 4;
+            if hostname.startswith('build'):
+                max_jobs = 6
+            else:
+                max_jobs = 12
+            if job_count > max_jobs:
+                job_count = max_jobs;
             opts.extend(['-j', str(job_count)])
 
         if targets:
@@ -415,7 +422,7 @@ class DarwinSetup(UnixSetup):
         return 'darwin'
 
     def arch(self):
-        if self.unattended == 'ON':
+        if self.universal == 'ON':
             return 'universal'
         else:
             return UnixSetup.arch(self)
@@ -429,10 +436,10 @@ class DarwinSetup(UnixSetup):
             word_size=self.word_size,
             unattended=self.unattended,
             project_name=self.project_name,
-            universal='',
+            universal=self.universal,
             type=self.build_type.upper(),
             )
-        if self.unattended == 'ON':
+        if self.universal == 'ON':
             args['universal'] = '-DCMAKE_OSX_ARCHITECTURES:STRING=\'i386;ppc\''
         #if simple:
         #    return 'cmake %(opts)s %(dir)r' % args
@@ -451,7 +458,7 @@ class DarwinSetup(UnixSetup):
             targets = ' '.join(['-target ' + repr(t) for t in targets])
         else:
             targets = ''
-        cmd = ('xcodebuild -configuration %s %s %s' %
+        cmd = ('xcodebuild -configuration %s %s %s | grep -v "^[[:space:]]*setenv" ; exit ${PIPESTATUS[0]}' %
                (self.build_type, ' '.join(opts), targets))
         for d in self.build_dirs():
             try:
@@ -498,7 +505,7 @@ class WindowsSetup(PlatformSetup):
                     break
             else:
                 print >> sys.stderr, 'Cannot find a Visual Studio installation!'
-                eys.exit(1)
+                sys.exit(1)
         return self._generator
 
     def _set_generator(self, gen):
@@ -567,25 +574,36 @@ class WindowsSetup(PlatformSetup):
             if self.gens[self.generator]['ver'] in [ r'8.0', r'9.0' ]:
                 config = '\"%s|Win32\"' % config
 
-            return "buildconsole %s.sln /build %s" % (self.project_name, config)
+            executable = 'buildconsole'
+            cmd = "%(bin)s %(prj)s.sln /build /cfg=%(cfg)s" % {'prj': self.project_name, 'cfg': config, 'bin': executable}
+            return (executable, cmd)
 
         # devenv.com is CLI friendly, devenv.exe... not so much.
-        return ('"%sdevenv.com" %s.sln /build %s' % 
-                (self.find_visual_studio(), self.project_name, self.build_type))
+        executable = '%sdevenv.com' % (self.find_visual_studio(),)
+        cmd = ('"%s" %s.sln /build %s' % 
+                (executable, self.project_name, self.build_type))
+        return (executable, cmd)
 
-    def run(self, command, name=None):
+    def run(self, command, name=None, retry_on=None, retries=1):
         '''Run a program.  If the program fails, raise an exception.'''
-        ret = os.system(command)
-        if ret:
-            if name is None:
-                name = command.split(None, 1)[0]
-            path = self.find_in_path(name)
-            if not path:
-                ret = 'was not found'
+        assert name is not None, 'On windows an executable path must be given in name. [DEV-44838]'
+        if os.path.isfile(name):
+            path = name
+        else:
+            path = self.find_in_path(name)[0]
+        while retries:
+            retries = retries - 1
+            print "develop.py tries to run:", command
+            ret = subprocess.call(command, executable=path)
+            print "got ret", ret, "from", command
+            if ret == 0:
+                break
             else:
-                ret = 'exited with status %d' % ret
-            raise CommandError('the command %r %s' %
-                               (name, ret))
+                error = 'exited with status %d' % ret
+                if retry_on is not None and retry_on == ret:
+                    print "Retrying... the command %r %s" % (name, error)
+                else:
+                    raise CommandError('the command %r %s' % (name, error))
 
     def run_cmake(self, args=[]):
         '''Override to add the vstool.exe call after running cmake.'''
@@ -603,18 +621,21 @@ class WindowsSetup(PlatformSetup):
             if prev_build == self.build_type:
                 # Only run vstool if the build type has changed.
                 continue
-            vstool_cmd = (os.path.join('tools','vstool','VSTool.exe') +
+            executable = os.path.join('tools','vstool','VSTool.exe')
+            vstool_cmd = (executable +
                           ' --solution ' +
                           os.path.join(build_dir,'SecondLife.sln') +
                           ' --config ' + self.build_type +
                           ' --startup secondlife-bin')
             print 'Running %r in %r' % (vstool_cmd, getcwd())
-            self.run(vstool_cmd)        
+            self.run(vstool_cmd, name=executable)        
             print >> open(stamp, 'w'), self.build_type
         
     def run_build(self, opts, targets):
+        for t in targets:
+            assert t.strip(), 'Unexpected empty targets: ' + repr(targets)
         cwd = getcwd()
-        build_cmd = self.get_build_cmd()
+        executable, build_cmd = self.get_build_cmd()
 
         for d in self.build_dirs():
             try:
@@ -623,11 +644,11 @@ class WindowsSetup(PlatformSetup):
                     for t in targets:
                         cmd = '%s /project %s %s' % (build_cmd, t, ' '.join(opts))
                         print 'Running %r in %r' % (cmd, d)
-                        self.run(cmd)
+                        self.run(cmd, name=executable, retry_on=4, retries=3)
                 else:
                     cmd = '%s %s' % (build_cmd, ' '.join(opts))
                     print 'Running %r in %r' % (cmd, d)
-                    self.run(cmd)
+                    self.run(cmd, name=executable, retry_on=4, retries=3)
             finally:
                 os.chdir(cwd)
                 
@@ -672,6 +693,7 @@ Options:
        --standalone     build standalone, without Linden prebuild libraries
        --unattended     build unattended, do not invoke any tools requiring
                         a human response
+       --universal      build a universal binary on Mac OS X (unsupported)
   -t | --type=NAME      build type ("Debug", "Release", or "RelWithDebInfo")
   -m32 | -m64           build architecture (32-bit or 64-bit)
   -N | --no-distcc      disable use of distcc
@@ -717,7 +739,7 @@ def main(arguments):
         opts, args = getopt.getopt(
             arguments,
             '?hNt:p:G:m:',
-            ['help', 'standalone', 'no-distcc', 'unattended', 'type=', 'incredibuild', 'generator=', 'project='])
+            ['help', 'standalone', 'no-distcc', 'unattended', 'universal', 'type=', 'incredibuild', 'generator=', 'project='])
     except getopt.GetoptError, err:
         print >> sys.stderr, 'Error:', err
         print >> sys.stderr, """
@@ -734,6 +756,8 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
             setup.standalone = 'ON'
         elif o in ('--unattended',):
             setup.unattended = 'ON'
+        elif o in ('--universal',):
+            setup.universal = 'ON'
         elif o in ('-m',):
             if a in ('32', '64'):
                 setup.word_size = int(a)

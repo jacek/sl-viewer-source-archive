@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="Panel Avatar" width="495">
 	<tab_container name="tab" width="484">
-		<panel label="2nd Life" name="2nd Life" width="483">
+		<panel label="SL" name="2nd Life" width="483">
 			<string name="CaptionTextAcctInfo">
 				[ACCTTYPE]
 [PAYMENTINFO]
@@ -49,12 +49,12 @@
 			</text>
 			<view_border name="acct_border" width="186" />
 			<text name="acct" width="186" />
-			<text name="partner_label" tool_tip="Parceiro Second Life. Para mais informações, veja www.secondlife.com/partner">
+			<text name="partner_label" tool_tip="Parceiro [SECOND_LIFE]. Para mais informações, veja www.secondlife.com/partner">
 				Parceiro:
 			</text>
 			<button label="i" label_selected="i" name="partner_info" tool_tip="Clique para abrir o perfil do(a) parceiro(a)" left_delta="64"/>
 			<button label="?" label_selected="?" name="partner_help"/>
-			<line_editor name="partner_edit" tool_tip="Parceiro Second Life. Para mais informações, veja www.secondlife.com/partner" width="186">
+			<line_editor name="partner_edit" tool_tip="Parceiro [SECOND_LIFE]. Para mais informações, veja www.secondlife.com/partner" width="186">
 				[FIRST] [LAST]
 			</line_editor>
 			<text name="Photo:">
@@ -92,12 +92,12 @@
 		<panel label="Web" name="WebProfile" width="483">
 		  <line_editor name="url_edit" width="465" />
 			<flyout_button label="Carregar" label_selected="Carregar" name="load" tool_tip="Carrega o seu perfil no seu navegador embutido.">
-				<flyout_button_item name="open_item">
-					No navegador externo
-				</flyout_button_item>
-				<flyout_button_item name="home_item">
-					URL de Casa
-				</flyout_button_item>
+        <flyout_button.item name="open_item">
+          No navegador externo
+        </flyout_button.item>
+        <flyout_button.item name="home_item">
+          URL de Casa
+        </flyout_button.item>
 			</flyout_button>
 			<button label="?" label_selected="?" name="web_profile_help"/>
 			<check_box label="Carregar automaticamente perfis da web" name="auto_load" tool_tip="Carrega automaticamente todos os perfis da Web sem perguntar antes."/>
@@ -134,7 +134,7 @@
 		<panel label="Seletor" name="Picks" width="483">
 			<tab_container name="picks tab" width="477" />
 			<text name="Tell everyone about your favorite places in Second Life.">
-				Diga a todos os seus lugares favoritos em Second Life.
+				Diga a todos os seus lugares favoritos em [SECOND_LIFE].
 			</text>
 			<button label="Novo..." label_selected="Novo..." name="New..."/>
 			<button label="Apagar..." label_selected="Apagar..." name="Delete..."/>
@@ -145,7 +145,7 @@
 		<panel label="Classificados" name="Classified" width="483">
 			<tab_container name="classified tab" width="477" />
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				Coloque um anúncio nas listas de classificados do Second Life.
+				Coloque um anúncio nas listas de classificados do [SECOND_LIFE].
 			</text>
 			<button label="Novo..." label_selected="Novo..." name="New..."/>
 			<button label="Apagar..." label_selected="Apagar..." name="Delete..."/>
@@ -153,7 +153,7 @@
 				Carregando...
 			</text>
 		</panel>
-		<panel label="1st Life" name="1st Life" width="483">
+		<panel name="Real World" width="483">
 			<text_editor name="about" width="395" />
 			<text name="Photo:">
 				Foto:

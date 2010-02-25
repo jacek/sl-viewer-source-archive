@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -124,6 +124,25 @@ const LLUUID& LLInventoryObject::getParentUUID() const
 const std::string& LLInventoryObject::getName() const
 {
 	return mName;
+}
+
+// To bypass linked items, since llviewerinventory's getType
+// will return the linked-to item's type instead of this object's type.
+LLAssetType::EType LLInventoryObject::getActualType() const
+{
+	return mType;
+}
+
+BOOL LLInventoryObject::getIsLinkType() const
+{
+	return LLAssetType::lookupIsLinkType(mType);
+}
+
+// See LLInventoryItem override.
+// virtual
+const LLUUID& LLInventoryObject::getLinkedUUID() const
+{
+	return mUUID;
 }
 
 LLAssetType::EType LLInventoryObject::getType() const
@@ -296,6 +315,7 @@ LLInventoryItem::LLInventoryItem(
 {
 	LLStringUtil::replaceNonstandardASCII(mDescription, ' ');
 	LLStringUtil::replaceChar(mDescription, '|', ' ');
+	mPermissions.initMasks(inv_type);
 }
 
 LLInventoryItem::LLInventoryItem() :
@@ -333,13 +353,17 @@ void LLInventoryItem::copyItem(const LLInventoryItem* other)
 	mCreationDate = other->mCreationDate;
 }
 
-// As a constructor alternative, the clone() method works like a
-// copy constructor, but gens a new UUID.
-void LLInventoryItem::cloneItem(LLPointer<LLInventoryItem>& newitem) const
+// If this is a linked item, then the UUID of the base object is
+// this item's assetID.
+// virtual
+const LLUUID& LLInventoryItem::getLinkedUUID() const
 {
-	newitem = new LLInventoryItem;
-	newitem->copyItem(this);
-	newitem->mUUID.generate();
+	if (LLAssetType::lookupIsLinkType(getActualType()))
+	{
+		return mAssetUUID;
+	}
+
+	return LLInventoryObject::getLinkedUUID();
 }
 
 const LLPermissions& LLInventoryItem::getPermissions() const
@@ -414,6 +438,9 @@ void LLInventoryItem::setDescription(const std::string& d)
 void LLInventoryItem::setPermissions(const LLPermissions& perm)
 {
 	mPermissions = perm;
+
+	// Override permissions to unrestricted if this is a landmark
+	mPermissions.initMasks(mInventoryType);
 }
 
 void LLInventoryItem::setInventoryType(LLInventoryType::EType inv_type)
@@ -431,6 +458,39 @@ void LLInventoryItem::setCreationDate(time_t creation_date_utc)
 	mCreationDate = creation_date_utc;
 }
 
+void LLInventoryItem::accumulatePermissionSlamBits(const LLInventoryItem& old_item)
+{
+	// Remove any pre-existing II_FLAGS_PERM_OVERWRITE_MASK flags 
+	// because we now detect when they should be set.
+	setFlags( old_item.getFlags() | (getFlags() & ~(LLInventoryItem::II_FLAGS_PERM_OVERWRITE_MASK)) );
+
+	// Enforce the PERM_OVERWRITE flags for any masks that are different
+	// but only for AT_OBJECT's since that is the only asset type that can 
+	// exist in-world (instead of only in-inventory or in-object-contents).
+	if (LLAssetType::AT_OBJECT == getType())
+	{
+		LLPermissions old_permissions = old_item.getPermissions();
+		U32 flags_to_be_set = 0;
+		if(old_permissions.getMaskNextOwner() != getPermissions().getMaskNextOwner())
+		{
+			flags_to_be_set |= LLInventoryItem::II_FLAGS_OBJECT_SLAM_PERM;
+		}
+		if(old_permissions.getMaskEveryone() != getPermissions().getMaskEveryone())
+		{
+			flags_to_be_set |= LLInventoryItem::II_FLAGS_OBJECT_PERM_OVERWRITE_EVERYONE;
+		}
+		if(old_permissions.getMaskGroup() != getPermissions().getMaskGroup())
+		{
+			flags_to_be_set |= LLInventoryItem::II_FLAGS_OBJECT_PERM_OVERWRITE_GROUP;
+		}
+		LLSaleInfo old_sale_info = old_item.getSaleInfo();
+		if(old_sale_info != getSaleInfo())
+		{
+			flags_to_be_set |= LLInventoryItem::II_FLAGS_OBJECT_SLAM_SALE;
+		}
+		setFlags(getFlags() | flags_to_be_set);
+	}
+}
 
 const LLSaleInfo& LLInventoryItem::getSaleInfo() const
 {
@@ -485,6 +545,7 @@ BOOL LLInventoryItem::unpackMessage(LLMessageSystem* msg, const char* block, S32
 	mType = static_cast<LLAssetType::EType>(type);
 	msg->getS8(block, "InvType", type, block_num);
 	mInventoryType = static_cast<LLInventoryType::EType>(type);
+	mPermissions.initMasks(mInventoryType);
 
 	msg->getU32Fast(block, _PREHASH_Flags, mFlags, block_num);
 
@@ -675,6 +736,9 @@ BOOL LLInventoryItem::importFile(LLFILE* fp)
 		lldebugs << "Resetting inventory type for " << mUUID << llendl;
 		mInventoryType = LLInventoryType::defaultForAssetType(mType);
 	}
+
+	mPermissions.initMasks(mInventoryType);
+
 	return success;
 }
 
@@ -714,8 +778,8 @@ BOOL LLInventoryItem::exportFile(LLFILE* fp, BOOL include_asset_key) const
 		fprintf(fp, "\t\tasset_id\t%s\n", uuid_str.c_str());
 	}
 	fprintf(fp, "\t\ttype\t%s\n", LLAssetType::lookup(mType));
-	const char* inv_type_str = LLInventoryType::lookup(mInventoryType);
-	if(inv_type_str) fprintf(fp, "\t\tinv_type\t%s\n", inv_type_str);
+	const std::string inv_type_str = LLInventoryType::lookup(mInventoryType);
+	if(!inv_type_str.empty()) fprintf(fp, "\t\tinv_type\t%s\n", inv_type_str.c_str());
 	fprintf(fp, "\t\tflags\t%08x\n", mFlags);
 	mSaleInfo.exportFile(fp);
 	fprintf(fp, "\t\tname\t%s|\n", mName.c_str());
@@ -878,6 +942,9 @@ BOOL LLInventoryItem::importLegacyStream(std::istream& input_stream)
 		lldebugs << "Resetting inventory type for " << mUUID << llendl;
 		mInventoryType = LLInventoryType::defaultForAssetType(mType);
 	}
+
+	mPermissions.initMasks(mInventoryType);
+
 	return success;
 }
 
@@ -917,8 +984,8 @@ BOOL LLInventoryItem::exportLegacyStream(std::ostream& output_stream, BOOL inclu
 		output_stream << "\t\tasset_id\t" << uuid_str << "\n";
 	}
 	output_stream << "\t\ttype\t" << LLAssetType::lookup(mType) << "\n";
-	const char* inv_type_str = LLInventoryType::lookup(mInventoryType);
-	if(inv_type_str) 
+	const std::string inv_type_str = LLInventoryType::lookup(mInventoryType);
+	if(!inv_type_str.empty()) 
 		output_stream << "\t\tinv_type\t" << inv_type_str << "\n";
 	std::string buffer;
 	buffer = llformat( "\t\tflags\t%08x\n", mFlags);
@@ -934,6 +1001,12 @@ BOOL LLInventoryItem::exportLegacyStream(std::ostream& output_stream, BOOL inclu
 LLSD LLInventoryItem::asLLSD() const
 {
 	LLSD sd = LLSD();
+	asLLSD(sd);
+	return sd;
+}
+
+void LLInventoryItem::asLLSD( LLSD& sd ) const
+{
 	sd[INV_ITEM_ID_LABEL] = mUUID;
 	sd[INV_PARENT_ID_LABEL] = mParentUUID;
 	sd[INV_PERMISSIONS_LABEL] = ll_create_sd_from_permissions(mPermissions);
@@ -954,8 +1027,8 @@ LLSD LLInventoryItem::asLLSD() const
 	}
 	sd[INV_ASSET_TYPE_LABEL] = LLAssetType::lookup(mType);
 	sd[INV_INVENTORY_TYPE_LABEL] = mInventoryType;
-	const char* inv_type_str = LLInventoryType::lookup(mInventoryType);
-	if(inv_type_str)
+	const std::string inv_type_str = LLInventoryType::lookup(mInventoryType);
+	if(!inv_type_str.empty())
 	{
 		sd[INV_INVENTORY_TYPE_LABEL] = inv_type_str;
 	}
@@ -965,11 +1038,9 @@ LLSD LLInventoryItem::asLLSD() const
 	sd[INV_NAME_LABEL] = mName;
 	sd[INV_DESC_LABEL] = mDescription;
 	sd[INV_CREATION_DATE_LABEL] = (S32) mCreationDate;
-
-	return sd;
 }
 
-bool LLInventoryItem::fromLLSD(LLSD& sd)
+bool LLInventoryItem::fromLLSD(const LLSD& sd)
 {
 	mInventoryType = LLInventoryType::IT_NONE;
 	mAssetUUID.setNull();
@@ -1096,115 +1167,16 @@ bool LLInventoryItem::fromLLSD(LLSD& sd)
 		mInventoryType = LLInventoryType::defaultForAssetType(mType);
 	}
 
+	mPermissions.initMasks(mInventoryType);
+
 	return true;
 fail:
 	return false;
 
 }
 
-LLXMLNode *LLInventoryItem::exportFileXML(BOOL include_asset_key) const
-{
-	LLMemType m1(LLMemType::MTYPE_INVENTORY);
-	LLXMLNode *ret = new LLXMLNode("item", FALSE);
-
-	ret->createChild("uuid", TRUE)->setUUIDValue(1, &mUUID);
-	ret->createChild("parent_uuid", TRUE)->setUUIDValue(1, &mParentUUID);
-
-	mPermissions.exportFileXML()->setParent(ret);
-
-	// Check for permissions to see the asset id, and if so write it
-	// out as an asset id. Otherwise, apply our cheesy encryption.
-	if(include_asset_key)
-	{
-		U32 mask = mPermissions.getMaskBase();
-		if(((mask & PERM_ITEM_UNRESTRICTED) == PERM_ITEM_UNRESTRICTED)
-		   || (mAssetUUID.isNull()))
-		{
-			ret->createChild("asset_id", FALSE)->setUUIDValue(1, &mAssetUUID);
-		}
-		else
-		{
-			LLUUID shadow_id(mAssetUUID);
-			LLXORCipher cipher(MAGIC_ID.mData, UUID_BYTES);
-			cipher.encrypt(shadow_id.mData, UUID_BYTES);
-
-			ret->createChild("shadow_id", FALSE)->setUUIDValue(1, &shadow_id);
-		}
-	}
-
-	std::string type_str = LLAssetType::lookup(mType);
-	std::string inv_type_str = LLInventoryType::lookup(mInventoryType);
-
-	ret->createChild("asset_type", FALSE)->setStringValue(type_str);
-	ret->createChild("inventory_type", FALSE)->setStringValue(inv_type_str);
-	S32 tmp_flags = (S32) mFlags;
-	ret->createChild("flags", FALSE)->setByteValue(4, (U8*)(&tmp_flags), LLXMLNode::ENCODING_HEX);
-
-	mSaleInfo.exportFileXML()->setParent(ret);
-
-	std::string temp;
-	temp.assign(mName);
-	ret->createChild("name", FALSE)->setStringValue(temp);
-	temp.assign(mDescription);
-	ret->createChild("description", FALSE)->setStringValue(temp);
-	S32 date = mCreationDate;
-	ret->createChild("creation_date", FALSE)->setIntValue(1, &date);
-
-	return ret;
-}
-
-BOOL LLInventoryItem::importXML(LLXMLNode* node)
-{
-	BOOL success = FALSE;
-	if (node)
-	{
-		success = TRUE;
-		LLXMLNodePtr sub_node;
-		if (node->getChild("uuid", sub_node))
-			success = (1 == sub_node->getUUIDValue(1, &mUUID));
-		if (node->getChild("parent_uuid", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mParentUUID));
-		if (node->getChild("permissions", sub_node))
-			success = success && mPermissions.importXML(sub_node);
-		if (node->getChild("asset_id", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mAssetUUID));
-		if (node->getChild("shadow_id", sub_node))
-		{
-			success = success && (1 == sub_node->getUUIDValue(1, &mAssetUUID));
-			LLXORCipher cipher(MAGIC_ID.mData, UUID_BYTES);
-			cipher.decrypt(mAssetUUID.mData, UUID_BYTES);
-		}
-		if (node->getChild("asset_type", sub_node))
-			mType = LLAssetType::lookup(sub_node->getValue());
-		if (node->getChild("inventory_type", sub_node))
-			mInventoryType = LLInventoryType::lookup(sub_node->getValue());
-		if (node->getChild("flags", sub_node))
-		{
-			S32 tmp_flags = 0;
-			success = success && (1 == sub_node->getIntValue(1, &tmp_flags));
-			mFlags = (U32) tmp_flags;
-		}
-		if (node->getChild("sale_info", sub_node))
-			success = success && mSaleInfo.importXML(sub_node);
-		if (node->getChild("name", sub_node))
-			mName = sub_node->getValue();
-		if (node->getChild("description", sub_node))
-			mDescription = sub_node->getValue();
-		if (node->getChild("creation_date", sub_node))
-		{
-			S32 date = 0;
-			success = success && (1 == sub_node->getIntValue(1, &date));
-			mCreationDate = date;
-		}
-		
-		if (!success)
-		{
-			lldebugs << "LLInventory::importXML() failed for node named '" 
-				<< node->getName() << "'" << llendl;
-		}
-	}
-	return success;
-}
+// Deleted LLInventoryItem::exportFileXML() and LLInventoryItem::importXML()
+// because I can't find any non-test code references to it. 2009-05-04 JC
 
 S32 LLInventoryItem::packBinaryBucket(U8* bin_bucket, LLPermissions* perm_override) const
 {
@@ -1262,23 +1234,19 @@ void LLInventoryItem::unpackBinaryBucket(U8* bin_bucket, S32 bin_bucket_size)
 	// Early exit on an empty binary bucket.
 	if (bin_bucket_size <= 1) return;
 
-	// Convert the bin_bucket into a string.
-	char* item_buffer = new char[bin_bucket_size+1];
-	if ((item_buffer != NULL) && (bin_bucket != NULL))
+	if (NULL == bin_bucket)
 	{
-		memcpy(item_buffer, bin_bucket, bin_bucket_size);	/* Flawfinder: ignore */
-	}
-	else
-	{
-		llerrs << "unpackBinaryBucket failed. item_buffer or bin_bucket is Null." << llendl;
-		delete[] item_buffer;
+		llerrs << "unpackBinaryBucket failed.  bin_bucket is NULL." << llendl;
 		return;
 	}
-	item_buffer[bin_bucket_size] = '\0';
-	std::string str(item_buffer);
 
-	lldebugs << "item buffer: " << item_buffer << llendl;
-	delete[] item_buffer;
+	// Convert the bin_bucket into a string.
+	std::vector<char> item_buffer(bin_bucket_size+1);
+	memcpy(&item_buffer[0], bin_bucket, bin_bucket_size);	/* Flawfinder: ignore */
+	item_buffer[bin_bucket_size] = '\0';
+	std::string str(&item_buffer[0]);
+
+	lldebugs << "item buffer: " << str << llendl;
 
 	// Tokenize the string.
 	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -1356,7 +1324,7 @@ BOOL item_date_sort( LLInventoryItem* a, LLInventoryItem* b )
 LLInventoryCategory::LLInventoryCategory(
 	const LLUUID& uuid,
 	const LLUUID& parent_uuid,
-	LLAssetType::EType preferred_type,
+	LLFolderType::EType preferred_type,
 	const std::string& name) :
 	LLInventoryObject(uuid, parent_uuid, LLAssetType::AT_CATEGORY, name),
 	mPreferredType(preferred_type)
@@ -1364,7 +1332,7 @@ LLInventoryCategory::LLInventoryCategory(
 }
 
 LLInventoryCategory::LLInventoryCategory() :
-	mPreferredType(LLAssetType::AT_NONE)
+	mPreferredType(LLFolderType::FT_NONE)
 {
 	mType = LLAssetType::AT_CATEGORY;
 }
@@ -1386,12 +1354,12 @@ void LLInventoryCategory::copyCategory(const LLInventoryCategory* other)
 	mPreferredType = other->mPreferredType;
 }
 
-LLAssetType::EType LLInventoryCategory::getPreferredType() const
+LLFolderType::EType LLInventoryCategory::getPreferredType() const
 {
 	return mPreferredType;
 }
 
-void LLInventoryCategory::setPreferredType(LLAssetType::EType type)
+void LLInventoryCategory::setPreferredType(LLFolderType::EType type)
 {
 	mPreferredType = type;
 }
@@ -1419,7 +1387,7 @@ void LLInventoryCategory::packMessage(LLMessageSystem* msg) const
 	msg->addStringFast(_PREHASH_Name, mName);
 }
 
-bool LLInventoryCategory::fromLLSD(LLSD& sd)
+bool LLInventoryCategory::fromLLSD(const LLSD& sd)
 {
     std::string w;
 
@@ -1437,13 +1405,13 @@ bool LLInventoryCategory::fromLLSD(LLSD& sd)
     if (sd.has(w))
     {
         S8 type = (U8)sd[w].asInteger();
-        mPreferredType = static_cast<LLAssetType::EType>(type);
+        mPreferredType = static_cast<LLFolderType::EType>(type);
     }
 	w = INV_ASSET_TYPE_LABEL_WS;
 	if (sd.has(w))
 	{
 		S8 type = (U8)sd[w].asInteger();
-        mPreferredType = static_cast<LLAssetType::EType>(type);
+        mPreferredType = static_cast<LLFolderType::EType>(type);
 	}
 
     w = INV_NAME_LABEL;
@@ -1465,7 +1433,7 @@ void LLInventoryCategory::unpackMessage(LLMessageSystem* msg,
 	msg->getUUIDFast(block, _PREHASH_ParentID, mParentUUID, block_num);
 	S8 type;
 	msg->getS8Fast(block, _PREHASH_Type, type, block_num);
-	mPreferredType = static_cast<LLAssetType::EType>(type);
+	mPreferredType = static_cast<LLFolderType::EType>(type);
 	msg->getStringFast(block, _PREHASH_Name, mName, block_num);
 	LLStringUtil::replaceNonstandardASCII(mName, ' ');
 }
@@ -1514,7 +1482,7 @@ BOOL LLInventoryCategory::importFile(LLFILE* fp)
 		}
 		else if(0 == strcmp("pref_type", keyword))
 		{
-			mPreferredType = LLAssetType::lookup(valuestr);
+			mPreferredType = LLFolderType::lookup(valuestr);
 		}
 		else if(0 == strcmp("name", keyword))
 		{
@@ -1546,7 +1514,7 @@ BOOL LLInventoryCategory::exportFile(LLFILE* fp, BOOL) const
 	mParentUUID.toString(uuid_str);
 	fprintf(fp, "\t\tparent_id\t%s\n", uuid_str.c_str());
 	fprintf(fp, "\t\ttype\t%s\n", LLAssetType::lookup(mType));
-	fprintf(fp, "\t\tpref_type\t%s\n", LLAssetType::lookup(mPreferredType));
+	fprintf(fp, "\t\tpref_type\t%s\n", LLFolderType::lookup(mPreferredType).c_str());
 	fprintf(fp, "\t\tname\t%s|\n", mName.c_str());
 	fprintf(fp,"\t}\n");
 	return TRUE;
@@ -1593,7 +1561,7 @@ BOOL LLInventoryCategory::importLegacyStream(std::istream& input_stream)
 		}
 		else if(0 == strcmp("pref_type", keyword))
 		{
-			mPreferredType = LLAssetType::lookup(valuestr);
+			mPreferredType = LLFolderType::lookup(valuestr);
 		}
 		else if(0 == strcmp("name", keyword))
 		{
@@ -1625,7 +1593,7 @@ BOOL LLInventoryCategory::exportLegacyStream(std::ostream& output_stream, BOOL) 
 	mParentUUID.toString(uuid_str);
 	output_stream << "\t\tparent_id\t" << uuid_str << "\n";
 	output_stream << "\t\ttype\t" << LLAssetType::lookup(mType) << "\n";
-	output_stream << "\t\tpref_type\t" << LLAssetType::lookup(mPreferredType) << "\n";
+	output_stream << "\t\tpref_type\t" << LLFolderType::lookup(mPreferredType) << "\n";
 	output_stream << "\t\tname\t" << mName.c_str() << "|\n";
 	output_stream << "\t}\n";
 	return TRUE;
@@ -1661,36 +1629,6 @@ LLSD ll_create_sd_from_inventory_item(LLPointer<LLInventoryItem> item)
 	return rv;
 }
 
-LLPointer<LLInventoryItem> ll_create_item_from_sd(const LLSD& sd_item)
-{
-	LLPointer<LLInventoryItem> rv = new LLInventoryItem;
-	rv->setUUID(sd_item[INV_ITEM_ID_LABEL].asUUID());
-	rv->setParent(sd_item[INV_PARENT_ID_LABEL].asUUID());
-	rv->rename(sd_item[INV_NAME_LABEL].asString());
-	rv->setType(
-		LLAssetType::lookup(sd_item[INV_ASSET_TYPE_LABEL].asString()));
-	if (sd_item.has("shadow_id"))
-	{
-		LLUUID asset_id = sd_item["shadow_id"];
-		LLXORCipher cipher(MAGIC_ID.mData, UUID_BYTES);
-		cipher.decrypt(asset_id.mData, UUID_BYTES);
-		rv->setAssetUUID(asset_id);
-	}
-	if (sd_item.has(INV_ASSET_ID_LABEL))
-	{
-		rv->setAssetUUID(sd_item[INV_ASSET_ID_LABEL].asUUID());
-	}
-	rv->setDescription(sd_item[INV_DESC_LABEL].asString());
-	rv->setSaleInfo(ll_sale_info_from_sd(sd_item[INV_SALE_INFO_LABEL]));
-	rv->setPermissions(ll_permissions_from_sd(sd_item[INV_PERMISSIONS_LABEL]));
-	rv->setInventoryType(
-		LLInventoryType::lookup(
-			sd_item[INV_INVENTORY_TYPE_LABEL].asString()));
-	rv->setFlags((U32)(sd_item[INV_FLAGS_LABEL].asInteger()));
-	rv->setCreationDate(sd_item[INV_CREATION_DATE_LABEL].asInteger());
-	return rv;
-}
-
 LLSD ll_create_sd_from_inventory_category(LLPointer<LLInventoryCategory> cat)
 {
 	LLSD rv;
@@ -1705,10 +1643,10 @@ LLSD ll_create_sd_from_inventory_category(LLPointer<LLInventoryCategory> cat)
 	rv[INV_PARENT_ID_LABEL] = cat->getParentUUID();
 	rv[INV_NAME_LABEL] = cat->getName();
 	rv[INV_ASSET_TYPE_LABEL] = LLAssetType::lookup(cat->getType());
-	if(LLAssetType::AT_NONE != cat->getPreferredType())
+	if(LLFolderType::lookupIsProtectedType(cat->getPreferredType()))
 	{
 		rv[INV_PREFERRED_TYPE_LABEL] =
-			LLAssetType::lookup(cat->getPreferredType());
+			LLFolderType::lookup(cat->getPreferredType()).c_str();
 	}
 	return rv;
 }
@@ -1722,7 +1660,7 @@ LLPointer<LLInventoryCategory> ll_create_category_from_sd(const LLSD& sd_cat)
 	rv->setType(
 		LLAssetType::lookup(sd_cat[INV_ASSET_TYPE_LABEL].asString()));
 	rv->setPreferredType(
-		LLAssetType::lookup(
-			sd_cat[INV_PREFERRED_TYPE_LABEL].asString()));
+			LLFolderType::lookup(
+				sd_cat[INV_PREFERRED_TYPE_LABEL].asString()));
 	return rv;
 }

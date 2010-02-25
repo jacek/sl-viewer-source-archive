@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,6 +39,7 @@
 #include "pipeline.h"
 #include "llsky.h"
 
+#include "llfloaterreg.h"
 #include "llsliderctrl.h"
 #include "llspinctrl.h"
 #include "llcheckboxctrl.h"
@@ -50,16 +51,13 @@
 #include "llsdserialize.h"
 
 #include "v4math.h"
-#include "llviewerdisplay.h"
 #include "llviewercontrol.h"
-#include "llviewerwindow.h"
 #include "lldrawpoolwater.h"
 #include "llagent.h"
 #include "llviewerregion.h"
 
 #include "llwlparammanager.h"
 #include "llwaterparamset.h"
-#include "llpostprocess.h"
 #include "llfloaterwater.h"
 
 #include "curl/curl.h"
@@ -90,7 +88,7 @@ LLWaterParamManager::~LLWaterParamManager()
 void LLWaterParamManager::loadAllPresets(const std::string& file_name)
 {
 	std::string path_name(gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, "windlight/water", ""));
-	LL_INFOS2("AppInit", "Shaders") << "Loading Default water settings from " << path_name << LL_ENDL;
+	LL_DEBUGS2("AppInit", "Shaders") << "Loading Default water settings from " << path_name << LL_ENDL;
 			
 	bool found = true;			
 	while(found) 
@@ -116,7 +114,7 @@ void LLWaterParamManager::loadAllPresets(const std::string& file_name)
 	// And repeat for user presets, note the user presets will modify any system presets already loaded
 
 	std::string path_name2(gDirUtilp->getExpandedFilename( LL_PATH_USER_SETTINGS , "windlight/water", ""));
-	LL_INFOS2("AppInit", "Shaders") << "Loading User water settings from " << path_name2 << LL_ENDL;
+	LL_DEBUGS2("AppInit", "Shaders") << "Loading User water settings from " << path_name2 << LL_ENDL;
 			
 	found = true;			
 	while(found) 
@@ -151,17 +149,18 @@ void LLWaterParamManager::loadPreset(const std::string & name,bool propagate)
 	escaped_filename += ".xml";
 
 	std::string pathName(gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, "windlight/water", escaped_filename));
-	llinfos << "Loading water settings from " << pathName << llendl;
+	LL_DEBUGS2("AppInit", "Shaders") << "Loading water settings from " << pathName << LL_ENDL;
 	
-	std::ifstream presetsXML;
+	llifstream presetsXML;
 	presetsXML.open(pathName.c_str());
 	
 	// That failed, try loading from the users area instead.
 	if(!presetsXML)
 	{
 		pathName=gDirUtilp->getExpandedFilename( LL_PATH_USER_SETTINGS , "windlight/water", escaped_filename);
-		llinfos << "Loading User water setting from " << pathName << llendl;
-		presetsXML.open(pathName.c_str());
+		LL_DEBUGS2("AppInit", "Shaders") << "Loading User water setting from " << pathName << LL_ENDL;
+		presetsXML.clear();
+        presetsXML.open(pathName.c_str());
 	}
 
 	if (presetsXML)
@@ -262,20 +261,21 @@ void LLWaterParamManager::updateShaderUniforms(LLGLSLShader * shader)
 	}
 }
 
+static LLFastTimer::DeclareTimer FTM_UPDATE_WLPARAM("Update Windlight Params");
+
 void LLWaterParamManager::update(LLViewerCamera * cam)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_UPDATE_WLPARAM);
+	LLFastTimer ftm(FTM_UPDATE_WLPARAM);
 	
 	// update the shaders and the menu
 	propagateParameters();
 	
 	// sync menus if they exist
-	if(LLFloaterWater::isOpen()) 
+	LLFloaterWater* waterfloater = LLFloaterReg::findTypedInstance<LLFloaterWater>("env_water");
+	if(waterfloater) 
 	{
-		LLFloaterWater::instance()->syncMenu();
+		waterfloater->syncMenu();
 	}
-
-	stop_glerror();
 
 	// only do this if we're dealing with shaders
 	if(gPipeline.canUseVertexShaders()) 
@@ -301,7 +301,7 @@ void LLWaterParamManager::update(LLViewerCamera * cam)
 		mWaterPlane = LLVector4(enorm.v[0], enorm.v[1], enorm.v[2], -ep.dot(enorm));
 
 		LLVector3 sunMoonDir;
-		if (gSky.getSunDirection().mV[2] > NIGHTTIME_ELEVATION_COS) 	 
+		if (gSky.getSunDirection().mV[2] > LLSky::NIGHTTIME_ELEVATION_COS) 	 
 		{ 	 
 			sunMoonDir = gSky.getSunDirection(); 	 
 		} 	 

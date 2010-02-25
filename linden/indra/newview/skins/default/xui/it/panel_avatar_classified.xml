@@ -1,36 +1,31 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Classified" title="Inserzioni">
-	<line_editor name="given_name_editor" tool_tip="Il nome deve iniziare con una lettera o un numero non con un segno di punteggiatura."/>
-	<line_editor name="location_editor" tool_tip="Imposta come luogo per questa inserzione quello della tua posizione corrente."/>
+<panel label="Annunci" name="Classified" title="Inserzioni">
+	<panel.string name="ad_placed_paid">
+		Inserzione inserita: [DATE], Pagati [AMT] L$ per l&apos;inserzione.
+	</panel.string>
+	<panel.string name="update_txt">
+		Aggiorna
+	</panel.string>
+	<panel.string name="publish_txt">
+		Pubblica...
+	</panel.string>
+	<line_editor name="given_name_editor" tool_tip="Il nome deve iniziare con una lettera o numero, non con segni di punteggiatura"/>
+	<line_editor name="location_editor" tool_tip="Imposta il luogo con la tua attuale posizione per questo annuncio"/>
 	<button label="Imposta luogo" name="set_location_btn"/>
 	<button label="Teleport" name="classified_teleport_btn"/>
 	<button label="Mappa" name="classified_map_btn"/>
 	<combo_box label="" name="classified_mature_check">
-		<combo_item name="select_mature">
-			- Seleziona -
-		</combo_item>
-		<combo_item name="mature">
-			Contenuto Mature
-		</combo_item>
-		<combo_item name="pg">
-			Contenuto PG
-		</combo_item>
+		<combo_box.item label="- Seleziona uno -" name="select_mature"/>
+		<combo_box.item label="Contenuto Mature" name="mature"/>
+		<combo_box.item label="Contenuto PG" name="pg"/>
 	</combo_box>
-	<text name="classified_info_text" tool_tip="Più scegli di pagare per la tua inserzione, più in alto nella ricerca apparirà." bottom_delta="-24">
+	<text bottom_delta="-24" name="classified_info_text" tool_tip="Più paghi per la tua pubblicità, più in alto apparirà nella lista">
 		Inserzione accettata, ma non ancora pubblicata
 	</text>
-	<text name="click_through_text" tool_tip="Numero totale dei click su ogni pulsante da quando questa inserzione è stata pubblicata." bottom_delta="-15">
+	<text bottom_delta="-15" name="click_through_text" tool_tip="Numero totale di clicks su ogni singolo pulsante da quando l&apos;annuncio è stato inserito">
 		Clicks:
 	</text>
 	<button label="Pubblica..." name="classified_update_btn"/>
-	<check_box label="Rinnova automaticamente ogni &#10;settimana" name="auto_renew_check"/>
-	<string name="ad_placed_paid">
-		Inserzione inserita: [DATE], Pagati [AMT] L$ per l&apos;inserzione.
-	</string>
-	<string name="update_txt">
-		Aggiorna
-	</string>
-	<string name="publish_txt">
-		Pubblica...
-	</string>
+	<check_box label="Rinnova automaticamente ogni 
+settimana" name="auto_renew_check"/>
 </panel>

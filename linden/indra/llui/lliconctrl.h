@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,7 +37,6 @@
 #include "v4color.h"
 #include "lluictrl.h"
 #include "stdenums.h"
-#include "llimagegl.h"
 
 class LLTextBox;
 class LLUICtrlFactory;
@@ -45,38 +44,49 @@ class LLUICtrlFactory;
 //
 // Classes
 //
+
+// 
 class LLIconCtrl
 : public LLUICtrl
 {
 public:
-	LLIconCtrl(const std::string& name, const LLRect &rect, const LLUUID &image_id);
-	LLIconCtrl(const std::string& name, const LLRect &rect, const std::string &image_name);
+	struct Params : public LLInitParam::Block<Params, LLUICtrl::Params>
+	{
+		Optional<LLUIImage*>	image;
+		Optional<LLUIColor>		color;
+		Ignored					scale_image;
+		Params();
+	};
+protected:
+	LLIconCtrl(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
 	virtual ~LLIconCtrl();
 
 	// llview overrides
 	virtual void	draw();
 
-	void			setImage(const std::string& image_name);
-	void			setImage(const LLUUID& image_name);
-	const LLUUID	&getImage() const						{ return mImageID; }
-	std::string		getImageName() const						{ return mImageName; }
-
-	// Takes a UUID, wraps get/setImage
+	// lluictrl overrides
 	virtual void	setValue(const LLSD& value );
-	virtual LLSD	getValue() const;
 
-	/*virtual*/ void	setAlpha(F32 alpha);
+	std::string	getImageName() const;
 
 	void			setColor(const LLColor4& color) { mColor = color; }
+	
+private:
+	void setIconImageDrawSize() ;
 
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
+protected:
+	S32 mPriority;
+
+	//the output size of the icon image if set.
+	S32 mDrawWidth ;
+	S32 mDrawHeight ;
 
 private:
-	LLColor4		mColor;
-	std::string		mImageName;
-	LLUUID			mImageID;
-	LLPointer<LLUIImage>	mImagep;
+	LLUIColor mColor;
+	LLPointer<LLUIImage> mImagep;
 };
 
 #endif

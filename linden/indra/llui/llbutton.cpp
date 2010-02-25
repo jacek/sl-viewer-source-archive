@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,6 +32,7 @@
 
 #include "linden_common.h"
 
+#define LLBUTTON_CPP
 #include "llbutton.h"
 
 // Linden library includes
@@ -39,189 +40,219 @@
 #include "llstring.h"
 
 // Project includes
-#include "llhtmlhelp.h"
 #include "llkeyboard.h"
 #include "llui.h"
 #include "lluiconstants.h"
 #include "llresmgr.h"
 #include "llcriticaldamp.h"
+#include "llfloater.h"
+#include "llfloaterreg.h"
 #include "llfocusmgr.h"
 #include "llwindow.h"
+#include "llnotificationsutil.h"
 #include "llrender.h"
+#include "lluictrlfactory.h"
+#include "llhelp.h"
+#include "lldockablefloater.h"
 
-static LLRegisterWidget<LLButton> r("button");
+static LLDefaultChildRegistry::Register<LLButton> r("button");
+
+// Compiler optimization, generate extern template
+template class LLButton* LLView::getChild<class LLButton>(
+	const std::string& name, BOOL recurse) const;
 
 // globals loaded from settings.xml
-S32	LLBUTTON_ORIG_H_PAD	= 6; // Pre-zoomable UI
 S32	LLBUTTON_H_PAD	= 0;
-S32	LLBUTTON_V_PAD	= 0;
 S32 BTN_HEIGHT_SMALL= 0;
 S32 BTN_HEIGHT		= 0;
 
-S32 BTN_GRID		= 12;
-S32 BORDER_SIZE = 1;
-
-LLButton::LLButton(	const std::string& name, const LLRect& rect, const std::string& control_name, void (*click_callback)(void*), void *callback_data)
-:	LLUICtrl(name, rect, TRUE, NULL, NULL),
-	mClickedCallback( click_callback ),
-	mMouseDownCallback( NULL ),
-	mMouseUpCallback( NULL ),
-	mHeldDownCallback( NULL ),
-	mGLFont( NULL ),
-	mMouseDownFrame( 0 ),
-	mHeldDownDelay( 0.5f ),			// seconds until held-down callback is called
-	mHeldDownFrameDelay( 0 ),
-	mImageUnselected( NULL ),
-	mImageSelected( NULL ),
-	mImageHoverSelected( NULL ),
-	mImageHoverUnselected( NULL ),
-	mImageDisabled( NULL ),
-	mImageDisabledSelected( NULL ),
-	mToggleState( FALSE ),
-	mIsToggle( FALSE ),
-	mScaleImage( TRUE ),
-	mDropShadowedText( TRUE ),
-	mBorderEnabled( FALSE ),
-	mFlashing( FALSE ),
-	mHAlign( LLFontGL::HCENTER ),
-	mLeftHPad( LLBUTTON_H_PAD ),
-	mRightHPad( LLBUTTON_H_PAD ),
-	mHoverGlowStrength(0.15f),
-	mCurGlowStrength(0.f),
-	mNeedsHighlight(FALSE),
-	mCommitOnReturn(TRUE),
-	mImagep( NULL )
+LLButton::Params::Params()
+:	label_selected("label_selected"),				// requires is_toggle true
+	label_shadow("label_shadow", true),
+	auto_resize("auto_resize", false),
+	use_ellipses("use_ellipses", false),
+	image_unselected("image_unselected"),
+	image_selected("image_selected"),
+	image_hover_selected("image_hover_selected"),
+	image_hover_unselected("image_hover_unselected"),
+	image_disabled_selected("image_disabled_selected"),
+	image_disabled("image_disabled"),
+	image_pressed("image_pressed"),
+	image_pressed_selected("image_pressed_selected"),
+	image_overlay("image_overlay"),
+	image_overlay_alignment("image_overlay_alignment", std::string("center")),
+	image_top_pad("image_top_pad"),
+	image_bottom_pad("image_bottom_pad"),
+	imgoverlay_label_space("imgoverlay_label_space", 1),
+	label_color("label_color"),
+	label_color_selected("label_color_selected"),	// requires is_toggle true
+	label_color_disabled("label_color_disabled"),
+	label_color_disabled_selected("label_color_disabled_selected"),
+	highlight_color("highlight_color"),
+	image_color("image_color"),
+	image_color_disabled("image_color_disabled"),
+	image_overlay_color("image_overlay_color", LLColor4::white),
+	flash_color("flash_color"),
+	pad_right("pad_right", LLUI::sSettingGroups["config"]->getS32("ButtonHPad")),
+	pad_left("pad_left", LLUI::sSettingGroups["config"]->getS32("ButtonHPad")),
+	pad_bottom("pad_bottom"),
+	click_callback("click_callback"),
+	mouse_down_callback("mouse_down_callback"),
+	mouse_up_callback("mouse_up_callback"),
+	mouse_held_callback("mouse_held_callback"),
+	is_toggle("is_toggle", false),
+	scale_image("scale_image", true),
+	hover_glow_amount("hover_glow_amount"),
+	commit_on_return("commit_on_return", true)
 {
-	mUnselectedLabel = name;
-	mSelectedLabel = name;
-
-	setImageUnselected(std::string("button_enabled_32x128.tga"));
-	setImageSelected(std::string("button_enabled_selected_32x128.tga"));
-	setImageDisabled(std::string("button_disabled_32x128.tga"));
-	setImageDisabledSelected(std::string("button_disabled_32x128.tga"));
-
-	mImageColor = LLUI::sColorsGroup->getColor( "ButtonImageColor" );
-	mDisabledImageColor = LLUI::sColorsGroup->getColor( "ButtonImageColor" );
-
-	init(click_callback, callback_data, NULL, control_name);
+	addSynonym(is_toggle, "toggle");
+	held_down_delay.seconds = 0.5f;
+	initial_value.set(LLSD(false), false);
 }
 
 
-LLButton::LLButton(const std::string& name, const LLRect& rect, 
-				   const std::string &unselected_image_name, 
-				   const std::string &selected_image_name, 
-				   const std::string& control_name,
-				   void (*click_callback)(void*),
-				   void *callback_data,
-				   const LLFontGL *font,
-				   const std::string& unselected_label, 
-				   const std::string& selected_label )
-:	LLUICtrl(name, rect, TRUE, NULL, NULL),
-	mClickedCallback( click_callback ),
-	mMouseDownCallback( NULL ),
-	mMouseUpCallback( NULL ),
-	mHeldDownCallback( NULL ),
-	mGLFont( NULL ),
-	mMouseDownFrame( 0 ),
-	mHeldDownDelay( 0.5f ),			// seconds until held-down callback is called
-	mHeldDownFrameDelay( 0 ),
-	mImageUnselected( NULL ),
-	mImageSelected( NULL ),
-	mImageHoverSelected( NULL ),
-	mImageHoverUnselected( NULL ),
-	mImageDisabled( NULL ),
-	mImageDisabledSelected( NULL ),
-	mToggleState( FALSE ),
-	mIsToggle( FALSE ),
-	mScaleImage( TRUE ),
-	mDropShadowedText( TRUE ),
+LLButton::LLButton(const LLButton::Params& p)
+:	LLUICtrl(p),
+	mMouseDownFrame(0),
+	mMouseHeldDownCount(0),
 	mBorderEnabled( FALSE ),
 	mFlashing( FALSE ),
-	mHAlign( LLFontGL::HCENTER ),
-	mLeftHPad( LLBUTTON_H_PAD ), 
-	mRightHPad( LLBUTTON_H_PAD ),
-	mHoverGlowStrength(0.25f),
 	mCurGlowStrength(0.f),
 	mNeedsHighlight(FALSE),
-	mCommitOnReturn(TRUE),
-	mImagep( NULL )
+	mUnselectedLabel(p.label()),
+	mSelectedLabel(p.label_selected()),
+	mGLFont(p.font),
+	mHeldDownDelay(p.held_down_delay.seconds),			// seconds until held-down callback is called
+	mHeldDownFrameDelay(p.held_down_delay.frames),
+	mImageUnselected(p.image_unselected),
+	mImageSelected(p.image_selected),
+	mImageDisabled(p.image_disabled),
+	mImageDisabledSelected(p.image_disabled_selected),
+	mImagePressed(p.image_pressed),
+	mImagePressedSelected(p.image_pressed_selected),
+	mImageHoverSelected(p.image_hover_selected),
+	mImageHoverUnselected(p.image_hover_unselected),
+	mUnselectedLabelColor(p.label_color()),
+	mSelectedLabelColor(p.label_color_selected()),
+	mDisabledLabelColor(p.label_color_disabled()),
+	mDisabledSelectedLabelColor(p.label_color_disabled_selected()),
+	mHighlightColor(p.highlight_color()),
+	mImageColor(p.image_color()),
+	mFlashBgColor(p.flash_color()),
+	mDisabledImageColor(p.image_color_disabled()),
+	mImageOverlay(p.image_overlay()),
+	mImageOverlayColor(p.image_overlay_color()),
+	mImageOverlayAlignment(LLFontGL::hAlignFromName(p.image_overlay_alignment)),
+	mImageOverlayTopPad(p.image_top_pad),
+	mImageOverlayBottomPad(p.image_bottom_pad),
+	mImgOverlayLabelSpace(p.imgoverlay_label_space),
+	mIsToggle(p.is_toggle),
+	mScaleImage(p.scale_image),
+	mDropShadowedText(p.label_shadow),
+	mAutoResize(p.auto_resize),
+	mUseEllipses( p.use_ellipses ),
+	mHAlign(p.font_halign),
+	mLeftHPad(p.pad_left),
+	mRightHPad(p.pad_right),
+	mBottomVPad(p.pad_bottom),
+	mHoverGlowStrength(p.hover_glow_amount),
+	mCommitOnReturn(p.commit_on_return),
+	mFadeWhenDisabled(FALSE),
+	mForcePressedState(false),
+	mLastDrawCharsCount(0),
+	mMouseDownSignal(NULL),
+	mMouseUpSignal(NULL),
+	mHeldDownSignal(NULL)
+
 {
-	mUnselectedLabel = unselected_label;
-	mSelectedLabel = selected_label;
+	static LLUICachedControl<S32> llbutton_orig_h_pad ("UIButtonOrigHPad", 0);
+	static Params default_params(LLUICtrlFactory::getDefaultParams<LLButton>());
 
-	// by default, disabled color is same as enabled
-	mImageColor = LLUI::sColorsGroup->getColor( "ButtonImageColor" );
-	mDisabledImageColor = LLUI::sColorsGroup->getColor( "ButtonImageColor" );
-
-	if( unselected_image_name != "" )
+	if (!p.label_selected.isProvided())
 	{
-		// user-specified image - don't use fixed borders unless requested
-		setImageUnselected(unselected_image_name);
-		setImageDisabled(unselected_image_name);
-		
-		mDisabledImageColor.mV[VALPHA] = 0.5f;
-		mScaleImage = FALSE;
+		mSelectedLabel = mUnselectedLabel;
 	}
-	else
-	{
-		setImageUnselected(std::string("button_enabled_32x128.tga"));
-		setImageDisabled(std::string("button_disabled_32x128.tga"));
-	}
-
-	if( selected_image_name != "" )
-	{
-		// user-specified image - don't use fixed borders unless requested
-		setImageSelected(selected_image_name);
-		setImageDisabledSelected(selected_image_name);
-
-		mDisabledImageColor.mV[VALPHA] = 0.5f;
-		mScaleImage = FALSE;
-	}
-	else
-	{
-		setImageSelected(std::string("button_enabled_selected_32x128.tga"));
-		setImageDisabledSelected(std::string("button_disabled_32x128.tga"));
-	}
-
-	init(click_callback, callback_data, font, control_name);
-}
-
-void LLButton::init(void (*click_callback)(void*), void *callback_data, const LLFontGL* font, const std::string& control_name)
-{
-	mGLFont = ( font ? font : LLFontGL::getFontSansSerif());
 
 	// Hack to make sure there is space for at least one character
 	if (getRect().getWidth() - (mRightHPad + mLeftHPad) < mGLFont->getWidth(std::string(" ")))
 	{
 		// Use old defaults
-		mLeftHPad = LLBUTTON_ORIG_H_PAD;
-		mRightHPad = LLBUTTON_ORIG_H_PAD;
+		mLeftHPad = llbutton_orig_h_pad;
+		mRightHPad = llbutton_orig_h_pad;
 	}
 	
-	mCallbackUserData = callback_data;
 	mMouseDownTimer.stop();
 
-	setControlName(control_name, NULL);
+	// if custom unselected button image provided...
+	if (p.image_unselected != default_params.image_unselected)
+	{
+		//...fade it out for disabled image by default...
+		if (p.image_disabled() == default_params.image_disabled() )
+		{
+			mImageDisabled = p.image_unselected;
+			mFadeWhenDisabled = TRUE;
+		}
 
-	mUnselectedLabelColor = (			LLUI::sColorsGroup->getColor( "ButtonLabelColor" ) );
-	mSelectedLabelColor = (			LLUI::sColorsGroup->getColor( "ButtonLabelSelectedColor" ) );
-	mDisabledLabelColor = (			LLUI::sColorsGroup->getColor( "ButtonLabelDisabledColor" ) );
-	mDisabledSelectedLabelColor = (	LLUI::sColorsGroup->getColor( "ButtonLabelSelectedDisabledColor" ) );
-	mHighlightColor = (				LLUI::sColorsGroup->getColor( "ButtonUnselectedFgColor" ) );
-	mUnselectedBgColor = (				LLUI::sColorsGroup->getColor( "ButtonUnselectedBgColor" ) );
-	mSelectedBgColor = (				LLUI::sColorsGroup->getColor( "ButtonSelectedBgColor" ) );
-	mFlashBgColor = (				LLUI::sColorsGroup->getColor( "ButtonFlashBgColor" ) );
+		if (p.image_pressed_selected == default_params.image_pressed_selected)
+		{
+			mImagePressedSelected = mImageUnselected;
+		}
+	}
 
-	mImageOverlayAlignment = LLFontGL::HCENTER;
-	mImageOverlayColor = LLColor4::white;
+	// if custom selected button image provided...
+	if (p.image_selected != default_params.image_selected)
+	{
+		//...fade it out for disabled image by default...
+		if (p.image_disabled_selected() == default_params.image_disabled_selected())
+		{
+			mImageDisabledSelected = p.image_selected;
+			mFadeWhenDisabled = TRUE;
+		}
+
+		if (p.image_pressed == default_params.image_pressed)
+		{
+			mImagePressed = mImageSelected;
+		}
+	}
+
+	if (!p.image_pressed.isProvided())
+	{
+		mImagePressed = mImageSelected;
+	}
+
+	if (!p.image_pressed_selected.isProvided())
+	{
+		mImagePressedSelected = mImageUnselected;
+	}
+	
+	if (mImageUnselected.isNull())
+	{
+		llwarns << "Button: " << getName() << " with no image!" << llendl;
+	}
+	
+	if (p.click_callback.isProvided())
+	{
+		setCommitCallback(initCommitCallback(p.click_callback)); // alias -> commit_callback
+	}
+	if (p.mouse_down_callback.isProvided())
+	{
+		setMouseDownCallback(initCommitCallback(p.mouse_down_callback));
+	}
+	if (p.mouse_up_callback.isProvided())
+	{
+		setMouseUpCallback(initCommitCallback(p.mouse_up_callback));
+	}
+	if (p.mouse_held_callback.isProvided())
+	{
+		setHeldDownCallback(initCommitCallback(p.mouse_held_callback));
+	}
 }
 
 LLButton::~LLButton()
 {
- 	if( hasMouseCapture() )
-	{
-		gFocusMgr.setMouseCapture( NULL );
-	}
+	delete mMouseDownSignal;
+	delete mMouseUpSignal;
+	delete mHeldDownSignal;
 }
 
 // HACK: Committing a button is the same as instantly clicking it.
@@ -229,19 +260,12 @@ LLButton::~LLButton()
 void LLButton::onCommit()
 {
 	// WARNING: Sometimes clicking a button destroys the floater or
-	// panel containing it.  Therefore we need to call mClickedCallback
+	// panel containing it.  Therefore we need to call 	LLUICtrl::onCommit()
 	// LAST, otherwise this becomes deleted memory.
-	LLUICtrl::onCommit();
 
-	if (mMouseDownCallback)
-	{
-		(*mMouseDownCallback)(mCallbackUserData);
-	}
+	if (mMouseDownSignal) (*mMouseDownSignal)(this, LLSD());
 	
-	if (mMouseUpCallback)
-	{
-		(*mMouseUpCallback)(mCallbackUserData);
-	}
+	if (mMouseUpSignal) (*mMouseUpSignal)(this, LLSD());
 
 	if (getSoundFlags() & MOUSE_DOWN)
 	{
@@ -259,14 +283,54 @@ void LLButton::onCommit()
 	}
 
 	// do this last, as it can result in destroying this button
-	if (mClickedCallback)
-	{
-		(*mClickedCallback)( mCallbackUserData );
-	}
+	LLUICtrl::onCommit();
+}
+
+boost::signals2::connection LLButton::setClickedCallback( const commit_signal_t::slot_type& cb )
+{
+	if (!mCommitSignal) mCommitSignal = new commit_signal_t();
+	return mCommitSignal->connect(cb);
+}
+boost::signals2::connection LLButton::setMouseDownCallback( const commit_signal_t::slot_type& cb )
+{
+	if (!mMouseDownSignal) mMouseDownSignal = new commit_signal_t();
+	return mMouseDownSignal->connect(cb);
+}
+boost::signals2::connection LLButton::setMouseUpCallback( const commit_signal_t::slot_type& cb )
+{
+	if (!mMouseUpSignal) mMouseUpSignal = new commit_signal_t();
+	return mMouseUpSignal->connect(cb);
+}
+boost::signals2::connection LLButton::setHeldDownCallback( const commit_signal_t::slot_type& cb )
+{
+	if (!mHeldDownSignal) mHeldDownSignal = new commit_signal_t();
+	return mHeldDownSignal->connect(cb);
 }
 
 
+// *TODO: Deprecate (for backwards compatability only)
+boost::signals2::connection LLButton::setClickedCallback( button_callback_t cb, void* data )
+{
+	return setClickedCallback(boost::bind(cb, data));
+}
+boost::signals2::connection LLButton::setMouseDownCallback( button_callback_t cb, void* data )
+{
+	return setMouseDownCallback(boost::bind(cb, data));
+}
+boost::signals2::connection LLButton::setMouseUpCallback( button_callback_t cb, void* data )
+{
+	return setMouseUpCallback(boost::bind(cb, data));
+}
+boost::signals2::connection LLButton::setHeldDownCallback( button_callback_t cb, void* data )
+{
+	return setHeldDownCallback(boost::bind(cb, data));
+}
 
+BOOL LLButton::postBuild()
+{
+	autoResize();
+	return TRUE;
+}
 BOOL LLButton::handleUnicodeCharHere(llwchar uni_char)
 {
 	BOOL handled = FALSE;
@@ -278,10 +342,8 @@ BOOL LLButton::handleUnicodeCharHere(llwchar uni_char)
 			toggleState();
 		}
 
-		if (mClickedCallback)
-		{
-			(*mClickedCallback)( mCallbackUserData );
-		}
+		LLUICtrl::onCommit();
+		
 		handled = TRUE;		
 	}
 	return handled;	
@@ -299,10 +361,7 @@ BOOL LLButton::handleKeyHere(KEY key, MASK mask )
 
 		handled = TRUE;
 
-		if (mClickedCallback)
-		{
-			(*mClickedCallback)( mCallbackUserData );
-		}
+		LLUICtrl::onCommit();
 	}
 	return handled;
 }
@@ -310,27 +369,35 @@ BOOL LLButton::handleKeyHere(KEY key, MASK mask )
 
 BOOL LLButton::handleMouseDown(S32 x, S32 y, MASK mask)
 {
-	// Route future Mouse messages here preemptively.  (Release on mouse up.)
-	gFocusMgr.setMouseCapture( this );
-
-	if (hasTabStop() && !getIsChrome())
+	if (!childrenHandleMouseDown(x, y, mask))
 	{
-		setFocus(TRUE);
-	}
+		// Route future Mouse messages here preemptively.  (Release on mouse up.)
+		gFocusMgr.setMouseCapture( this );
 
-	if (mMouseDownCallback)
-	{
-		(*mMouseDownCallback)(mCallbackUserData);
-	}
+		if (hasTabStop() && !getIsChrome())
+		{
+			setFocus(TRUE);
+		}
 
-	mMouseDownTimer.start();
-	mMouseDownFrame = (S32) LLFrameTimer::getFrameCount();
-	
-	if (getSoundFlags() & MOUSE_DOWN)
-	{
-		make_ui_sound("UISndClick");
-	}
+		/*
+		 * ATTENTION! This call fires another mouse down callback.
+		 * If you wish to remove this call emit that signal directly
+		 * by calling LLUICtrl::mMouseDownSignal(x, y, mask);
+		 */
+		LLUICtrl::handleMouseDown(x, y, mask);
 
+		if(mMouseDownSignal) (*mMouseDownSignal)(this, LLSD());
+
+		mMouseDownTimer.start();
+		mMouseDownFrame = (S32) LLFrameTimer::getFrameCount();
+		mMouseHeldDownCount = 0;
+
+		
+		if (getSoundFlags() & MOUSE_DOWN)
+		{
+			make_ui_sound("UISndClick");
+		}
+	}
 	return TRUE;
 }
 
@@ -343,14 +410,17 @@ BOOL LLButton::handleMouseUp(S32 x, S32 y, MASK mask)
 		// Always release the mouse
 		gFocusMgr.setMouseCapture( NULL );
 
-		// Regardless of where mouseup occurs, handle callback
-		if (mMouseUpCallback)
-		{
-			(*mMouseUpCallback)(mCallbackUserData);
-		}
+		/*
+		 * ATTENTION! This call fires another mouse up callback.
+		 * If you wish to remove this call emit that signal directly
+		 * by calling LLUICtrl::mMouseUpSignal(x, y, mask);
+		 */
+		LLUICtrl::handleMouseUp(x, y, mask);
 
-		mMouseDownTimer.stop();
-		mMouseDownTimer.reset();
+		// Regardless of where mouseup occurs, handle callback
+		if(mMouseUpSignal) (*mMouseUpSignal)(this, LLSD());
+
+		resetMouseDownTimer();
 
 		// DO THIS AT THE VERY END to allow the button to be destroyed as a result of being clicked.
 		// If mouseup in the widget, it's been clicked
@@ -366,38 +436,106 @@ BOOL LLButton::handleMouseUp(S32 x, S32 y, MASK mask)
 				toggleState();
 			}
 
-			if (mClickedCallback)
-			{
-				(*mClickedCallback)( mCallbackUserData );
-			}			
+			LLUICtrl::onCommit();
 		}
+	}
+	else
+	{
+		childrenHandleMouseUp(x, y, mask);
 	}
 
 	return TRUE;
 }
 
+BOOL	LLButton::handleRightMouseDown(S32 x, S32 y, MASK mask)
+{
+	if (!childrenHandleRightMouseDown(x, y, mask))
+	{
+		// Route future Mouse messages here preemptively.  (Release on mouse up.)
+		gFocusMgr.setMouseCapture( this );
+
+		if (hasTabStop() && !getIsChrome())
+		{
+			setFocus(TRUE);
+		}
+
+//		if (pointInView(x, y))
+//		{
+//		}
+	}
+	// send the mouse down signal
+	LLUICtrl::handleRightMouseDown(x,y,mask);
+	// *TODO: Return result of LLUICtrl call above?  Should defer to base class
+	// but this might change the mouse handling of existing buttons in a bad way
+	// if they are not mouse opaque.
+	return TRUE;
+}
+
+BOOL	LLButton::handleRightMouseUp(S32 x, S32 y, MASK mask)
+{
+	// We only handle the click if the click both started and ended within us
+	if( hasMouseCapture() )
+	{
+		// Always release the mouse
+		gFocusMgr.setMouseCapture( NULL );
+
+//		if (pointInView(x, y))
+//		{
+//			mRightMouseUpSignal(this, x,y,mask);
+//		}
+	}
+	else 
+	{
+		childrenHandleRightMouseUp(x, y, mask);
+	}
+	// send the mouse up signal
+	LLUICtrl::handleRightMouseUp(x,y,mask);
+	// *TODO: Return result of LLUICtrl call above?  Should defer to base class
+	// but this might change the mouse handling of existing buttons in a bad way.
+	// if they are not mouse opaque.
+	return TRUE;
+}
+
+
+void LLButton::onMouseEnter(S32 x, S32 y, MASK mask)
+{
+	LLUICtrl::onMouseEnter(x, y, mask);
+
+	if (isInEnabledChain())
+		mNeedsHighlight = TRUE;
+}
+
+void LLButton::onMouseLeave(S32 x, S32 y, MASK mask)
+{
+	LLUICtrl::onMouseLeave(x, y, mask);
+
+	mNeedsHighlight = FALSE;
+}
+
+void LLButton::setHighlight(bool b)
+{
+	mNeedsHighlight = b;
+}
 
 BOOL LLButton::handleHover(S32 x, S32 y, MASK mask)
 {
-	LLMouseHandler* other_captor = gFocusMgr.getMouseCapture();
-	mNeedsHighlight = other_captor == NULL || 
-				other_captor == this ||
-				// this following bit is to support modal dialogs
-				(other_captor->isView() && hasAncestor((LLView*)other_captor));
-
-	if (mMouseDownTimer.getStarted() && NULL != mHeldDownCallback)
+	if (!childrenHandleHover(x, y, mask))
 	{
-		F32 elapsed = getHeldDownTime();
-		if( mHeldDownDelay <= elapsed && mHeldDownFrameDelay <= (S32)LLFrameTimer::getFrameCount() - mMouseDownFrame)
+		if (mMouseDownTimer.getStarted())
 		{
-			mHeldDownCallback( mCallbackUserData );		
+			F32 elapsed = getHeldDownTime();
+			if( mHeldDownDelay <= elapsed && mHeldDownFrameDelay <= (S32)LLFrameTimer::getFrameCount() - mMouseDownFrame)
+			{
+				LLSD param;
+				param["count"] = mMouseHeldDownCount++;
+				if (mHeldDownSignal) (*mHeldDownSignal)(this, param);
+			}
 		}
+
+		// We only handle the click if the click both started and ended within us
+		getWindow()->setCursor(UI_CURSOR_ARROW);
+		lldebugst(LLERR_USER_INPUT) << "hover handled by " << getName() << llendl;
 	}
-
-	// We only handle the click if the click both started and ended within us
-	getWindow()->setCursor(UI_CURSOR_ARROW);
-	lldebugst(LLERR_USER_INPUT) << "hover handled by " << getName() << llendl;
-
 	return TRUE;
 }
 
@@ -405,16 +543,20 @@ BOOL LLButton::handleHover(S32 x, S32 y, MASK mask)
 // virtual
 void LLButton::draw()
 {
-	BOOL flash = FALSE;
+	F32 alpha = getDrawContext().mAlpha;
+	bool flash = FALSE;
+	static LLUICachedControl<F32> button_flash_rate("ButtonFlashRate", 0);
+	static LLUICachedControl<S32> button_flash_count("ButtonFlashCount", 0);
+
 	if( mFlashing )
 	{
 		F32 elapsed = mFlashingTimer.getElapsedTimeF32();
-		S32 flash_count = S32(elapsed * LLUI::sConfigGroup->getF32("ButtonFlashRate") * 2.f);
+		S32 flash_count = S32(elapsed * button_flash_rate * 2.f);
 		// flash on or off?
-		flash = (flash_count % 2 == 0) || flash_count > S32((F32)LLUI::sConfigGroup->getS32("ButtonFlashCount") * 2.f);
+		flash = (flash_count % 2 == 0) || flash_count > S32((F32)button_flash_count * 2.f);
 	}
 
-	BOOL pressed_by_keyboard = FALSE;
+	bool pressed_by_keyboard = FALSE;
 	if (hasFocus())
 	{
 		pressed_by_keyboard = gKeyboard->getKeyDown(' ') || (mCommitOnReturn && gKeyboard->getKeyDown(KEY_RETURN));
@@ -423,26 +565,34 @@ void LLButton::draw()
 	// Unselected image assignments
 	S32 local_mouse_x;
 	S32 local_mouse_y;
-	LLUI::getCursorPositionLocal(this, &local_mouse_x, &local_mouse_y);
+	LLUI::getMousePositionLocal(this, &local_mouse_x, &local_mouse_y);
 
-	BOOL pressed = pressed_by_keyboard 
-					|| (hasMouseCapture() && pointInView(local_mouse_x, local_mouse_y)) 
-					|| mToggleState;
+	bool enabled = isInEnabledChain();
+
+	bool pressed = pressed_by_keyboard 
+					|| (hasMouseCapture() && pointInView(local_mouse_x, local_mouse_y))
+					|| mForcePressedState;
+	bool selected = getToggleState();
 	
-	BOOL use_glow_effect = FALSE;
+	bool use_glow_effect = FALSE;
 	LLColor4 glow_color = LLColor4::white;
 	LLRender::eBlendType glow_type = LLRender::BT_ADD_WITH_ALPHA;
-	if ( mNeedsHighlight )
+	LLUIImage* imagep = NULL;
+	if (pressed)
 	{
-		if (pressed)
+		imagep = selected ? mImagePressedSelected : mImagePressed;
+	}
+	else if ( mNeedsHighlight )
+	{
+		if (selected)
 		{
 			if (mImageHoverSelected)
 			{
-				mImagep = mImageHoverSelected;
+				imagep = mImageHoverSelected;
 			}
 			else
 			{
-				mImagep = mImageSelected;
+				imagep = mImageSelected;
 				use_glow_effect = TRUE;
 			}
 		}
@@ -450,32 +600,18 @@ void LLButton::draw()
 		{
 			if (mImageHoverUnselected)
 			{
-				mImagep = mImageHoverUnselected;
+				imagep = mImageHoverUnselected;
 			}
 			else
 			{
-				mImagep = mImageUnselected;
+				imagep = mImageUnselected;
 				use_glow_effect = TRUE;
 			}
 		}
 	}
-	else if ( pressed )
+	else 
 	{
-		mImagep = mImageSelected;
-	}
-	else
-	{
-		mImagep = mImageUnselected;
-	}
-
-	if (mFlashing)
-	{
-		use_glow_effect = TRUE;
-		glow_type = LLRender::BT_ALPHA; // blend the glow
-		if (mNeedsHighlight) // highlighted AND flashing
-			glow_color = (glow_color*0.5f + mFlashBgColor*0.5f) % 2.0f; // average between flash and highlight colour, with sum of the opacity
-		else
-			glow_color = mFlashBgColor;
+		imagep = selected ? mImageSelected : mImageUnselected;
 	}
 
 	// Override if more data is available
@@ -485,19 +621,31 @@ void LLButton::draw()
 	//   disabled but checked
 	if (!mImageDisabledSelected.isNull() 
 		&& 
-			( (getEnabled() && getTentative()) 
-			|| (!getEnabled() && pressed ) ) )
+			( (enabled && getTentative()) 
+			|| (!enabled && selected ) ) )
 	{
-		mImagep = mImageDisabledSelected;
+		imagep = mImageDisabledSelected;
 	}
 	else if (!mImageDisabled.isNull() 
-		&& !getEnabled() 
-		&& !pressed)
+		&& !enabled 
+		&& !selected)
 	{
-		mImagep = mImageDisabled;
+		imagep = mImageDisabled;
 	}
 
-	if (mNeedsHighlight && !mImagep)
+	if (mFlashing)
+	{
+		LLColor4 flash_color = mFlashBgColor.get();
+		use_glow_effect = TRUE;
+		glow_type = LLRender::BT_ALPHA; // blend the glow
+
+		if (mNeedsHighlight) // highlighted AND flashing
+			glow_color = (glow_color*0.5f + flash_color*0.5f) % 2.0f; // average between flash and highlight colour, with sum of the opacity
+		else
+			glow_color = flash_color;
+	}
+
+	if (mNeedsHighlight && !imagep)
 	{
 		use_glow_effect = TRUE;
 	}
@@ -506,60 +654,46 @@ void LLButton::draw()
 	LLColor4 label_color;
 
 	// label changes when button state changes, not when pressed
-	if ( getEnabled() )
+	if ( enabled )
 	{
-		if ( mToggleState )
+		if ( getToggleState() )
 		{
-			label_color = mSelectedLabelColor;
+			label_color = mSelectedLabelColor.get();
 		}
 		else
 		{
-			label_color = mUnselectedLabelColor;
+			label_color = mUnselectedLabelColor.get();
 		}
 	}
 	else
 	{
-		if ( mToggleState )
+		if ( getToggleState() )
 		{
-			label_color = mDisabledSelectedLabelColor;
+			label_color = mDisabledSelectedLabelColor.get();
 		}
 		else
 		{
-			label_color = mDisabledLabelColor;
+			label_color = mDisabledLabelColor.get();
 		}
 	}
 
 	// Unselected label assignments
 	LLWString label;
 
-	if( mToggleState )
+	if( getToggleState() )
 	{
-		if( getEnabled() || mDisabledSelectedLabel.empty() )
-		{
-			label = mSelectedLabel;
-		}
-		else
-		{
-			label = mDisabledSelectedLabel;
-		}
+		label = mSelectedLabel;
 	}
 	else
 	{
-		if( getEnabled() || mDisabledLabel.empty() )
-		{
-			label = mUnselectedLabel;
-		}
-		else
-		{
-			label = mDisabledLabel;
-		}
+		label = mUnselectedLabel;
 	}
 
 	// overlay with keyboard focus border
 	if (hasFocus())
 	{
 		F32 lerp_amt = gFocusMgr.getFocusFlashAmt();
-		drawBorder(gFocusMgr.getFocusColor(), llround(lerp(1.f, 3.f, lerp_amt)));
+		drawBorder(imagep, gFocusMgr.getFocusColor() % alpha, llround(lerp(1.f, 3.f, lerp_amt)));
 	}
 	
 	if (use_glow_effect)
@@ -576,25 +710,27 @@ void LLButton::draw()
 
 	// Draw button image, if available.
 	// Otherwise draw basic rectangular button.
-	if (mImagep.notNull())
+	if (imagep != NULL)
 	{
+		// apply automatic 50% alpha fade to disabled image
+		LLColor4 disabled_color = mFadeWhenDisabled ? mDisabledImageColor.get() % 0.5f : mDisabledImageColor.get();
 		if ( mScaleImage)
 		{
-			mImagep->draw(getLocalRect(), getEnabled() ? mImageColor : mDisabledImageColor  );
+			imagep->draw(getLocalRect(), (enabled ? mImageColor.get() : disabled_color) % alpha  );
 			if (mCurGlowStrength > 0.01f)
 			{
 				gGL.setSceneBlendType(glow_type);
-				mImagep->drawSolid(0, 0, getRect().getWidth(), getRect().getHeight(), glow_color % mCurGlowStrength);
+				imagep->drawSolid(0, 0, getRect().getWidth(), getRect().getHeight(), glow_color % (mCurGlowStrength * alpha));
 				gGL.setSceneBlendType(LLRender::BT_ALPHA);
 			}
 		}
 		else
 		{
-			mImagep->draw(0, 0, getEnabled() ? mImageColor : mDisabledImageColor );
+			imagep->draw(0, 0, (enabled ? mImageColor.get() : disabled_color) % alpha );
 			if (mCurGlowStrength > 0.01f)
 			{
 				gGL.setSceneBlendType(glow_type);
-				mImagep->drawSolid(0, 0, glow_color % mCurGlowStrength);
+				imagep->drawSolid(0, 0, glow_color % (mCurGlowStrength * alpha));
 				gGL.setSceneBlendType(LLRender::BT_ALPHA);
 			}
 		}
@@ -602,9 +738,9 @@ void LLButton::draw()
 	else
 	{
 		// no image
-		llwarns << "No image for button " << getName() << llendl;
+		lldebugs << "No image for button " << getName() << llendl;
 		// draw it in pink so we can find it
-		gl_rect_2d(0, getRect().getHeight(), getRect().getWidth(), 0, LLColor4::pink1, FALSE);
+		gl_rect_2d(0, getRect().getHeight(), getRect().getWidth(), 0, LLColor4::pink1 % alpha, FALSE);
 	}
 
 	// let overlay image and text play well together
@@ -633,20 +769,21 @@ void LLButton::draw()
 			center_x++;
 		}
 
+		center_y += (mImageOverlayBottomPad - mImageOverlayTopPad);
 		// fade out overlay images on disabled buttons
-		LLColor4 overlay_color = mImageOverlayColor;
-		if (!getEnabled())
+		LLColor4 overlay_color = mImageOverlayColor.get();
+		if (!enabled)
 		{
 			overlay_color.mV[VALPHA] = 0.5f;
 		}
+		overlay_color.mV[VALPHA] *= alpha;
 
 		switch(mImageOverlayAlignment)
 		{
 		case LLFontGL::LEFT:
-			text_left += overlay_width + 1;
-			text_width -= overlay_width + 1;
+			text_left += overlay_width + mImgOverlayLabelSpace;
 			mImageOverlay->draw(
-				mLeftHPad, 
+				mLeftHPad,
 				center_y - (overlay_height / 2), 
 				overlay_width, 
 				overlay_height, 
@@ -661,10 +798,9 @@ void LLButton::draw()
 				overlay_color);
 			break;
 		case LLFontGL::RIGHT:
-			text_right -= overlay_width + 1;				
-			text_width -= overlay_width + 1;
+			text_right -= overlay_width + mImgOverlayLabelSpace;
 			mImageOverlay->draw(
-				getRect().getWidth() - mRightHPad - overlay_width, 
+				getRect().getWidth() - mRightHPad - overlay_width,
 				center_y - (overlay_height / 2), 
 				overlay_width, 
 				overlay_height, 
@@ -704,52 +840,51 @@ void LLButton::draw()
 			x++;
 		}
 
-		mGLFont->render(label, 0, (F32)x, (F32)(LLBUTTON_V_PAD + y_offset), 
-			label_color,
+		// *NOTE: mantipov: before mUseEllipses is implemented in EXT-279 U32_MAX has been passed as
+		// max_chars.
+		// LLFontGL::render expects S32 max_chars variable but process in a separate way -1 value.
+		// Due to U32_MAX is equal to S32 -1 value I have rest this value for non-ellipses mode.
+		// Not sure if it is really needed. Probably S32_MAX should be always passed as max_chars.
+		mLastDrawCharsCount = mGLFont->render(label, 0,
+			(F32)x,
+			(F32)(mBottomVPad + y_offset),
+			label_color % alpha,
 			mHAlign, LLFontGL::BOTTOM,
-			mDropShadowedText ? LLFontGL::DROP_SHADOW_SOFT : LLFontGL::NORMAL,
-			U32_MAX, text_width,
-			NULL, FALSE, FALSE);
+			LLFontGL::NORMAL,
+			mDropShadowedText ? LLFontGL::DROP_SHADOW_SOFT : LLFontGL::NO_SHADOW,
+			S32_MAX, text_width,
+			NULL, mUseEllipses);
 	}
 
-	if (sDebugRects	
-		|| (LLView::sEditingUI && this == LLView::sEditingUIView))
-	{
-		drawDebugRect();
-	}
-
-	// reset hover status for next frame
-	mNeedsHighlight = FALSE;
+	LLUICtrl::draw();
 }
 
-void LLButton::drawBorder(const LLColor4& color, S32 size)
+void LLButton::drawBorder(LLUIImage* imagep, const LLColor4& color, S32 size)
 {
+	if (imagep == NULL) return;
 	if (mScaleImage)
 	{
-		mImagep->drawBorder(getLocalRect(), color, size);
+		imagep->drawBorder(getLocalRect(), color, size);
 	}
 	else
 	{
-		mImagep->drawBorder(0, 0, color, size);
+		imagep->drawBorder(0, 0, color, size);
 	}
 }
 
-void LLButton::setClickedCallback(void (*cb)(void*), void* userdata)
+BOOL LLButton::getToggleState() const
 {
-	mClickedCallback = cb;
-	if (userdata)
-	{
-		mCallbackUserData = userdata;
-	}
+    return getValue().asBoolean();
 }
-
 
 void LLButton::setToggleState(BOOL b)
 {
-	if( b != mToggleState )
+	if( b != getToggleState() )
 	{
 		setControlValue(b); // will fire LLControlVariable callbacks (if any)
-		mToggleState = b; // may or may not be redundant
+		setValue(b);        // may or may not be redundant
+		// Unselected label assignments
+		autoResize();
 	}
 }
 
@@ -764,19 +899,11 @@ void LLButton::setFlashing( BOOL b )
 
 
 BOOL LLButton::toggleState()			
-{ 
-	setToggleState( !mToggleState ); 
-	return mToggleState; 
-}
-
-void LLButton::setValue(const LLSD& value )
 {
-	mToggleState = value.asBoolean();
-}
+    bool flipped = ! getToggleState();
+	setToggleState(flipped); 
 
-LLSD LLButton::getValue() const
-{
-	return mToggleState == TRUE;
+	return flipped; 
 }
 
 void LLButton::setLabel( const LLStringExplicit& label )
@@ -803,26 +930,48 @@ void LLButton::setLabelSelected( const LLStringExplicit& label )
 	mSelectedLabel = label;
 }
 
-void LLButton::setDisabledLabel( const LLStringExplicit& label )
-{
-	mDisabledLabel = label;
-}
-
-void LLButton::setDisabledSelectedLabel( const LLStringExplicit& label )
-{
-	mDisabledSelectedLabel = label;
-}
-
 void LLButton::setImageUnselected(LLPointer<LLUIImage> image)
 {
 	mImageUnselected = image;
+	if (mImageUnselected.isNull())
+	{
+		llwarns << "Setting default button image for: " << getName() << " to NULL" << llendl;
+	}
 }
 
+void LLButton::autoResize()
+{
+	LLUIString label;
+	if(getToggleState())
+	{
+		label = mSelectedLabel;
+	}
+	else
+	{
+		label = mUnselectedLabel;
+	}
+	resize(label);
+}
+
+void LLButton::resize(LLUIString label)
+{
+	// get label length 
+	S32 label_width = mGLFont->getWidth(label.getString());
+	// get current btn length 
+	S32 btn_width =getRect().getWidth();
+    // check if it need resize 
+	if (mAutoResize == TRUE)
+	{ 
+		if (btn_width - (mRightHPad + mLeftHPad) < label_width)
+		{
+			setRect(LLRect( getRect().mLeft, getRect().mTop, getRect().mLeft + label_width + mLeftHPad + mRightHPad , getRect().mBottom));
+		}
+	} 
+}
 void LLButton::setImages( const std::string &image_name, const std::string &selected_name )
 {
-	setImageUnselected(image_name);
-	setImageSelected(selected_name);
-
+	setImageUnselected(LLUI::getUIImage(image_name));
+	setImageSelected(LLUI::getUIImage(selected_name));
 }
 
 void LLButton::setImageSelected(LLPointer<LLUIImage> image)
@@ -840,31 +989,18 @@ void LLButton::setColor(const LLColor4& color)
 	setImageColor(color);
 }
 
-void LLButton::setAlpha(F32 alpha)
-{
-	mImageColor.setAlpha(alpha);
-	mDisabledImageColor.setAlpha(alpha * 0.5f);
-}
-
 void LLButton::setImageDisabled(LLPointer<LLUIImage> image)
 {
 	mImageDisabled = image;
 	mDisabledImageColor = mImageColor;
-	mDisabledImageColor.mV[VALPHA] *= 0.5f;
+	mFadeWhenDisabled = TRUE;
 }
 
 void LLButton::setImageDisabledSelected(LLPointer<LLUIImage> image)
 {
 	mImageDisabledSelected = image;
 	mDisabledImageColor = mImageColor;
-	mDisabledImageColor.mV[VALPHA] *= 0.5f;
-}
-
-void LLButton::setDisabledImages( const std::string &image_name, const std::string &selected_name, const LLColor4& c )
-{
-	setImageDisabled(image_name);
-	setImageDisabledSelected(selected_name);
-	mDisabledImageColor = c;
+	mFadeWhenDisabled = TRUE;
 }
 
 void LLButton::setImageHoverSelected(LLPointer<LLUIImage> image)
@@ -872,22 +1008,9 @@ void LLButton::setImageHoverSelected(LLPointer<LLUIImage> image)
 	mImageHoverSelected = image;
 }
 
-void LLButton::setDisabledImages( const std::string &image_name, const std::string &selected_name)
-{
-	LLColor4 clr = mImageColor;
-	clr.mV[VALPHA] *= .5f;
-	setDisabledImages( image_name, selected_name, clr );
-}
-
 void LLButton::setImageHoverUnselected(LLPointer<LLUIImage> image)
 {
 	mImageHoverUnselected = image;
-}
-
-void LLButton::setHoverImages( const std::string& image_name, const std::string& selected_name )
-{
-	setImageHoverUnselected(image_name);
-	setImageHoverSelected(selected_name);
 }
 
 void LLButton::setImageOverlay(const std::string& image_name, LLFontGL::HAlign alignment, const LLColor4& color)
@@ -904,11 +1027,23 @@ void LLButton::setImageOverlay(const std::string& image_name, LLFontGL::HAlign a
 	}
 }
 
+void LLButton::setImageOverlay(const LLUUID& image_id, LLFontGL::HAlign alignment, const LLColor4& color)
+{
+	if (image_id.isNull())
+	{
+		mImageOverlay = NULL;
+	}
+	else
+	{
+		mImageOverlay = LLUI::getUIImageByID(image_id);
+		mImageOverlayAlignment = alignment;
+		mImageOverlayColor = color;
+	}
+}
 
 void LLButton::onMouseCaptureLost()
 {
-	mMouseDownTimer.stop();
-	mMouseDownTimer.reset();
+	resetMouseDownTimer();
 }
 
 //-------------------------------------------------------------------------
@@ -929,42 +1064,6 @@ S32 round_up(S32 grid, S32 value)
 	}
 }
 
-void			LLButton::setImageUnselected(const std::string &image_name)
-{	
-	setImageUnselected(LLUI::getUIImage(image_name));
-	mImageUnselectedName = image_name;
-}
-
-void			LLButton::setImageSelected(const std::string &image_name)
-{	
-	setImageSelected(LLUI::getUIImage(image_name));
-	mImageSelectedName = image_name;
-}
-
-void			LLButton::setImageHoverSelected(const std::string &image_name)
-{
-	setImageHoverSelected(LLUI::getUIImage(image_name));
-	mImageHoverSelectedName = image_name;
-}
-
-void			LLButton::setImageHoverUnselected(const std::string &image_name)
-{
-	setImageHoverUnselected(LLUI::getUIImage(image_name));
-	mImageHoverUnselectedName = image_name;
-}
-
-void			LLButton::setImageDisabled(const std::string &image_name)
-{
-	setImageDisabled(LLUI::getUIImage(image_name));
-	mImageDisabledName = image_name;
-}
-
-void			LLButton::setImageDisabledSelected(const std::string &image_name)
-{
-	setImageDisabledSelected(LLUI::getUIImage(image_name));
-	mImageDisabledSelectedName = image_name;
-}
-
 void LLButton::addImageAttributeToXML(LLXMLNodePtr node, 
 									  const std::string& image_name,
 									  const LLUUID&	image_id,
@@ -980,151 +1079,65 @@ void LLButton::addImageAttributeToXML(LLXMLNodePtr node,
 	}
 }
 
-// virtual
-LLXMLNodePtr LLButton::getXML(bool save_children) const
+
+// static
+void LLButton::toggleFloaterAndSetToggleState(LLUICtrl* ctrl, const LLSD& sdname)
 {
-	LLXMLNodePtr node = LLUICtrl::getXML();
-
-	node->setName(LL_BUTTON_TAG);
-
-	node->createChild("label", TRUE)->setStringValue(getLabelUnselected());
-	node->createChild("label_selected", TRUE)->setStringValue(getLabelSelected());
-	node->createChild("font", TRUE)->setStringValue(LLFontGL::nameFromFont(mGLFont));
-	node->createChild("halign", TRUE)->setStringValue(LLFontGL::nameFromHAlign(mHAlign));
-
-	addImageAttributeToXML(node,mImageUnselectedName,mImageUnselectedID,std::string("image_unselected"));
-	addImageAttributeToXML(node,mImageSelectedName,mImageSelectedID,std::string("image_selected"));
-	addImageAttributeToXML(node,mImageHoverSelectedName,mImageHoverSelectedID,std::string("image_hover_selected"));
-	addImageAttributeToXML(node,mImageHoverUnselectedName,mImageHoverUnselectedID,std::string("image_hover_unselected"));
-	addImageAttributeToXML(node,mImageDisabledName,mImageDisabledID,std::string("image_disabled"));
-	addImageAttributeToXML(node,mImageDisabledSelectedName,mImageDisabledSelectedID,std::string("image_disabled_selected"));
-
-	node->createChild("scale_image", TRUE)->setBoolValue(mScaleImage);
-
-	return node;
-}
-
-void clicked_help(void* data)
-{
-	LLButton* self = (LLButton*)data;
-	if (!self) return;
-	
-	if (!LLUI::sHtmlHelp)
-	{
-		return;
-	}
-	
-	LLUI::sHtmlHelp->show(self->getHelpURL());
+	bool floater_vis = LLFloaterReg::toggleInstance(sdname.asString());
+	LLButton* button = dynamic_cast<LLButton*>(ctrl);
+	if (button)
+		button->setToggleState(floater_vis);
 }
 
 // static
-LLView* LLButton::fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory)
+// Gets called once
+void LLButton::setFloaterToggle(LLUICtrl* ctrl, const LLSD& sdname)
 {
-	std::string name("button");
-	node->getAttributeString("name", name);
-
-	std::string label = name;
-	node->getAttributeString("label", label);
-
-	std::string label_selected = label;
-	node->getAttributeString("label_selected", label_selected);
-
-	LLFontGL* font = selectFont(node);
-
-	std::string	image_unselected;
-	if (node->hasAttribute("image_unselected")) node->getAttributeString("image_unselected",image_unselected);
-	
-	std::string	image_selected;
-	if (node->hasAttribute("image_selected")) node->getAttributeString("image_selected",image_selected);
-	
-	std::string	image_hover_selected;
-	if (node->hasAttribute("image_hover_selected")) node->getAttributeString("image_hover_selected",image_hover_selected);
-	
-	std::string	image_hover_unselected;
-	if (node->hasAttribute("image_hover_unselected")) node->getAttributeString("image_hover_unselected",image_hover_unselected);
-	
-	std::string	image_disabled_selected;
-	if (node->hasAttribute("image_disabled_selected")) node->getAttributeString("image_disabled_selected",image_disabled_selected);
-	
-	std::string	image_disabled;
-	if (node->hasAttribute("image_disabled")) node->getAttributeString("image_disabled",image_disabled);
-
-	std::string	image_overlay;
-	node->getAttributeString("image_overlay", image_overlay);
-
-	LLFontGL::HAlign image_overlay_alignment = LLFontGL::HCENTER;
-	std::string image_overlay_alignment_string;
-	if (node->hasAttribute("image_overlay_alignment"))
-	{
-		node->getAttributeString("image_overlay_alignment", image_overlay_alignment_string);
-		image_overlay_alignment = LLFontGL::hAlignFromName(image_overlay_alignment_string);
-	}
-
-
-	LLButton *button = new LLButton(name, 
-			LLRect(),
-			image_unselected,
-			image_selected,
-			LLStringUtil::null, 
-			NULL, 
-			parent,
-			font,
-			label,
-			label_selected);
-
-	node->getAttributeS32("pad_right", button->mRightHPad);
-	node->getAttributeS32("pad_left", button->mLeftHPad);
-
-	BOOL is_toggle = button->getIsToggle();
-	node->getAttributeBOOL("toggle", is_toggle);
-	button->setIsToggle(is_toggle);
-
-	if(image_hover_selected != LLStringUtil::null) button->setImageHoverSelected(image_hover_selected);
-	
-	if(image_hover_unselected != LLStringUtil::null) button->setImageHoverUnselected(image_hover_unselected);
-	
-	if(image_disabled_selected != LLStringUtil::null) button->setImageDisabledSelected(image_disabled_selected );
-	
-	if(image_disabled != LLStringUtil::null) button->setImageDisabled(image_disabled);
-	
-	if(image_overlay != LLStringUtil::null) button->setImageOverlay(image_overlay, image_overlay_alignment);
-
-	if (node->hasAttribute("halign"))
-	{
-		LLFontGL::HAlign halign = selectFontHAlign(node);
-		button->setHAlign(halign);
-	}
-
-	if (node->hasAttribute("scale_image"))
-	{
-		BOOL	needsScale = FALSE;
-		node->getAttributeBOOL("scale_image",needsScale);
-		button->setScaleImage( needsScale );
-	}
-
-	if(label.empty())
-	{
-		button->setLabelUnselected(node->getTextContents());
-	}
-	if (label_selected.empty())
-	{
-		button->setLabelSelected(node->getTextContents());
-	}
-		
-	if (node->hasAttribute("help_url")) 
-	{
-		std::string	help_url;
-		node->getAttributeString("help_url",help_url);
-		button->setHelpURLCallback(help_url);
-	}
-
-	button->initFromXML(node, parent);
-	
-	return button;
+	LLButton* button = dynamic_cast<LLButton*>(ctrl);
+	if (!button)
+		return;
+	// Get the visibility control name for the floater
+	std::string vis_control_name = LLFloaterReg::declareVisibilityControl(sdname.asString());
+	// Set the button control value (toggle state) to the floater visibility control (Sets the value as well)
+	button->setControlVariable(LLUI::sSettingGroups["floater"]->getControl(vis_control_name));
+	// Set the clicked callback to toggle the floater
+	button->setClickedCallback(boost::bind(&LLFloaterReg::toggleFloaterInstance, sdname));
 }
 
-void LLButton::setHelpURLCallback(const std::string &help_url)
+// static
+void LLButton::setDockableFloaterToggle(LLUICtrl* ctrl, const LLSD& sdname)
 {
-	mHelpURL = help_url;
-	setClickedCallback(clicked_help,this);
+	LLButton* button = dynamic_cast<LLButton*>(ctrl);
+	if (!button)
+		return;
+	// Get the visibility control name for the floater
+	std::string vis_control_name = LLFloaterReg::declareVisibilityControl(sdname.asString());
+	// Set the button control value (toggle state) to the floater visibility control (Sets the value as well)
+	button->setControlVariable(LLUI::sSettingGroups["floater"]->getControl(vis_control_name));
+	// Set the clicked callback to toggle the floater
+	button->setClickedCallback(boost::bind(&LLDockableFloater::toggleInstance, sdname));
+}
+
+// static
+void LLButton::showHelp(LLUICtrl* ctrl, const LLSD& sdname)
+{
+	// search back through the button's parents for a panel
+	// with a help_topic string defined
+	std::string help_topic;
+	if (LLUI::sHelpImpl &&
+	    ctrl->findHelpTopic(help_topic))
+	{
+		LLUI::sHelpImpl->showTopic(help_topic);
+		return; // success
+	}
+
+	// display an error if we can't find a help_topic string.
+	// fix this by adding a help_topic attribute to the xui file
+	LLNotificationsUtil::add("UnableToFindHelpTopic");
+}
+
+void LLButton::resetMouseDownTimer()
+{
+	mMouseDownTimer.stop();
+	mMouseDownTimer.reset();
 }

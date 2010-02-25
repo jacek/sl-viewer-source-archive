@@ -1,30 +1,28 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<pie_menu name="Object Pie">
-	<menu_item_call label="Abrir" name="Open"/>
-	<menu_item_call label="Crear" name="Create"/>
+<context_menu name="Object Pie">
 	<menu_item_call label="Tocar" name="Object Touch">
-		<on_enable userdata="Tocar" name="EnableTouch"/>
+		<menu_item_call.on_enable name="EnableTouch" userdata="Tocar"/>
 	</menu_item_call>
+	<menu_item_call label="Editar" name="Edit..."/>
+	<menu_item_call label="Construir" name="Build"/>
+	<menu_item_call label="Abrir" name="Open"/>
 	<menu_item_call label="Sentarse aquí" name="Object Sit">
-		<on_enable userdata="Sentarse aquí,Levantarse" name="EnableSitOrStand"/>
+		<menu_item_call.on_enable name="EnableSitOrStand" userdata="Sentarse aquí,Levantarse"/>
 	</menu_item_call>
-	<menu_item_call label="Tomar" name="Pie Object Take">
-		<on_enable userdata="Comprar,Tomar" name="EnableBuyOrTake"/>
-	</menu_item_call>
-	<menu_item_call label="Pagar..." name="Pay..."/>
-	<pie_menu label="Más &gt;" name="More &gt;">
-		<menu_item_call label="Borrar" name="Delete"/>
+	<menu_item_call label="Perfil del objeto" name="Object Inspect"/>
+	<context_menu label="Poner &gt;" name="Put On">
 		<menu_item_call label="Ponerse" name="Wear"/>
-		<menu_item_call label="Coger una copia" name="Take Copy"/>
-		<pie_menu label="Anexar como HUD &gt;" name="Object Attach HUD"/>
-		<pie_menu label="Anexar &gt;" name="Object Attach"/>
-		<menu_item_call label="Devolver..." name="Return..."/>
-		<pie_menu label="Más &gt;" name="Rate Menu">
-			<menu_item_call label="Denunciar..." name="Report Abuse..."/>
-			<menu_item_call label="Ignorar" name="Object Mute"/>
-			<menu_item_call label="Examinar" name="Object Inspect"/>
-		</pie_menu>
-		<menu_item_call label="Comprar..." name="Buy..."/>
-	</pie_menu>
-	<menu_item_call label="Editar..." name="Edit..."/>
-</pie_menu>
+		<context_menu label="Anexar &gt;" name="Object Attach"/>
+		<context_menu label="Anexar el HUD &gt;" name="Object Attach HUD"/>
+	</context_menu>
+	<context_menu label="Quitar &gt;" name="Remove">
+		<menu_item_call label="Borrar" name="Delete"/>
+		<menu_item_call label="Tomar" name="Pie Object Take"/>
+		<menu_item_call label="Denunciar una infracción" name="Report Abuse..."/>
+		<menu_item_call label="Ignorar" name="Object Mute"/>
+		<menu_item_call label="Devolver" name="Return..."/>
+	</context_menu>
+	<menu_item_call label="Coger una copia" name="Take Copy"/>
+	<menu_item_call label="Pagar" name="Pay..."/>
+	<menu_item_call label="Comprar" name="Buy..."/>
+</context_menu>

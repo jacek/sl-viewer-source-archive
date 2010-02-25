@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -56,9 +56,7 @@ LLColor3::LLColor3(const LLVector4 &a)
 
 LLColor3::LLColor3(const LLSD &sd)
 {
-	mV[0] = (F32) sd[0].asReal();
-	mV[1] = (F32) sd[1].asReal();
-	mV[2] = (F32) sd[2].asReal();
+	setValue(sd);
 }
 
 const LLColor3& LLColor3::operator=(const LLColor4 &a) 
@@ -73,6 +71,42 @@ std::ostream& operator<<(std::ostream& s, const LLColor3 &a)
 {
 	s << "{ " << a.mV[VX] << ", " << a.mV[VY] << ", " << a.mV[VZ] << " }";
 	return s;
+}
+
+static F32 hueToRgb ( F32 val1In, F32 val2In, F32 valHUeIn )
+{
+	if ( valHUeIn < 0.0f ) valHUeIn += 1.0f;
+	if ( valHUeIn > 1.0f ) valHUeIn -= 1.0f;
+	if ( ( 6.0f * valHUeIn ) < 1.0f ) return ( val1In + ( val2In - val1In ) * 6.0f * valHUeIn );
+	if ( ( 2.0f * valHUeIn ) < 1.0f ) return ( val2In );
+	if ( ( 3.0f * valHUeIn ) < 2.0f ) return ( val1In + ( val2In - val1In ) * ( ( 2.0f / 3.0f ) - valHUeIn ) * 6.0f );
+	return ( val1In );
+}
+
+void LLColor3::setHSL ( F32 hValIn, F32 sValIn, F32 lValIn)
+{
+	if ( sValIn < 0.00001f )
+	{
+		mV[VRED] = lValIn;
+		mV[VGREEN] = lValIn;
+		mV[VBLUE] = lValIn;
+	}
+	else
+	{
+		F32 interVal1;
+		F32 interVal2;
+
+		if ( lValIn < 0.5f )
+			interVal2 = lValIn * ( 1.0f + sValIn );
+		else
+			interVal2 = ( lValIn + sValIn ) - ( sValIn * lValIn );
+
+		interVal1 = 2.0f * lValIn - interVal2;
+
+		mV[VRED] = hueToRgb ( interVal1, interVal2, hValIn + ( 1.f / 3.f ) );
+		mV[VGREEN] = hueToRgb ( interVal1, interVal2, hValIn );
+		mV[VBLUE] = hueToRgb ( interVal1, interVal2, hValIn - ( 1.f / 3.f ) );
+	}
 }
 
 void LLColor3::calcHSL(F32* hue, F32* saturation, F32* luminance) const

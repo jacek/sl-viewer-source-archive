@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -92,7 +92,7 @@ const U32 REGION_FLAGS_DENY_ANONYMOUS			= (1 << 23);
 
 const U32 REGION_FLAGS_ALLOW_PARCEL_CHANGES		= (1 << 26);
 
-const U32 REGION_FLAGS_ABUSE_EMAIL_TO_ESTATE_OWNER = (1 << 27);
+// const U32 REGION_FLAGS_ABUSE_EMAIL_TO_ESTATE_OWNER = (1 << 27); // We no longer support ELAR
 
 const U32 REGION_FLAGS_ALLOW_VOICE = (1 << 28);
 

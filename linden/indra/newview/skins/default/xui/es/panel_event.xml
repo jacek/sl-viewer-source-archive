@@ -1,70 +1,70 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Event" title="Evento">
+<panel label="Evento" name="Event" title="Evento">
+	<panel.string name="none">
+		ninguna
+	</panel.string>
+	<panel.string name="notify">
+		Notificar
+	</panel.string>
+	<panel.string name="dont_notify">
+		No notificar
+	</panel.string>
 	<text name="event_name_label">
 		Nombre:
 	</text>
-	<text name="event_name" left="150" >
+	<text left="150" name="event_name">
 		(ninguno)
 	</text>
 	<text name="event_category_label">
 		Tipo:
 	</text>
-	<text name="event_category" left="150" >
+	<text left="150" name="event_category">
 		(ninguno)
 	</text>
 	<text name="event_mature_label">
 		Contenido &apos;Mature&apos;:
 	</text>
-	<text name="event_mature_yes" left="150" >
+	<text left="150" name="event_mature_yes">
 		Sí
 	</text>
-	<text name="event_mature_no" left="150" >
+	<text left="150" name="event_mature_no">
 		No
 	</text>
 	<text name="event_date_label">
 		Fecha:
 	</text>
-	<text name="event_date" left="150" >
+	<text left="150" name="event_date">
 		(ninguna)
 	</text>
 	<text name="event_duration_label">
 		Duración del evento:
 	</text>
-	<text name="event_duration" left="150" >
+	<text left="150" name="event_duration">
 		(ninguna)
 	</text>
 	<text name="event_runby_label">
 		Auspiciado por:
 	</text>
-	<text name="event_runby" left="150" >
+	<text left="150" name="event_runby">
 		(nadie)
 	</text>
 	<text name="event_location_label">
 		Localización:
 	</text>
-	<text name="event_location" left="150" >
+	<text left="150" name="event_location">
 		(ninguna)
 	</text>
 	<text name="event_cover_label">
 		Cuota de participación:
 	</text>
-	<text name="event_cover" left="150" >
+	<text left="150" name="event_cover">
 		(ninguna)
 	</text>
 	<text name="event_desc_label">
 		Descripción:
 	</text>
 	<button label="Teleportar" name="teleport_btn"/>
-	<button label="Mostrar en el mapa" name="map_btn"/>
+	<button label="Mapa" name="map_btn"/>
 	<button label="Notificar" name="notify_btn"/>
 	<button label="Crear un evento..." name="create_event_btn"/>
-	<string name="none">
-		ninguna
-	</string>
-	<string name="notify">
-		Notificar
-	</string>
-	<string name="dont_notify">
-		No notificar
-	</string>
 </panel>

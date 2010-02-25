@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,15 +34,18 @@
 #define LL_LLAPP_H
 
 #include <map>
-#include "llapr.h"
 #include "llrun.h"
 #include "llsd.h"
 #include "lloptioninterface.h"
 
 // Forward declarations
+template <typename Type> class LLAtomic32;
+typedef LLAtomic32<U32> LLAtomicU32;
 class LLErrorThread;
-class LLApp;
-
+class LLLiveFile;
+#if LL_LINUX
+typedef struct siginfo siginfo_t;
+#endif
 
 typedef void (*LLAppErrorHandler)();
 typedef void (*LLAppChildCallback)(int pid, bool exited, int status);
@@ -63,7 +66,7 @@ public:
 };
 #endif
 
-class LLApp : public LLOptionInterface
+class LL_COMMON_API LLApp : public LLOptionInterface
 {
 	friend class LLErrorThread;
 public:
@@ -129,6 +132,19 @@ public:
 	bool parseCommandOptions(int argc, char** argv);
 
 	/**
+	 * @brief Keep track of live files automatically.
+	 *
+	 * *TODO: it currently uses the <code>addToEventTimer()</code> API
+	 * instead of the runner. I should probalby use the runner.
+	 *
+	 * *NOTE: DO NOT add the livefile instance to any kind of check loop.
+	 *
+	 * @param livefile A valid instance of an LLLiveFile. This LLApp
+	 * instance will delete the livefile instance.
+	 */
+	void manageLiveFile(LLLiveFile* livefile);
+
+	/**
 	 * @brief Set the options at the specified priority.
 	 *
 	 * This function completely replaces the options at the priority
@@ -190,16 +206,29 @@ public:
 #if !LL_WINDOWS
 	static U32  getSigChildCount();
 	static void incSigChildCount();
-#else
-#define getpid GetCurrentProcessId
 #endif
 	static int getPid();
 
-	//
-	// Error handling methods
-	//
+	/** @name Error handling methods */
+	//@{
+	/**
+	 * @brief Do our generic platform-specific error-handling setup --
+	 * signals on unix, structured exceptions on windows.
+	 * 
+	 * DO call this method if your app will either spawn children or be
+	 * spawned by a launcher.
+	 * Call just after app object construction.
+	 * (Otherwise your app will crash when getting signals,
+	 * and will not core dump.)
+	 *
+	 * DO NOT call this method if your application has specialized
+	 * error handling code.
+	 */
+	void setupErrorHandling();
+
 	void setErrorHandler(LLAppErrorHandler handler);
 	void setSyncErrorHandler(LLAppErrorHandler handler);
+	//@}
 
 #if !LL_WINDOWS
 	//
@@ -215,8 +244,9 @@ public:
 	void setDefaultChildCallback(LLAppChildCallback callback); 
 	
     // Fork and do the proper signal handling/error handling mojo
-	// WARNING: You need to make sure your signal handling callback is correct after
-	// you fork, because not all threads are duplicated when you fork!
+	// *NOTE: You need to make sure your signal handling callback is
+	// correct after you fork, because not all threads are duplicated
+	// when you fork!
 	pid_t fork(); 
 #endif
 
@@ -256,7 +286,6 @@ protected:
 private:
 	void startErrorThread();
 	
-	void setupErrorHandling();		// Do platform-specific error-handling setup (signals, structured exceptions)
 	static void runErrorHandler(); // run shortly after we detect an error, ran in the relatively robust context of the LLErrorThread - preferred.
 	static void runSyncErrorHandler(); // run IMMEDIATELY when we get an error, ran in the context of the faulting thread.
 
@@ -279,6 +308,8 @@ private:
 	// The application options.
 	LLSD mOptions;
 
+	// The live files for this application
+	std::vector<LLLiveFile*> mLiveFiles;
 	//@}
 
 private:

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,21 +37,41 @@
 
 #include "lluictrl.h"
 #include "llframetimer.h"
-#include "lldynamictexture.h"
 
 class LLViewBorder;
-class LLWebBrowserTexture;
 class LLUICtrlFactory;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 class LLMediaCtrl :
-	public LLUICtrl,
+	public LLPanel,
 	public LLViewerMediaObserver,
 	public LLViewerMediaEventEmitter
 {
-	public:
-		LLMediaCtrl( const std::string& name, const LLRect& rect );
+	LOG_CLASS(LLMediaCtrl);
+public:
+	struct Params : public LLInitParam::Block<Params, LLPanel::Params> 
+	{
+		Optional<std::string>	start_url;
+		
+		Optional<bool>			border_visible,
+								ignore_ui_scale,
+								hide_loading,
+								decouple_texture_size;
+								
+		Optional<S32>			texture_width,
+								texture_height;
+		
+		Optional<LLUIColor>		caret_color;
+		
+		Params();
+	};
+	
+protected:
+	LLMediaCtrl(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
 		virtual ~LLMediaCtrl();
 
 		void setBorderVisible( BOOL border_visible );
@@ -62,13 +82,12 @@ class LLMediaCtrl :
 		// Defaults to true.
 		void setTakeFocusOnClick( bool take_focus );
 
-		virtual LLXMLNodePtr getXML(bool save_children = true) const;
-		static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-
 		// handle mouse related methods
 		virtual BOOL handleHover( S32 x, S32 y, MASK mask );
 		virtual BOOL handleMouseUp( S32 x, S32 y, MASK mask );
 		virtual BOOL handleMouseDown( S32 x, S32 y, MASK mask );
+		virtual BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+		virtual BOOL handleRightMouseUp(S32 x, S32 y, MASK mask);
 		virtual BOOL handleDoubleClick( S32 x, S32 y, MASK mask );
 		virtual BOOL handleScrollWheel( S32 x, S32 y, S32 clicks );
 
@@ -98,6 +117,9 @@ class LLMediaCtrl :
 		// set/clear URL to visit when a 404 page is reached
 		void set404RedirectUrl( std::string redirect_url );
 		void clr404RedirectUrl();
+		
+		// Clear the browser cache when the instance gets loaded
+		void clearCache();
 
 		// accessor/mutator for flag that indicates if frequent updates to texture happen
 		bool getFrequentUpdates() { return mFrequentUpdates; };
@@ -112,9 +134,17 @@ class LLMediaCtrl :
 		void setForceUpdate(bool force_update) { mForceUpdate = force_update; }
 		bool getForceUpdate() { return mForceUpdate; }
 
+		bool ensureMediaSourceExists();
+		void unloadMediaSource();
+		
 		LLPluginClassMedia* getMediaPlugin();
 
 		bool setCaretColor( unsigned int red, unsigned int green, unsigned int blue );
+		
+		void setDecoupleTextureSize(bool decouple) { mDecoupleTextureSize = decouple; }
+		bool getDecoupleTextureSize() { return mDecoupleTextureSize; }
+
+		void setTextureSize(S32 width, S32 height);
 
 
 		// over-rides
@@ -123,7 +153,7 @@ class LLMediaCtrl :
 		virtual BOOL handleUnicodeCharHere(llwchar uni_char);
 		virtual void reshape( S32 width, S32 height, BOOL called_from_parent = TRUE);
 		virtual void draw();
-		virtual void onVisibilityChange ( BOOL curVisibilityIn );
+		virtual BOOL postBuild();
 
 		// focus overrides
 		void onFocusLost();
@@ -140,10 +170,12 @@ class LLMediaCtrl :
 		void convertInputCoords(S32& x, S32& y);
 
 	private:
+		void onVisibilityChange ( const LLSD& new_visibility );
 		static bool onClickLinkExternalTarget( const LLSD&, const LLSD& );
+		static void clickLinkWithTarget(const std::string& url, const S32& target_type );
 
 		const S32 mTextureDepthBytes;
-		LLWebBrowserTexture* mWebBrowserImage;
+		LLUUID mMediaTextureID;
 		LLViewBorder* mBorder;
 		bool mFrequentUpdates;
 		bool mForceUpdate;
@@ -151,51 +183,19 @@ class LLMediaCtrl :
 		bool mOpenLinksInInternalBrowser;
 		bool mTrusted;
 		std::string mHomePageUrl;
-		std::string mExternalUrl;
 		std::string mCurrentNavUrl;
 		bool mIgnoreUIScale;
 		bool mAlwaysRefresh;
 		viewer_media_t mMediaSource;
 		bool mTakeFocusOnClick;
-		ECursorType mLastSetCursor;
 		bool mStretchToFill;
 		bool mMaintainAspectRatio;
 		bool mHideLoading;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-//
-class LLWebBrowserTexture : public LLDynamicTexture
-{
-LOG_CLASS(LLWebBrowserTexture);
-	public:
-		LLWebBrowserTexture( S32 width, S32 height, LLMediaCtrl* browserCtrl, viewer_media_t media_source );
-		virtual ~LLWebBrowserTexture();
-
-		virtual BOOL needsRender();
-		virtual void preRender( BOOL clear_depth = TRUE ) {};
-		virtual void postRender( BOOL success ) {};
-		virtual BOOL render();
-		
-		bool adjustSize();
-		S32 getMediaWidth();
-		S32 getMediaHeight();
-		bool getNeedsUpdate();
-		void setNeedsUpdate();
-		bool getTextureCoordsOpenGL();
-
-		void resize( S32 new_width, S32 new_height );
-		bool updateBrowserTexture();
-
-	protected:
-		S32 mMediaWidth;
-		S32 mMediaHeight;
-		bool mNeedsUpdate;
-		bool mNeedsResize;
-		bool mTextureCoordsOpenGL;
-		LLFrameTimer mElapsedTime;
-		LLMediaCtrl* mWebBrowserCtrl;
-		viewer_media_t mMediaSource;
+		bool mHidingInitialLoad;
+		bool mDecoupleTextureSize;
+		S32 mTextureWidth;
+		S32 mTextureHeight;
+		bool mClearCache;
 };
 
 #endif // LL_LLMediaCtrl_H

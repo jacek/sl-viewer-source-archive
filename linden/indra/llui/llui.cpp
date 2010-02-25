@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,40 +42,56 @@
 #include "v4color.h"
 #include "llrender.h"
 #include "llrect.h"
-#include "llimagegl.h"
 #include "lldir.h"
-#include "llfontgl.h"
+#include "llgl.h"
 
 // Project includes
 #include "llcontrol.h"
 #include "llui.h"
+#include "lluicolortable.h"
 #include "llview.h"
 #include "lllineeditor.h"
+#include "llfloater.h"
+#include "llfloaterreg.h"
+#include "llmenugl.h"
+#include "llmenubutton.h"
 #include "llwindow.h"
+
+// for registration
+#include "llfiltereditor.h"
+#include "llflyoutbutton.h"
+#include "llsearcheditor.h"
+
+// for XUIParse
+#include "llquaternion.h"
+#include <boost/tokenizer.hpp>
 
 //
 // Globals
 //
 const LLColor4 UI_VERTEX_COLOR(1.f, 1.f, 1.f, 1.f);
 
-// Used to hide the flashing text cursor when window doesn't have focus.
-BOOL gShowTextEditCursor = TRUE;
-
 // Language for UI construction
 std::map<std::string, std::string> gTranslation;
 std::list<std::string> gUntranslated;
+/*static*/ LLUI::settings_map_t LLUI::sSettingGroups;
+/*static*/ LLImageProviderInterface* LLUI::sImageProvider = NULL;
+/*static*/ LLUIAudioCallback LLUI::sAudioCallback = NULL;
+/*static*/ LLVector2		LLUI::sGLScaleFactor(1.f, 1.f);
+/*static*/ LLWindow*		LLUI::sWindow = NULL;
+/*static*/ LLView*			LLUI::sRootView = NULL;
+/*static*/ BOOL                         LLUI::sDirty = FALSE;
+/*static*/ LLRect                       LLUI::sDirtyRect;
+/*static*/ LLHelp*			LLUI::sHelpImpl = NULL;
+/*static*/ std::vector<std::string> LLUI::sXUIPaths;
+/*static*/ LLFrameTimer		LLUI::sMouseIdleTimer;
 
-LLControlGroup* LLUI::sConfigGroup = NULL;
-LLControlGroup* LLUI::sIgnoresGroup = NULL;
-LLControlGroup* LLUI::sColorsGroup = NULL;
-LLImageProviderInterface* LLUI::sImageProvider = NULL;
-LLUIAudioCallback LLUI::sAudioCallback = NULL;
-LLVector2		LLUI::sGLScaleFactor(1.f, 1.f);
-LLWindow*		LLUI::sWindow = NULL;
-LLHtmlHelp*		LLUI::sHtmlHelp = NULL;
-BOOL            LLUI::sShowXUINames = FALSE;
-std::stack<LLRect> LLScreenClipRect::sClipRectStack;
-BOOL            LLUI::sQAMode = FALSE;
+// register filtereditor here
+static LLDefaultChildRegistry::Register<LLFilterEditor> register_filter_editor("filter_editor");
+static LLDefaultChildRegistry::Register<LLFlyoutButton> register_flyout_button("flyout_button");
+static LLDefaultChildRegistry::Register<LLSearchEditor> register_search_editor("search_editor");
+static LLDefaultChildRegistry::Register<LLMenuButton> register_menu_button("menu_button");
+
 
 //
 // Functions
@@ -83,18 +99,18 @@ BOOL            LLUI::sQAMode = FALSE;
 void make_ui_sound(const char* namep)
 {
 	std::string name = ll_safe_string(namep);
-	if (!LLUI::sConfigGroup->controlExists(name))
+	if (!LLUI::sSettingGroups["config"]->controlExists(name))
 	{
 		llwarns << "tried to make ui sound for unknown sound name: " << name << llendl;	
 	}
 	else
 	{
-		LLUUID uuid(LLUI::sConfigGroup->getString(name));		
+		LLUUID uuid(LLUI::sSettingGroups["config"]->getString(name));
 		if (uuid.isNull())
 		{
-			if (LLUI::sConfigGroup->getString(name) == LLUUID::null.asString())
+			if (LLUI::sSettingGroups["config"]->getString(name) == LLUUID::null.asString())
 			{
-				if (LLUI::sConfigGroup->getBOOL("UISndDebugSpamToggle"))
+				if (LLUI::sSettingGroups["config"]->getBOOL("UISndDebugSpamToggle"))
 				{
 					llinfos << "ui sound name: " << name << " triggered but silent (null uuid)" << llendl;	
 				}				
@@ -107,7 +123,7 @@ void make_ui_sound(const char* namep)
 		}
 		else if (LLUI::sAudioCallback != NULL)
 		{
-			if (LLUI::sConfigGroup->getBOOL("UISndDebugSpamToggle"))
+			if (LLUI::sSettingGroups["config"]->getBOOL("UISndDebugSpamToggle"))
 			{
 				llinfos << "ui sound name: " << name << llendl;	
 			}
@@ -407,7 +423,7 @@ void gl_corners_2d(S32 left, S32 top, S32 right, S32 bottom, S32 length, F32 max
 }
 
 
-void gl_draw_image( S32 x, S32 y, LLImageGL* image, const LLColor4& color, const LLRectf& uv_rect )
+void gl_draw_image( S32 x, S32 y, LLTexture* image, const LLColor4& color, const LLRectf& uv_rect )
 {
 	if (NULL == image)
 	{
@@ -417,7 +433,7 @@ void gl_draw_image( S32 x, S32 y, LLImageGL* image, const LLColor4& color, const
 	gl_draw_scaled_rotated_image( x, y, image->getWidth(0), image->getHeight(0), 0.f, image, color, uv_rect );
 }
 
-void gl_draw_scaled_image(S32 x, S32 y, S32 width, S32 height, LLImageGL* image, const LLColor4& color, const LLRectf& uv_rect)
+void gl_draw_scaled_image(S32 x, S32 y, S32 width, S32 height, LLTexture* image, const LLColor4& color, const LLRectf& uv_rect)
 {
 	if (NULL == image)
 	{
@@ -427,7 +443,7 @@ void gl_draw_scaled_image(S32 x, S32 y, S32 width, S32 height, LLImageGL* image,
 	gl_draw_scaled_rotated_image( x, y, width, height, 0.f, image, color, uv_rect );
 }
 
-void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 border_width, S32 border_height, S32 width, S32 height, LLImageGL* image, const LLColor4& color, BOOL solid_color, const LLRectf& uv_rect)
+void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 border_width, S32 border_height, S32 width, S32 height, LLTexture* image, const LLColor4& color, BOOL solid_color, const LLRectf& uv_rect)
 {
 	if (NULL == image)
 	{
@@ -443,7 +459,7 @@ void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 border_width, S32 border
 	gl_draw_scaled_image_with_border(x, y, width, height, image, color, solid_color, uv_rect, scale_rect);
 }
 
-void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 width, S32 height, LLImageGL* image, const LLColor4& color, BOOL solid_color, const LLRectf& uv_rect, const LLRectf& scale_rect)
+void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 width, S32 height, LLTexture* image, const LLColor4& color, BOOL solid_color, const LLRectf& uv_rect, const LLRectf& scale_rect)
 {
 	stop_glerror();
 
@@ -629,12 +645,12 @@ void gl_draw_scaled_image_with_border(S32 x, S32 y, S32 width, S32 height, LLIma
 	}
 }
 
-void gl_draw_rotated_image(S32 x, S32 y, F32 degrees, LLImageGL* image, const LLColor4& color, const LLRectf& uv_rect)
+void gl_draw_rotated_image(S32 x, S32 y, F32 degrees, LLTexture* image, const LLColor4& color, const LLRectf& uv_rect)
 {
 	gl_draw_scaled_rotated_image( x, y, image->getWidth(0), image->getHeight(0), degrees, image, color, uv_rect );
 }
 
-void gl_draw_scaled_rotated_image(S32 x, S32 y, S32 width, S32 height, F32 degrees, LLImageGL* image, const LLColor4& color, const LLRectf& uv_rect)
+void gl_draw_scaled_rotated_image(S32 x, S32 y, S32 width, S32 height, F32 degrees, LLTexture* image, const LLColor4& color, const LLRectf& uv_rect)
 {
 	if (NULL == image)
 	{
@@ -672,44 +688,6 @@ void gl_draw_scaled_rotated_image(S32 x, S32 y, S32 width, S32 height, F32 degre
 			gGL.vertex2i(0, 0);
 
 			gGL.texCoord2f(uv_rect.mRight, uv_rect.mBottom);
-			gGL.vertex2i(width, 0);
-		}
-		gGL.end();
-	}
-	gGL.popMatrix();
-}
-
-
-void gl_draw_scaled_image_inverted(S32 x, S32 y, S32 width, S32 height, LLImageGL* image, const LLColor4& color, const LLRectf& uv_rect)
-{
-	if (NULL == image)
-	{
-		llwarns << "image == NULL; aborting function" << llendl;
-		return;
-	}
-
-	LLGLSUIDefault gls_ui;
-
-	gGL.pushMatrix();
-	{
-		gGL.translatef((F32)x, (F32)y, 0.f);
-
-		gGL.getTexUnit(0)->bind(image);
-
-		gGL.color4fv(color.mV);
-		
-		gGL.begin(LLRender::QUADS);
-		{
-			gGL.texCoord2f(uv_rect.mRight, uv_rect.mBottom);
-			gGL.vertex2i(width, height );
-
-			gGL.texCoord2f(uv_rect.mLeft, uv_rect.mBottom);
-			gGL.vertex2i(0, height );
-
-			gGL.texCoord2f(uv_rect.mLeft, uv_rect.mTop);
-			gGL.vertex2i(0, 0);
-
-			gGL.texCoord2f(uv_rect.mRight, uv_rect.mTop);
 			gGL.vertex2i(width, 0);
 		}
 		gGL.end();
@@ -1547,27 +1525,17 @@ void gl_segmented_rect_3d_tex_top(const LLVector2& border_scale, const LLVector3
 	gl_segmented_rect_3d_tex(border_scale, border_width, border_height, width_vec, height_vec, ROUNDED_RECT_TOP);
 }
 
-bool handleShowXUINamesChanged(const LLSD& newvalue)
-{
-	LLUI::sShowXUINames = newvalue.asBoolean();
-	return true;
-}
-
-void LLUI::initClass(LLControlGroup* config, 
-					 LLControlGroup* ignores, 
-					 LLControlGroup* colors, 
+void LLUI::initClass(const settings_map_t& settings,
 					 LLImageProviderInterface* image_provider,
 					 LLUIAudioCallback audio_callback,
 					 const LLVector2* scale_factor,
 					 const std::string& language)
 {
-	sConfigGroup = config;
-	sIgnoresGroup = ignores;
-	sColorsGroup = colors;
+	sSettingGroups = settings;
 
-	if (sConfigGroup == NULL
-		|| sIgnoresGroup == NULL
-		|| sColorsGroup == NULL)
+	if ((get_ptr_in_map(sSettingGroups, std::string("config")) == NULL) ||
+		(get_ptr_in_map(sSettingGroups, std::string("floater")) == NULL) ||
+		(get_ptr_in_map(sSettingGroups, std::string("ignores")) == NULL))
 	{
 		llerrs << "Failure to initialize configuration groups" << llendl;
 	}
@@ -1576,18 +1544,49 @@ void LLUI::initClass(LLControlGroup* config,
 	sAudioCallback = audio_callback;
 	sGLScaleFactor = (scale_factor == NULL) ? LLVector2(1.f, 1.f) : *scale_factor;
 	sWindow = NULL; // set later in startup
-	LLFontGL::sShadowColor = colors->getColor("ColorDropShadow");
+	LLFontGL::sShadowColor = LLUIColorTable::instance().getColor("ColorDropShadow");
 
-	LLUI::sShowXUINames = LLUI::sConfigGroup->getBOOL("ShowXUINames");
-	LLUI::sConfigGroup->getControl("ShowXUINames")->getSignal()->connect(&handleShowXUINamesChanged);
+	// Callbacks for associating controls with floater visibilty:
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Floater.Toggle", boost::bind(&LLFloaterReg::toggleFloaterInstance, _2));
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Floater.Show", boost::bind(&LLFloaterReg::showFloaterInstance, _2));
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Floater.Hide", boost::bind(&LLFloaterReg::hideFloaterInstance, _2));
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Floater.InitToVisibilityControl", boost::bind(&LLFloaterReg::initUICtrlToFloaterVisibilityControl, _1, _2));
+	
+	// Button initialization callback for toggle buttons
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Button.SetFloaterToggle", boost::bind(&LLButton::setFloaterToggle, _1, _2));
+	
+	// Button initialization callback for toggle buttons on dockale floaters
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Button.SetDockableFloaterToggle", boost::bind(&LLButton::setDockableFloaterToggle, _1, _2));
+
+	// Display the help topic for the current context
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Button.ShowHelp", boost::bind(&LLButton::showHelp, _1, _2));
+
+	// Currently unused, but kept for reference:
+	LLUICtrl::CommitCallbackRegistry::defaultRegistrar().add("Button.ToggleFloater", boost::bind(&LLButton::toggleFloaterAndSetToggleState, _1, _2));
+	
+	// Used by menus along with Floater.Toggle to display visibility as a checkmark
+	LLUICtrl::EnableCallbackRegistry::defaultRegistrar().add("Floater.Visible", boost::bind(&LLFloaterReg::floaterInstanceVisible, _2));
 }
 
 void LLUI::cleanupClass()
 {
 	sImageProvider->cleanUp();
-	LLLineEditor::cleanupLineEditor();
 }
 
+//static
+void LLUI::dirtyRect(LLRect rect)
+{
+	if (!sDirty)
+	{
+		sDirtyRect = rect;
+		sDirty = TRUE;
+	}
+	else
+	{
+		sDirtyRect.unionWith(rect);
+	}		
+}
+ 
 
 //static
 void LLUI::translate(F32 x, F32 y, F32 z)
@@ -1636,7 +1635,7 @@ void LLUI::setLineWidth(F32 width)
 }
 
 //static 
-void LLUI::setCursorPositionScreen(S32 x, S32 y)
+void LLUI::setMousePositionScreen(S32 x, S32 y)
 {
 	S32 screen_x, screen_y;
 	screen_x = llround((F32)x * sGLScaleFactor.mV[VX]);
@@ -1649,25 +1648,33 @@ void LLUI::setCursorPositionScreen(S32 x, S32 y)
 }
 
 //static 
-void LLUI::setCursorPositionLocal(const LLView* viewp, S32 x, S32 y)
+void LLUI::getMousePositionScreen(S32 *x, S32 *y)
+{
+	LLCoordWindow cursor_pos_window;
+	getWindow()->getCursorPosition(&cursor_pos_window);
+	LLCoordGL cursor_pos_gl;
+	getWindow()->convertCoords(cursor_pos_window, &cursor_pos_gl);
+	*x = llround((F32)cursor_pos_gl.mX / sGLScaleFactor.mV[VX]);
+	*y = llround((F32)cursor_pos_gl.mY / sGLScaleFactor.mV[VX]);
+}
+
+//static 
+void LLUI::setMousePositionLocal(const LLView* viewp, S32 x, S32 y)
 {
 	S32 screen_x, screen_y;
 	viewp->localPointToScreen(x, y, &screen_x, &screen_y);
 
-	setCursorPositionScreen(screen_x, screen_y);
+	setMousePositionScreen(screen_x, screen_y);
 }
 
 //static 
-void LLUI::getCursorPositionLocal(const LLView* viewp, S32 *x, S32 *y)
+void LLUI::getMousePositionLocal(const LLView* viewp, S32 *x, S32 *y)
 {
-	LLCoordWindow cursor_pos_window;
-	LLView::getWindow()->getCursorPosition(&cursor_pos_window);
-	LLCoordGL cursor_pos_gl;
-	LLView::getWindow()->convertCoords(cursor_pos_window, &cursor_pos_gl);
-	cursor_pos_gl.mX = llround((F32)cursor_pos_gl.mX / LLUI::sGLScaleFactor.mV[VX]);
-	cursor_pos_gl.mY = llround((F32)cursor_pos_gl.mY / LLUI::sGLScaleFactor.mV[VY]);
-	viewp->screenPointToLocal(cursor_pos_gl.mX, cursor_pos_gl.mY, x, y);
+	S32 screen_x, screen_y;
+	getMousePositionScreen(&screen_x, &screen_y);
+	viewp->screenPointToLocal(screen_x, screen_y, x, y);
 }
+
 
 // On Windows, the user typically sets the language when they install the
 // app (by running it with a shortcut that sets InstallLanguage).  On Mac,
@@ -1677,25 +1684,59 @@ void LLUI::getCursorPositionLocal(const LLView* viewp, S32 *x, S32 *y)
 // static
 std::string LLUI::getLanguage()
 {
-	std::string language = "en-us";
-	if (sConfigGroup)
+	std::string language = "en";
+	if (sSettingGroups["config"])
 	{
-		language = sConfigGroup->getString("Language");
+		language = sSettingGroups["config"]->getString("Language");
 		if (language.empty() || language == "default")
 		{
-			language = sConfigGroup->getString("InstallLanguage");
+			language = sSettingGroups["config"]->getString("InstallLanguage");
 		}
 		if (language.empty() || language == "default")
 		{
-			language = sConfigGroup->getString("SystemLanguage");
+			language = sSettingGroups["config"]->getString("SystemLanguage");
 		}
 		if (language.empty() || language == "default")
 		{
-			language = "en-us";
+			language = "en";
 		}
 	}
 	return language;
 }
+
+//static
+void LLUI::setupPaths()
+{
+	std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_SKINS, "paths.xml");
+
+	LLXMLNodePtr root;
+	BOOL success  = LLXMLNode::parseFile(filename, root, NULL);
+	sXUIPaths.clear();
+	
+	if (success)
+	{
+		LLStringUtil::format_map_t path_args;
+		path_args["[LANGUAGE]"] = LLUI::getLanguage();
+		
+		for (LLXMLNodePtr path = root->getFirstChild(); path.notNull(); path = path->getNextSibling())
+		{
+			std::string path_val_ui(path->getValue());
+			LLStringUtil::format(path_val_ui, path_args);
+			if (std::find(sXUIPaths.begin(), sXUIPaths.end(), path_val_ui) == sXUIPaths.end())
+			{
+				sXUIPaths.push_back(path_val_ui);
+			}
+		}
+	}
+	else // parsing failed
+	{
+		std::string slash = gDirUtilp->getDirDelimiter();
+		std::string dir = "xui" + slash + "en";
+		llwarns << "XUI::config file unable to open: " << filename << llendl;
+		sXUIPaths.push_back(dir);
+	}
+}
+
 
 //static
 std::string LLUI::locateSkin(const std::string& filename)
@@ -1706,7 +1747,7 @@ std::string LLUI::locateSkin(const std::string& filename)
 	{
 		found_file = gDirUtilp->getExpandedFilename(LL_PATH_USER_SETTINGS, filename); // Should be CUSTOM_SKINS?
 	}
-	if (sConfigGroup && sConfigGroup->controlExists("Language"))
+	if (sSettingGroups["config"] && sSettingGroups["config"]->controlExists("Language"))
 	{
 		if (!gDirUtilp->fileExists(found_file))
 		{
@@ -1717,7 +1758,7 @@ std::string LLUI::locateSkin(const std::string& filename)
 	}
 	if (!gDirUtilp->fileExists(found_file))
 	{
-		std::string local_skin = "xui" + slash + "en-us" + slash + filename;
+		std::string local_skin = "xui" + slash + "en" + slash + filename;
 		found_file = gDirUtilp->findSkinnedFilename(local_skin);
 	}
 	if (!gDirUtilp->fileExists(found_file))
@@ -1764,186 +1805,305 @@ void LLUI::glRectToScreen(const LLRect& gl, LLRect *screen)
 	glPointToScreen(gl.mRight, gl.mBottom, &screen->mRight, &screen->mBottom);
 }
 
-//static 
-LLUIImage* LLUI::getUIImage(const std::string& name)
+//static
+LLPointer<LLUIImage> LLUI::getUIImageByID(const LLUUID& image_id, S32 priority)
 {
-	if (!name.empty())
-		return sImageProvider->getUIImage(name);
+	if (sImageProvider)
+	{
+		return sImageProvider->getUIImageByID(image_id, priority);
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+//static 
+LLPointer<LLUIImage> LLUI::getUIImage(const std::string& name, S32 priority)
+{
+	if (!name.empty() && sImageProvider)
+		return sImageProvider->getUIImage(name, priority);
 	else
 		return NULL;
 }
 
-// static 
-void LLUI::setHtmlHelp(LLHtmlHelp* html_help)
+LLControlGroup& LLUI::getControlControlGroup (const std::string& controlname)
 {
-	LLUI::sHtmlHelp = html_help;
-}
-
-//static 
-void LLUI::setQAMode(BOOL b)
-{
-	LLUI::sQAMode = b;
-}
-
-LLScreenClipRect::LLScreenClipRect(const LLRect& rect, BOOL enabled) : mScissorState(GL_SCISSOR_TEST), mEnabled(enabled)
-{
-	if (mEnabled)
+	for (settings_map_t::iterator itor = sSettingGroups.begin();
+		 itor != sSettingGroups.end(); ++itor)
 	{
-		pushClipRect(rect);
+		LLControlGroup* control_group = itor->second;
+		if(control_group != NULL)
+		{
+			if (control_group->controlExists(controlname))
+				return *control_group;
+		}
 	}
-	mScissorState.setEnabled(!sClipRectStack.empty());
-	updateScissorRegion();
-}
 
-LLScreenClipRect::~LLScreenClipRect()
-{
-	if (mEnabled)
-	{
-		popClipRect();
-	}
-	updateScissorRegion();
-}
-
-//static 
-void LLScreenClipRect::pushClipRect(const LLRect& rect)
-{
-	LLRect combined_clip_rect = rect;
-	if (!sClipRectStack.empty())
-	{
-		LLRect top = sClipRectStack.top();
-		combined_clip_rect.intersectWith(top);
-	}
-	sClipRectStack.push(combined_clip_rect);
-}
-
-//static 
-void LLScreenClipRect::popClipRect()
-{
-	sClipRectStack.pop();
+	return *sSettingGroups["config"]; // default group
 }
 
 //static
-void LLScreenClipRect::updateScissorRegion()
+// spawn_x and spawn_y are top left corner of view in screen GL coordinates
+void LLUI::positionViewNearMouse(LLView* view, S32 spawn_x, S32 spawn_y)
 {
-	if (sClipRectStack.empty()) return;
+	const S32 CURSOR_HEIGHT = 16;		// Approximate "normal" cursor size
+	const S32 CURSOR_WIDTH = 8;
 
-	LLRect rect = sClipRectStack.top();
-	stop_glerror();
-	S32 x,y,w,h;
-	x = llfloor(rect.mLeft * LLUI::sGLScaleFactor.mV[VX]);
-	y = llfloor(rect.mBottom * LLUI::sGLScaleFactor.mV[VY]);
-	w = llmax(0, llceil(rect.getWidth() * LLUI::sGLScaleFactor.mV[VX])) + 1;
-	h = llmax(0, llceil(rect.getHeight() * LLUI::sGLScaleFactor.mV[VY])) + 1;
-	glScissor( x,y,w,h );
-	stop_glerror();
-}
+	LLView* parent = view->getParent();
 
+	S32 mouse_x;
+	S32 mouse_y;
+	LLUI::getMousePositionScreen(&mouse_x, &mouse_y);
 
-LLLocalClipRect::LLLocalClipRect(const LLRect &rect, BOOL enabled) 
-: LLScreenClipRect(LLRect(rect.mLeft + LLFontGL::sCurOrigin.mX, 
-						rect.mTop + LLFontGL::sCurOrigin.mY, 
-						rect.mRight + LLFontGL::sCurOrigin.mX, 
-						rect.mBottom + LLFontGL::sCurOrigin.mY),
-					enabled)
-{
-}
-
-
-//
-// LLUIImage
-//
-
-LLUIImage::LLUIImage(const std::string& name, LLPointer<LLImageGL> image) :
-						mName(name),
-						mImage(image),
-						mScaleRegion(0.f, 1.f, 1.f, 0.f),
-						mClipRegion(0.f, 1.f, 1.f, 0.f),
-						mUniformScaling(TRUE),
-						mNoClip(TRUE)
-{
-}
-
-void LLUIImage::setClipRegion(const LLRectf& region) 
-{ 
-	mClipRegion = region; 
-	mNoClip = mClipRegion.mLeft == 0.f
-				&& mClipRegion.mRight == 1.f
-				&& mClipRegion.mBottom == 0.f
-				&& mClipRegion.mTop == 1.f;
-}
-
-void LLUIImage::setScaleRegion(const LLRectf& region) 
-{ 
-	mScaleRegion = region; 
-	mUniformScaling = mScaleRegion.mLeft == 0.f
-					&& mScaleRegion.mRight == 1.f
-					&& mScaleRegion.mBottom == 0.f
-					&& mScaleRegion.mTop == 1.f;
-}
-
-//TODO: move drawing implementation inside class
-void LLUIImage::draw(S32 x, S32 y, const LLColor4& color) const
-{
-	gl_draw_image(x, y, mImage, color, mClipRegion);
-}
-
-void LLUIImage::draw(S32 x, S32 y, S32 width, S32 height, const LLColor4& color) const
-{
-	if (mUniformScaling)
+	// If no spawn location provided, use mouse position
+	if (spawn_x == S32_MAX || spawn_y == S32_MAX)
 	{
-		gl_draw_scaled_image(x, y, width, height, mImage, color, mClipRegion);
+		spawn_x = mouse_x + CURSOR_WIDTH;
+		spawn_y = mouse_y - CURSOR_HEIGHT;
 	}
-	else
+
+	LLRect virtual_window_rect = parent->getLocalRect();
+
+	LLRect mouse_rect;
+	const S32 MOUSE_CURSOR_PADDING = 1;
+	mouse_rect.setLeftTopAndSize(mouse_x - MOUSE_CURSOR_PADDING, 
+								mouse_y + MOUSE_CURSOR_PADDING, 
+								CURSOR_WIDTH + MOUSE_CURSOR_PADDING * 2, 
+								CURSOR_HEIGHT + MOUSE_CURSOR_PADDING * 2);
+
+	S32 local_x, local_y;
+	// convert screen coordinates to tooltipview-local coordinates
+	parent->screenPointToLocal(spawn_x, spawn_y, &local_x, &local_y);
+
+	// Start at spawn position (using left/top)
+	view->setOrigin( local_x, local_y - view->getRect().getHeight());
+	// Make sure we're onscreen and not overlapping the mouse
+	view->translateIntoRectWithExclusion( virtual_window_rect, mouse_rect, FALSE );
+}
+
+
+// LLLocalClipRect and LLScreenClipRect moved to lllocalcliprect.h/cpp
+
+namespace LLInitParam
+{
+	TypedParam<LLUIColor >::TypedParam(BlockDescriptor& descriptor, const char* name, const LLUIColor& value, ParamDescriptor::validation_func_t func, S32 min_count, S32 max_count)
+	:	super_t(descriptor, name, value, func, min_count, max_count),
+		red("red"),
+		green("green"),
+		blue("blue"),
+		alpha("alpha"),
+		control("")
 	{
-		gl_draw_scaled_image_with_border(
-			x, y, 
-			width, height, 
-			mImage, 
-			color,
-			FALSE,
-			mClipRegion,
-			mScaleRegion);
+		setBlockFromValue();
+	}
+
+	void TypedParam<LLUIColor>::setValueFromBlock() const
+	{
+		if (control.isProvided())
+		{
+			mData.mValue = LLUIColorTable::instance().getColor(control);
+		}
+		else
+		{
+			mData.mValue = LLColor4(red, green, blue, alpha);
+		}
+	}
+	
+	void TypedParam<LLUIColor>::setBlockFromValue()
+	{
+		LLColor4 color = mData.mValue.get();
+		red.set(color.mV[VRED], false);
+		green.set(color.mV[VGREEN], false);
+		blue.set(color.mV[VBLUE], false);
+		alpha.set(color.mV[VALPHA], false);
+		control.set("", false);
+	}
+
+	void TypeValues<LLUIColor>::declareValues()
+	{
+		declare("white", LLColor4::white);
+		declare("black", LLColor4::black);
+		declare("red", LLColor4::red);
+		declare("green", LLColor4::green);
+		declare("blue", LLColor4::blue);
+	}
+
+	bool ParamCompare<const LLFontGL*, false>::equals(const LLFontGL* a, const LLFontGL* b)
+	{
+		return !(a->getFontDesc() < b->getFontDesc())
+			&& !(b->getFontDesc() < a->getFontDesc());
+	}
+
+	TypedParam<const LLFontGL*>::TypedParam(BlockDescriptor& descriptor, const char* _name, const LLFontGL*const value, ParamDescriptor::validation_func_t func, S32 min_count, S32 max_count)
+	:	super_t(descriptor, _name, value, func, min_count, max_count),
+		name("name"),
+		size("size"),
+		style("style")
+	{
+		setBlockFromValue();
+		addSynonym(name, "");
+	}
+
+	void TypedParam<const LLFontGL*>::setValueFromBlock() const
+	{
+		const LLFontGL* res_fontp = LLFontGL::getFontByName(name);
+		if (res_fontp)
+		{
+			mData.mValue = res_fontp;
+			return;
+		}
+
+		U8 fontstyle = 0;
+		fontstyle = LLFontGL::getStyleFromString(style());
+		LLFontDescriptor desc(name(), size(), fontstyle);
+		const LLFontGL* fontp = LLFontGL::getFont(desc);
+		if (fontp)
+		{
+			mData.mValue = fontp;
+		}		
+	}
+	
+	void TypedParam<const LLFontGL*>::setBlockFromValue()
+	{
+		if (mData.mValue)
+		{
+			name.set(LLFontGL::nameFromFont(mData.mValue), false);
+			size.set(LLFontGL::sizeFromFont(mData.mValue), false);
+			style.set(LLFontGL::getStringFromStyle(mData.mValue->getFontDesc().getStyle()), false);
+		}
+	}
+
+	TypedParam<LLRect>::TypedParam(BlockDescriptor& descriptor, const char* name, const LLRect& value, ParamDescriptor::validation_func_t func, S32 min_count, S32 max_count)
+	:	super_t(descriptor, name, value, func, min_count, max_count),
+		left("left"),
+		top("top"),
+		right("right"),
+		bottom("bottom"),
+		width("width"),
+		height("height")
+	{
+		setBlockFromValue();
+	}
+
+	void TypedParam<LLRect>::setValueFromBlock() const
+	{
+		LLRect rect;
+
+		//calculate from params
+		// prefer explicit left and right
+		if (left.isProvided() && right.isProvided())
+		{
+			rect.mLeft = left;
+			rect.mRight = right;
+		}
+		// otherwise use width along with specified side, if any
+		else if (width.isProvided())
+		{
+			// only right + width provided
+			if (right.isProvided())
+			{
+				rect.mRight = right;
+				rect.mLeft = right - width;
+			}
+			else // left + width, or just width
+			{
+				rect.mLeft = left;
+				rect.mRight = left + width;
+			}
+		}
+		// just left, just right, or none
+		else
+		{
+			rect.mLeft = left;
+			rect.mRight = right;
+		}
+
+		// prefer explicit bottom and top
+		if (bottom.isProvided() && top.isProvided())
+		{
+			rect.mBottom = bottom;
+			rect.mTop = top;
+		}
+		// otherwise height along with specified side, if any
+		else if (height.isProvided())
+		{
+			// top + height provided
+			if (top.isProvided())
+			{
+				rect.mTop = top;
+				rect.mBottom = top - height;
+			}
+			// bottom + height or just height
+			else
+			{
+				rect.mBottom = bottom;
+				rect.mTop = bottom + height;
+			}
+		}
+		// just bottom, just top, or none
+		else
+		{
+			rect.mBottom = bottom;
+			rect.mTop = top;
+		}
+		mData.mValue = rect;
+	}
+	
+	void TypedParam<LLRect>::setBlockFromValue()
+	{
+		// because of the ambiguity in specifying a rect by position and/or dimensions
+		// we clear the "provided" flag so that values from xui/etc have priority
+		// over those calculated from the rect object
+
+		left.set(mData.mValue.mLeft, false);
+		right.set(mData.mValue.mRight, false);
+		bottom.set(mData.mValue.mBottom, false);
+		top.set(mData.mValue.mTop, false);
+		width.set(mData.mValue.getWidth(), false);
+		height.set(mData.mValue.getHeight(), false);
+	}
+
+	TypedParam<LLCoordGL>::TypedParam(BlockDescriptor& descriptor, const char* name, LLCoordGL value, ParamDescriptor::validation_func_t func, S32 min_count, S32 max_count)
+	:	super_t(descriptor, name, value, func, min_count, max_count),
+		x("x"),
+		y("y")
+	{
+		setBlockFromValue();
+	}
+
+	void TypedParam<LLCoordGL>::setValueFromBlock() const
+	{
+		mData.mValue.set(x, y);
+	}
+	
+	void TypedParam<LLCoordGL>::setBlockFromValue()
+	{
+		x.set(mData.mValue.mX, false);
+		y.set(mData.mValue.mY, false);
+	}
+
+
+	void TypeValues<LLFontGL::HAlign>::declareValues()
+	{
+		declare("left", LLFontGL::LEFT);
+		declare("right", LLFontGL::RIGHT);
+		declare("center", LLFontGL::HCENTER);
+	}
+
+	void TypeValues<LLFontGL::VAlign>::declareValues()
+	{
+		declare("top", LLFontGL::TOP);
+		declare("center", LLFontGL::VCENTER);
+		declare("baseline", LLFontGL::BASELINE);
+		declare("bottom", LLFontGL::BOTTOM);
+	}
+
+	void TypeValues<LLFontGL::ShadowType>::declareValues()
+	{
+		declare("none", LLFontGL::NO_SHADOW);
+		declare("hard", LLFontGL::DROP_SHADOW);
+		declare("soft", LLFontGL::DROP_SHADOW_SOFT);
 	}
 }
 
-void LLUIImage::drawSolid(S32 x, S32 y, S32 width, S32 height, const LLColor4& color) const
-{
-	gl_draw_scaled_image_with_border(
-		x, y, 
-		width, height, 
-		mImage, 
-		color, 
-		TRUE,
-		mClipRegion,
-		mScaleRegion);
-}
-
-void LLUIImage::drawBorder(S32 x, S32 y, S32 width, S32 height, const LLColor4& color, S32 border_width) const
-{
-	LLRect border_rect;
-	border_rect.setOriginAndSize(x, y, width, height);
-	border_rect.stretch(border_width, border_width);
-	drawSolid(border_rect, color);
-}
-
-S32 LLUIImage::getWidth() const
-{ 
-	// return clipped dimensions of actual image area
-	return llround((F32)mImage->getWidth(0) * mClipRegion.getWidth()); 
-}
-
-S32 LLUIImage::getHeight() const
-{ 
-	// return clipped dimensions of actual image area
-	return llround((F32)mImage->getHeight(0) * mClipRegion.getHeight()); 
-}
-
-S32 LLUIImage::getTextureWidth() const
-{
-	return mImage->getWidth(0);
-}
-
-S32 LLUIImage::getTextureHeight() const
-{
-	return mImage->getHeight(0);
-}

@@ -1,13 +1,16 @@
 /*
- *  glh_extensions.h
- *  From nVidia Corporation, downloaded 2006-12-18 from:
- *  http://developer.nvidia.com/attach/8196
- *  ("NVParse Library with Source (.zip) (2390 KB)")
+ * @file glh_extensions.h
+ * @brief Borrowed from: "NVParse Library with Source (.zip) (2390 KB)" from NVIDIA Corporation
  *
- *  License (quoted from license_info.txt in aforementioned file):
- *  "The files bison.exe, bison.simple, and flex.exe are covered by
+ * $LicenseInfo:firstyear=none&license=NVParse$
+ *
+ * Copyright (c) 2001-2009, NVIDIA
+ *
+ *  License (original in license_info.txt in http://developer.nvidia.com/attach/8196 downloaded on 2006-12-18):
+ *  The files bison.exe, bison.simple, and flex.exe are covered by
  *  the GPL.  All other files in this distribution can be used however
- *  you want."
+ *  you want.
+ * $/LicenseInfo$
  */
 
 #ifndef GLH_EXTENSIONS

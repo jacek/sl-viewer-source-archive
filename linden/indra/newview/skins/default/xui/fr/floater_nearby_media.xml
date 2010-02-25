@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MÉDIA PRÈS DE VOUS">
+	<string name="media_item_count_format">
+		(%ld articles de média)
+	</string>
+	<string name="empty_item_text">
+		&lt;vide&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;Aucun média disponible&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Activer/désactiver le média de la parcelle
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? articles de média)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Activer/désactiver tous les médias près de vous"/>
+		</panel>
+		<panel>
+			<button label="Aucun média de parcelle" name="parcel_media_enable_btn" tool_tip="Activer/désactiver le média de la parcelle"/>
+			<text name="parcel_media_name">
+				&lt;Aucun média disponible&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Jouer le média de la parcelle"/>
+			<button name="parcel_media_pause_btn" tool_tip="Pauser le média de la parcelle"/>
+			<button name="parcel_media_stop_btn" tool_tip="Arrêter le média de la parcelle"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Jouer l&apos;audio de la parcelle"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Pauser l&apos;audio de la parcelle"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Arrêter l&apos;audio de la parcelle"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="Activé/désactivé" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Nom" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Média activé" name="media_enabled_btn" tool_tip="Activer le média" value="true"/>
+			<check_box label="Autoriser la lecture automatique du média" name="media_auto_play_btn" tool_tip="Autoriser la lecture automatique du média" value="vrai"/>
+		</panel>
+	</panel>
+</floater>

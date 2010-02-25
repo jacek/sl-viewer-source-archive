@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="chat_bar">
 	<panel/>
-	<button label="Lokaler Chat" name="History" tool_tip="Klicken Sie hier zur Anzeige des Gesprächs"/>
+	<button label="Chat in der Nähe" name="History" tool_tip="Klicken Sie hier zur Anzeige des Gesprächs"/>
 	<line_editor label="Zum Chatten hier klicken." name="Chat Editor" tool_tip="Eingabe für Sprechen, Strg-Eingabe für Rufen."/>
 	<flyout_button label="Sagen" name="Say" tool_tip="(Eingabe)">
 		<flyout_button_item name="shout_item">

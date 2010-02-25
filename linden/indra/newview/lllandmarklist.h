@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,6 +33,7 @@
 #ifndef LL_LLLANDMARKLIST_H
 #define LL_LLLANDMARKLIST_H
 
+#include <boost/function.hpp>
 #include <map>
 #include "lllandmark.h"
 #include "lluuid.h"
@@ -45,6 +46,8 @@ class LLInventoryItem;
 class LLLandmarkList
 {
 public:
+	typedef boost::function<void(LLLandmark*)> loaded_callback_t;
+
 	LLLandmarkList() {}
 	~LLLandmarkList();
 
@@ -53,7 +56,7 @@ public:
 	//const LLLandmark*	getNext()	{ return mList.getNextData(); }
 
 	BOOL assetExists(const LLUUID& asset_uuid);
-	LLLandmark* getAsset(const LLUUID& asset_uuid);
+	LLLandmark* getAsset(const LLUUID& asset_uuid, loaded_callback_t cb = NULL);
 	static void processGetAssetReply(
 		LLVFS *vfs,
 		const LLUUID& uuid,
@@ -63,11 +66,22 @@ public:
 		LLExtStat ext_status );
 
 protected:
+	void onRegionHandle(const LLUUID& landmark_id);
+	void makeCallbacks(const LLUUID& landmark_id);
+
 	typedef std::map<LLUUID, LLLandmark*> landmark_list_t;
 	landmark_list_t mList;
 
 	typedef std::set<LLUUID> landmark_bad_list_t;
 	landmark_bad_list_t mBadList;
+	
+	typedef std::map<LLUUID,F32> landmark_requested_list_t;
+	landmark_requested_list_t mRequestedList;
+	
+	// *TODO: make the callback multimap a template class and make use of it
+	// here and in LLLandmark.
+	typedef std::multimap<LLUUID, loaded_callback_t> loaded_callback_map_t;
+	loaded_callback_map_t mLoadedCallbackMap;
 };
 
 

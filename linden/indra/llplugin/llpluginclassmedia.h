@@ -2,9 +2,10 @@
  * @file llpluginclassmedia.h
  * @brief LLPluginClassMedia handles interaction with a plugin which knows about the "media" message class.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,17 +29,18 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #ifndef LL_LLPLUGINCLASSMEDIA_H
 #define LL_LLPLUGINCLASSMEDIA_H
 
-#include "llgl.h"
+#include "llgltypes.h"
 #include "llpluginprocessparent.h"
 #include "llrect.h"
 #include "llpluginclassmediaowner.h"
 #include <queue>
-
+#include "v4color.h"
 
 class LLPluginClassMedia : public LLPluginProcessParentOwner
 {
@@ -48,7 +50,7 @@ public:
 	virtual ~LLPluginClassMedia();
 
 	// local initialization, called by the media manager when creating a source
-	virtual bool init(const std::string &launcher_filename, const std::string &plugin_filename);
+	virtual bool init(const std::string &launcher_filename, const std::string &plugin_filename, bool debug, const std::string &user_data_path);
 
 	// undoes everything init() didm called by the media manager when destroying a source
 	virtual void reset();
@@ -67,6 +69,8 @@ public:
 	int getBitsHeight() const { return (mTextureHeight > 0) ? mTextureHeight : 0; };
 	int getTextureWidth() const;
 	int getTextureHeight() const;
+	int getFullWidth() const { return mFullMediaWidth; };
+	int getFullHeight() const { return mFullMediaHeight; };
 	
 	// This may return NULL.  Callers need to check for and handle this case.
 	unsigned char* getBitsData();
@@ -82,6 +86,8 @@ public:
 
 	void setSize(int width, int height);
 	void setAutoScale(bool auto_scale);
+	
+	void setBackgroundColor(LLColor4 color) { mBackgroundColor = color; };
 	
 	// Returns true if all of the texture parameters (depth, format, size, and texture size) are set up and consistent.
 	// This will initially be false, and will also be false for some time after setSize while the resize is processed.
@@ -100,7 +106,7 @@ public:
 		MOUSE_EVENT_DOUBLE_CLICK
 	}EMouseEventType;
 	
-	void mouseEvent(EMouseEventType type, int x, int y, MASK modifiers);
+	void mouseEvent(EMouseEventType type, int button, int x, int y, MASK modifiers);
 
 	typedef enum 
 	{
@@ -109,12 +115,12 @@ public:
 		KEY_EVENT_REPEAT
 	}EKeyEventType;
 	
-	bool keyEvent(EKeyEventType type, int key_code, MASK modifiers);
+	bool keyEvent(EKeyEventType type, int key_code, MASK modifiers, LLSD native_key_data);
 
 	void scrollEvent(int x, int y, MASK modifiers);
 	
 	// Text may be unicode (utf8 encoded)
-	bool textInput(const std::string &text);
+	bool textInput(const std::string &text, MASK modifiers, LLSD native_key_data);
 	
 	void loadURI(const std::string &uri);
 	
@@ -134,21 +140,27 @@ public:
 	
 	// Inherited from LLPluginProcessParentOwner
 	/* virtual */ void receivePluginMessage(const LLPluginMessage &message);
+	/* virtual */ void pluginLaunchFailed();
 	/* virtual */ void pluginDied();
 	
 	
 	typedef enum 
 	{
+		PRIORITY_UNLOADED,	// media plugin isn't even loaded.
 		PRIORITY_STOPPED,	// media is not playing, shouldn't need to update at all.
 		PRIORITY_HIDDEN,	// media is not being displayed or is out of view, don't need to do graphic updates, but may still update audio, playhead, etc.
-		PRIORITY_LOW,		// media is in the far distance, may be rendered at reduced size
+		PRIORITY_SLIDESHOW,	// media is in the far distance, updates very infrequently
+		PRIORITY_LOW,		// media is in the distance, may be rendered at reduced size
 		PRIORITY_NORMAL,	// normal (default) priority
 		PRIORITY_HIGH		// media has user focus and/or is taking up most of the screen
 	}EPriority;
 
+	static const char* priorityToString(EPriority priority);
 	void setPriority(EPriority priority);
 	void setLowPrioritySizeLimit(int size);
 	
+	F64 getCPUUsage();
+
 	// Valid after a MEDIA_EVENT_CURSOR_CHANGED event
 	std::string getCursorName() const { return mCursorName; };
 
@@ -203,6 +215,17 @@ public:
 	// This is valid after MEDIA_EVENT_CLICK_LINK_HREF
 	std::string getClickTarget() const { return mClickTarget; };
 
+	typedef enum 
+	{
+		TARGET_NONE,        // empty href target string
+		TARGET_BLANK,       // target to open link in user's preferred browser
+		TARGET_EXTERNAL,    // target to open link in external browser
+		TARGET_OTHER        // nonempty and unsupported target type
+	}ETargetType;
+
+	// This is valid after MEDIA_EVENT_CLICK_LINK_HREF
+	ETargetType getClickTargetType() const { return mClickTargetType; };
+
 	std::string getMediaName() const { return mMediaName; };
 	std::string getMediaDescription() const { return mMediaDescription; };
 
@@ -221,16 +244,19 @@ public:
 	void seek(float time);
 	void setLoop(bool loop);
 	void setVolume(float volume);
+	float getVolume();
 	
 	F64 getCurrentTime(void) const { return mCurrentTime; };
 	F64 getDuration(void) const { return mDuration; };
 	F64 getCurrentPlayRate(void) { return mCurrentRate; };
+	F64 getLoadedDuration(void) const { return mLoadedDuration; };
 	
 	// Initialize the URL history of the plugin by sending
 	// "init_history" message 
 	void initializeUrlHistory(const LLSD& url_history);
 
 protected:
+
 	LLPluginClassMediaOwner *mOwner;
 
 	// Notify this object's owner that an event has occurred.
@@ -267,7 +293,11 @@ protected:
 	int			mSetMediaWidth;
 	int			mSetMediaHeight;
 	
-	// Actual media size being set (may be affected by auto-scale)
+	// Full calculated media size (before auto-scale and downsample calculations)
+	int			mFullMediaWidth;
+	int			mFullMediaHeight;
+
+	// Actual media size being set (after auto-scale)
 	int			mRequestedMediaWidth;
 	int			mRequestedMediaHeight;
 	
@@ -298,6 +328,8 @@ protected:
 	std::string translateModifiers(MASK modifiers);
 	
 	std::string mCursorName;
+	int			mLastMouseX;
+	int			mLastMouseY;
 
 	LLPluginClassMediaOwner::EMediaStatus mStatus;
 	
@@ -309,6 +341,8 @@ protected:
 	
 	std::string		mMediaName;
 	std::string		mMediaDescription;
+	
+	LLColor4		mBackgroundColor;
 	
 	/////////////////////////////////////////
 	// media_browser class
@@ -322,12 +356,14 @@ protected:
 	std::string		mLocation;
 	std::string		mClickURL;
 	std::string		mClickTarget;
+	ETargetType     mClickTargetType;
 	
 	/////////////////////////////////////////
 	// media_time class
 	F64				mCurrentTime;
 	F64				mDuration;
 	F64				mCurrentRate;
+	F64				mLoadedDuration;
 	
 };
 

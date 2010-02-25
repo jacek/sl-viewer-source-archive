@@ -3,15 +3,9 @@
 	<button label="Chat" label_selected="Chat" name="History" tool_tip="Pulse aquí para ver qué se ha dicho"/>
 	<line_editor label="Pulse aquí para empezar el chat." name="Chat Editor" tool_tip="Pulse Intro para decir, Ctrl-Intro para gritar."/>
 	<flyout_button label="Decir" label_selected="Decir" name="Say" tool_tip="(Intro)">
-		<flyout_button_item name="shout_item">
-			Gritar
-		</flyout_button_item>
-		<flyout_button_item name="say_item">
-			Decir
-		</flyout_button_item>
-		<flyout_button_item name="whisper_item">
-			Susurrar
-		</flyout_button_item>
+		<flyout_button_item name="shout_item" label="Gritar"/>
+		<flyout_button_item name="say_item" label="Decir"/>
+		<flyout_button_item name="whisper_item" label="Susurrar"/>
 	</flyout_button>
 	<combo_box label="Gestos" name="Gesture"/>
 	<string name="gesture_label">

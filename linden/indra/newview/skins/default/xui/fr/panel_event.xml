@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Event" title="Événement">
+<panel label="Événement" name="Event" title="Événement">
+	<panel.string name="none">
+		aucun
+	</panel.string>
+	<panel.string name="notify">
+		Prévenir
+	</panel.string>
+	<panel.string name="dont_notify">
+		Ne pas prévenir
+	</panel.string>
 	<text name="event_name_label">
 		Nom :
 	</text>
@@ -13,7 +22,7 @@
 		(aucun)
 	</text>
 	<text name="event_mature_label">
-		Contenu Mature :
+		Contenu Modéré :
 	</text>
 	<text name="event_mature_yes">
 		Oui
@@ -55,16 +64,7 @@
 		Description :
 	</text>
 	<button label="Téléporter" name="teleport_btn"/>
-	<button label="Voir sur la carte" name="map_btn"/>
+	<button label="Carte" name="map_btn"/>
 	<button label="Prévenir" name="notify_btn"/>
 	<button label="Créer un événement..." name="create_event_btn"/>
-	<string name="none">
-		aucun
-	</string>
-	<string name="notify">
-		Prévenir
-	</string>
-	<string name="dont_notify">
-		Ne pas prévenir
-	</string>
 </panel>

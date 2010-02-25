@@ -37,7 +37,7 @@
 	<button label="コール" left_delta="105" name="start_call_btn" width="100"/>
 	<button label="呼出終了" name="end_call_btn" width="100"/>
 	<panel left_delta="96" name="speaker_controls">
-		<button label="" name="mute_btn" tool_tip="ボイスをミュート(消声)"/>
+		<button label="" name="mute_btn" tool_tip="ボイスをブロック"/>
 	</panel>
 	<line_editor label="IMを開始するには、ここをクリックします。" name="chat_editor"/>
 	<button label="送信" name="send_btn"/>

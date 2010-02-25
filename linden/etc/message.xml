@@ -50,7 +50,7 @@
 				<key>OpenCircuit</key>
 				<map>
 					<key>flavor</key>
-					<string>template</string>
+					<string>llsd</string>
 					<key>trusted-sender</key>
 					<boolean>false</boolean>
 				</map>
@@ -598,7 +598,7 @@
 			<boolean>false</boolean>
 
 			<key>UpdateNotecardTaskInventory</key>
-			<boolean>true</boolean>
+			<boolean>false</boolean>
 
 			<key>UpdateScriptTaskInventory</key>
 			<boolean>false</boolean>
@@ -616,7 +616,7 @@
 			<boolean>false</boolean>
 
 			<key>RequestTextureDownload</key>
-			<boolean>false</boolean>
+			<boolean>true</boolean>
 
 			<key>EventQueueGet</key>
 			<boolean>false</boolean>
@@ -668,7 +668,17 @@
 		
 			<key>FetchLib</key>
 			<boolean>true</boolean>
-		</map>
+
+			<key>UploadBakedTexture</key>
+			<boolean>true</boolean>
+			
+			<key>ObjectMedia</key>
+            		<boolean>false</boolean>
+                  
+            		<key>ObjectMediaNavigate</key>
+            		<boolean>false</boolean>
+                  
+      </map>
 
 		<key>messageBans</key>
 		<map>

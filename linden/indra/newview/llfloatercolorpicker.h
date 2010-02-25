@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "llfloater.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llcolorswatch.h"
 #include "llspinctrl.h"
 #include "lltextureentry.h"
@@ -61,7 +61,6 @@ class LLFloaterColorPicker
 		virtual BOOL handleMouseUp ( S32 x, S32 y, MASK mask );
 		virtual BOOL handleHover ( S32 x, S32 y, MASK mask );
 		virtual void onMouseCaptureLost();
-		virtual void onClose(bool app_quitting);
 
 		// implicit methods
 		void createUI ();
@@ -70,6 +69,7 @@ class LLFloaterColorPicker
 		void destroyUI ();
 		void cancelSelection ();
 		LLColorSwatchCtrl* getSwatch () { return mSwatch; };
+		void setSwatch( LLColorSwatchCtrl* swatch) { mSwatch = swatch; }
 
 		// mutator / accessor for original RGB value
 		void setOrigRgb ( F32 origRIn, F32 origGIn, F32 origBIn );
@@ -123,14 +123,11 @@ class LLFloaterColorPicker
 		// callbacks
 		static void onClickCancel ( void* data );
 		static void onClickSelect ( void* data );
-		static void onClickPipette ( void* data );
+			   void onClickPipette ( );
 		static void onTextCommit ( LLUICtrl* ctrl, void* data );
 		static void onImmediateCheck ( LLUICtrl* ctrl, void* data );
-		static void onColorSelect( const LLTextureEntry& te, void *data );
+			   void onColorSelect( const LLTextureEntry& te );
 	private:
-		// turns on or off text entry commit call backs
-		void enableTextCallbacks ( BOOL stateIn );
-
 		// draws color selection palette
 		void drawPalette ();
 
@@ -179,7 +176,7 @@ class LLFloaterColorPicker
 		const S32 mPaletteRegionHeight;
 
 		// image used to compose color grid
-		LLPointer<LLImageGL> mRGBImage;
+		LLPointer<LLViewerTexture> mRGBImage;
 
 		// current swatch in use
 		LLColorSwatchCtrl* mSwatch;

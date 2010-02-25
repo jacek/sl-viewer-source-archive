@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -53,6 +53,18 @@ static char DUMMY_BUFFER[128]; /*Flawfinder: ignore*/
 
 LLDataPacker::LLDataPacker() : mPassFlags(0), mWriteEnabled(FALSE)
 {
+}
+
+//virtual
+void LLDataPacker::reset()
+{
+	llerrs << "Using unimplemented datapacker reset!" << llendl;
+}
+
+//virtual
+void LLDataPacker::dumpBufferToLog()
+{
+	llerrs << "dumpBufferToLog not implemented for this type!" << llendl;
 }
 
 BOOL LLDataPacker::packFixed(const F32 value, const char *name,
@@ -1896,7 +1908,12 @@ BOOL LLDataPackerAsciiFile::getValueStr(const char *name, char *out_value, S32 v
 	if (mFP)
 	{
 		fpos_t last_pos;
-		fgetpos(mFP, &last_pos);
+		if (0 != fgetpos(mFP, &last_pos)) // 0==success for fgetpos
+		{
+			llwarns << "Data packer failed to fgetpos" << llendl;
+			return FALSE;
+		}
+
 		if (fgets(buffer, DP_BUFSIZE, mFP) == NULL)
 		{
 			buffer[0] = '\0';

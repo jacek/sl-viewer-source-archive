@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,7 +45,7 @@
 #include "llbutton.h"
 #include "llviewercontrol.h"
 #include "lldrawable.h"
-#include "llhoverview.h"
+#include "lltooltip.h"
 #include "llhudmanager.h"
 #include "llfloatertools.h"
 #include "llselectmgr.h"
@@ -54,8 +54,10 @@
 #include "llviewercamera.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llmorphview.h"
+#include "llfloaterreg.h"
+#include "llfloatercamera.h"
 
 // Globals
 BOOL gCameraBtnZoom = TRUE;
@@ -128,8 +130,8 @@ BOOL LLToolCamera::handleMouseDown(S32 x, S32 y, MASK mask)
 	gViewerWindow->hideCursor();
 
 	gViewerWindow->pickAsync(x, y, mask, pickCallback);
-	// don't steal focus from UI
-	return FALSE;
+
+	return TRUE;
 }
 
 void LLToolCamera::pickCallback(const LLPickInfo& pick_info)
@@ -254,7 +256,11 @@ void LLToolCamera::releaseMouse()
 
 	gViewerWindow->showCursor();
 
-	LLToolMgr::getInstance()->clearTransientTool();
+	//for the situation when left click was performed on the Agent
+	if (!LLFloaterCamera::inFreeCameraMode())
+	{
+		LLToolMgr::getInstance()->clearTransientTool();
+	}
 
 	mMouseSteering = FALSE;
 	mValidClickPoint = FALSE;
@@ -281,12 +287,12 @@ BOOL LLToolCamera::handleMouseUp(S32 x, S32 y, MASK mask)
 				BOOL success = LLViewerCamera::getInstance()->projectPosAgentToScreen(focus_pos, mouse_pos);
 				if (success)
 				{
-					LLUI::setCursorPositionScreen(mouse_pos.mX, mouse_pos.mY);
+					LLUI::setMousePositionScreen(mouse_pos.mX, mouse_pos.mY);
 				}
 			}
 			else if (mMouseSteering)
 			{
-				LLUI::setCursorPositionScreen(mMouseDownX, mMouseDownY);
+				LLUI::setMousePositionScreen(mMouseDownX, mMouseDownY);
 			}
 			else
 			{
@@ -296,7 +302,7 @@ BOOL LLToolCamera::handleMouseUp(S32 x, S32 y, MASK mask)
 		else
 		{
 			// not a valid zoomable object
-			LLUI::setCursorPositionScreen(mMouseDownX, mMouseDownY);
+			LLUI::setMousePositionScreen(mMouseDownX, mMouseDownY);
 		}
 
 		// calls releaseMouse() internally
@@ -359,7 +365,7 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 			// Orbit tool
 			if (hasMouseCapture())
 			{
-				const F32 RADIANS_PER_PIXEL = 360.f * DEG_TO_RAD / gViewerWindow->getWindowWidth();
+				const F32 RADIANS_PER_PIXEL = 360.f * DEG_TO_RAD / gViewerWindow->getWorldViewWidthScaled();
 
 				if (dx != 0)
 				{
@@ -387,7 +393,7 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 				F32 dist = (F32) camera_to_focus.normVec();
 
 				// Fudge factor for pan
-				F32 meters_per_pixel = 3.f * dist / gViewerWindow->getWindowWidth();
+				F32 meters_per_pixel = 3.f * dist / gViewerWindow->getWorldViewWidthScaled();
 
 				if (dx != 0)
 				{
@@ -409,7 +415,7 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 			if (hasMouseCapture())
 			{
 
-				const F32 RADIANS_PER_PIXEL = 360.f * DEG_TO_RAD / gViewerWindow->getWindowWidth();
+				const F32 RADIANS_PER_PIXEL = 360.f * DEG_TO_RAD / gViewerWindow->getWorldViewWidthScaled();
 
 				if (dx != 0)
 				{

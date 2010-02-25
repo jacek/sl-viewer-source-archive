@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="floater_media_remote" title="TÉLÉCOMMANDE MÉDIA">
+	<panel name="media_remote">
+		<panel label="Audio et vidéo" name="Volume Panel"/>
+		<button name="end_call_btn" tool_tip="Cliquer pour raccrocher"/>
+	</panel>
+</floater>

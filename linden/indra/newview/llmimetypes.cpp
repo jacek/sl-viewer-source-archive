@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,6 +34,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llmimetypes.h"
+#include "llxmlnode.h"
 
 #include "lluictrlfactory.h"
 
@@ -56,24 +57,6 @@ bool LLMIMETypes::parseMIMETypes(const std::string& xml_filename)
 {
 	LLXMLNodePtr root;
 	bool success = LLUICtrlFactory::getLayeredXMLNode(xml_filename, root);
-
-	if (!success)
-	{
-		// If fails, check if we can read the file from the app_settings folder
-		std::string settings_filename = gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, xml_filename);
-		success = LLUICtrlFactory::getLayeredXMLNode(settings_filename, root);
-
-		#if LL_WINDOWS
-		// On the windows dev builds, unpackaged, the mime_types.xml file will be located in 
-		// indra/build-vc**/newview/<config>/app_settings.
-		if (!success)
-		{
-			settings_filename = gDirUtilp->getExpandedFilename(LL_PATH_EXECUTABLE, "app_settings", xml_filename);
-			success = LLUICtrlFactory::getLayeredXMLNode(settings_filename, root);
-		}	
-		#endif
-	}
-
 	if ( ! success || root.isNull() || ! root->hasName( "mimetypes" ) )
 	{
 		llwarns << "Unable to read MIME type file: "

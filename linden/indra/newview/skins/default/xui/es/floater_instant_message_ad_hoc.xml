@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(desconocido)" name="im_floater" title="(desconocido)">
+<floater label="(desconocido)" name="im_floater" title="(DESCONOCIDO)">
 	<string name="ringing">
 		Conectando el chat de voz...
 	</string>
@@ -28,7 +28,7 @@
 		<layout_panel name="im_contents_panel">
 			<button label="Llamar" name="start_call_btn"/>
 			<button label="Colgar" name="end_call_btn"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Pulse aquí para moverse por la lista de participantes activos en esta sesión de MI."/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Pulsa aquí para cambiar a la lista de participantes activos en esta sesión de MI"/>
 			<line_editor label="Pulse aquí para enviar un mensaje instantáneo" name="chat_editor"/>
 			<button label="Enviar" name="send_btn"/>
 		</layout_panel>

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -64,9 +64,10 @@ public:
 
 	/* virtual */ bool isAlive() const;
 	/* virtual */ void reset();
-	/* virtual */ void start(const std::string& state); 
+	/* virtual */ void start() { start(""); }
 	/* virtual */ void stop();
 
+	void start(const std::string& state); 
 	void setTimeout(F32 d);
 	void ping(const std::string& state);
 	const std::string& getState() {return mPingState; }

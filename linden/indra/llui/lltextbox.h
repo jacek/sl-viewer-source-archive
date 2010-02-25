@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,110 +33,56 @@
 #ifndef LL_LLTEXTBOX_H
 #define LL_LLTEXTBOX_H
 
-#include "lluictrl.h"
-#include "v4color.h"
-#include "llstring.h"
 #include "lluistring.h"
+#include "lltextbase.h"
 
-
-class LLTextBox
-:	public LLUICtrl
+class LLTextBox :
+	public LLTextBase
 {
 public:
-	// By default, follows top and left and is mouse-opaque.
-	// If no text, text = name.
-	// If no font, uses default system font.
-	LLTextBox(const std::string& name, const LLRect& rect, const std::string& text,
-			  const LLFontGL* font = NULL, BOOL mouse_opaque = TRUE );
-
-	// Construct a textbox which handles word wrapping for us.
-	LLTextBox(const std::string& name, const std::string& text, F32 max_width = 200,
-			  const LLFontGL* font = NULL, BOOL mouse_opaque = TRUE );
-
-	// "Simple" constructors for text boxes that have the same name and label *TO BE DEPRECATED*
-	LLTextBox(const std::string& name_and_label, const LLRect& rect);
-
-	// Consolidate common member initialization
-	// 20+ initializers times 3+ constructors is unmaintainable.
-	void initDefaults(); 
-
-	virtual ~LLTextBox() {}
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, class LLUICtrlFactory *factory);
-
-	virtual void	draw();
-	virtual void	reshape(S32 width, S32 height, BOOL called_from_parent = TRUE);
-
-	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
-
-	void			setColor( const LLColor4& c )			{ mTextColor = c; }
-	void			setDisabledColor( const LLColor4& c)	{ mDisabledColor = c; }
-	void			setBackgroundColor( const LLColor4& c)	{ mBackgroundColor = c; }	
-	void			setBorderColor( const LLColor4& c)		{ mBorderColor = c; }	
-
-	void			setHoverColor( const LLColor4& c )		{ mHoverColor = c; }
-	void			setHoverActive( BOOL active )			{ mHoverActive = active; }
-
-	void			setText( const LLStringExplicit& text );
-	void			setWrappedText(const LLStringExplicit& text, F32 max_width = -1.0); // -1 means use existing control width
-	void			setUseEllipses( BOOL use_ellipses )		{ mUseEllipses = use_ellipses; }
 	
-	void			setBackgroundVisible(BOOL visible)		{ mBackgroundVisible = visible; }
-	void			setBorderVisible(BOOL visible)			{ mBorderVisible = visible; }
-	void			setFontStyle(U8 style)					{ mFontStyle = style; }
-	void			setBorderDropshadowVisible(BOOL visible){ mBorderDropShadowVisible = visible; }
-	void			setHPad(S32 pixels)						{ mHPad = pixels; }
-	void			setVPad(S32 pixels)						{ mVPad = pixels; }
+	// *TODO: Add callback to Params
+	typedef boost::function<void (void)> callback_t;
+	
+	struct Params : public LLInitParam::Block<Params, LLTextBase::Params>
+	{};
+
+protected:
+	LLTextBox(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
+	virtual ~LLTextBox();
+
+	/*virtual*/ BOOL handleMouseDown(S32 x, S32 y, MASK mask);
+	/*virtual*/ BOOL handleMouseUp(S32 x, S32 y, MASK mask);
+	/*virtual*/ BOOL handleHover(S32 x, S32 y, MASK mask);
+
+	/*virtual*/ void setText( const LLStringExplicit& text, const LLStyle::Params& input_params = LLStyle::Params() );
+	
 	void			setRightAlign()							{ mHAlign = LLFontGL::RIGHT; }
 	void			setHAlign( LLFontGL::HAlign align )		{ mHAlign = align; }
-	void			setClickedCallback( void (*cb)(void *data), void* data = NULL ){ mClickedCallback = cb; mCallbackUserData = data; }		// mouse down and up within button
-
-	const LLFontGL* getFont() const							{ return mFontGL; }
+	void			setClickedCallback( boost::function<void (void*)> cb, void* userdata = NULL );
 
 	void			reshapeToFitText();
 
-	const std::string&	getText() const							{ return mText.getString(); }
 	S32				getTextPixelWidth();
 	S32				getTextPixelHeight();
 
-	virtual void	setValue(const LLSD& value )			{ setText(value.asString()); }
-	virtual LLSD	getValue() const						{ return LLSD(getText()); }
-	virtual BOOL	setTextArg( const std::string& key, const LLStringExplicit& text );
+	/*virtual*/ LLSD	getValue() const;
+	/*virtual*/ BOOL	setTextArg( const std::string& key, const LLStringExplicit& text );
 
-private:
-	void			setLineLengths();
-	void			drawText(S32 x, S32 y, const LLColor4& color );
+protected:
+	void            onUrlLabelUpdated(const std::string &url, const std::string &label);
 
-	LLUIString		mText;
-	const LLFontGL*	mFontGL;
-	LLColor4		mTextColor;
-	LLColor4		mDisabledColor;
-	LLColor4		mBackgroundColor;
-	LLColor4		mBorderColor;
-	LLColor4		mHoverColor;
-
-	BOOL			mHoverActive;	
-	BOOL			mHasHover;
-	BOOL			mBackgroundVisible;
-	BOOL			mBorderVisible;
-	
-	U8				mFontStyle; // style bit flags for font
-	BOOL			mBorderDropShadowVisible;
-	BOOL			mUseEllipses;
-
-	S32				mLineSpacing;
-
-	S32				mHPad;
-	S32				mVPad;
-	LLFontGL::HAlign mHAlign;
-	LLFontGL::VAlign mVAlign;
-
-	std::vector<S32> mLineLengthList;
-	void			(*mClickedCallback)(void* data );
-	void*			mCallbackUserData;
+	LLUIString			mText;
+	callback_t			mClickedCallback;
 };
+
+// Build time optimization, generate once in .cpp file
+#ifndef LLTEXTBOX_CPP
+extern template class LLTextBox* LLView::getChild<class LLTextBox>(
+	const std::string& name, BOOL recurse) const;
+#endif
 
 #endif

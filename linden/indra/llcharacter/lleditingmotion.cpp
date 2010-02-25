@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -187,7 +187,7 @@ BOOL LLEditingMotion::onUpdate(F32 time, U8* joint_mask)
 	}
 
 	focus_pt += mCharacter->getCharacterPosition();
-	
+
 	// propagate joint positions to kinematic chain
 	mParentJoint.setPosition(	mParentState->getJoint()->getWorldPosition() );
 	mShoulderJoint.setPosition(	mShoulderState->getJoint()->getPosition() );
@@ -221,7 +221,7 @@ BOOL LLEditingMotion::onUpdate(F32 time, U8* joint_mask)
 	if (!target.isFinite())
 	{
 		llerrs << "Non finite target in editing motion with target distance of " << target_dist << 
-			" and focus point " << focus_pt << " and pointAtPt: " << *pointAtPt << llendl;
+			" and focus point " << focus_pt << llendl;
 	}
 	
 	mTarget.setPosition( target + mParentJoint.getPosition());

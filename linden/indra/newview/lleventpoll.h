@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,9 @@
 
 #include "llhttpclient.h"
 
+class LLHost;
+
+
 class LLEventPoll
 	///< implements the viewer side of server-to-viewer pushed events.
 {
@@ -50,21 +53,5 @@ private:
 	LLHTTPClient::ResponderPtr mImpl;
 };
 
-// Just like the region uses the event poll to invoke services on the viewer,
-// the agent domain also does. There will be lots of changes coming to this code,
-// for now a nice clean split from the region's event code. 
-class LLAgentEventPoll //OGPX
-	///< implements the viewer side of server-to-viewer pushed events.
-{	
-public:
-	LLAgentEventPoll(const std::string& pollURL);
-		///< Start polling the URL.
 
-	virtual ~LLAgentEventPoll();
-		///< will stop polling, cancelling any poll in progress.
-
-
-private:
-	LLHTTPClient::ResponderPtr mImpl;
-};
 #endif // LL_LLEVENTPOLL_H

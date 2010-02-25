@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -51,9 +51,9 @@
 // llinfos << mMessage.getString() << llendl; // outputs "Welcome Steve to Second Life"
 // mMessage.setArg("[USERNAME]", "Joe");
 // llinfos << mMessage.getString() << llendl; // outputs "Welcome Joe to Second Life"
-// mMessage = "Recepci￳n a la [SECONDLIFE] [USERNAME]"
+// mMessage = "Bienvenido a la [SECONDLIFE] [USERNAME]"
 // mMessage.setArg("[SECONDLIFE]", "Segunda Vida");
-// llinfos << mMessage.getString() << llendl; // outputs "Recepci￳n a la Segunda Vida Joe"
+// llinfos << mMessage.getString() << llendl; // outputs "Bienvenido a la Segunda Vida Joe"
 
 // Implementation Notes:
 // Attempting to have operator[](const std::string& s) return mArgs[s] fails because we have
@@ -64,7 +64,7 @@ class LLUIString
 public:
 	// These methods all perform appropriate argument substitution
 	// and modify mOrig where appropriate
-	LLUIString() {}
+        LLUIString() : mNeedsResult(false), mNeedsWResult(false) {}
 	LLUIString(const std::string& instring, const LLStringUtil::format_map_t& args);
 	LLUIString(const std::string& instring) { assign(instring); }
 
@@ -76,34 +76,44 @@ public:
 	void setArgs(const class LLSD& sd);
 	void setArg(const std::string& key, const std::string& replacement);
 
-	const std::string& getString() const { return mResult; }
-	operator std::string() const { return mResult; }
+	const std::string& getString() const { return getUpdatedResult(); }
+	operator std::string() const { return getUpdatedResult(); }
 
-	const LLWString& getWString() const { return mWResult; }
-	operator LLWString() const { return mWResult; }
+	const LLWString& getWString() const { return getUpdatedWResult(); }
+	operator LLWString() const { return getUpdatedWResult(); }
 
-	bool empty() const { return mWResult.empty(); }
-	S32 length() const { return mWResult.size(); }
+	bool empty() const { return getUpdatedResult().empty(); }
+	S32 length() const { return getUpdatedWResult().size(); }
 
 	void clear();
 	void clearArgs() { mArgs.clear(); }
 	
-	// These utuilty functions are included for text editing.
+	// These utility functions are included for text editing.
 	// They do not affect mOrig and do not perform argument substitution
 	void truncate(S32 maxchars);
 	void erase(S32 charidx, S32 len);
 	void insert(S32 charidx, const LLWString& wchars);
 	void replace(S32 charidx, llwchar wc);
 	
-	static const LLStringUtil::format_map_t sNullArgs;
-
 private:
-	void format();	
+	// something changed, requiring reformatting of strings
+	void dirty();
+
+	std::string& getUpdatedResult() const { if (mNeedsResult) { updateResult(); } return mResult; }
+	LLWString& getUpdatedWResult() const{ if (mNeedsWResult) { updateWResult(); } return mWResult; }
+
+	// do actual work of updating strings (non-inlined)
+	void updateResult() const;
+	void updateWResult() const;
 	
 	std::string mOrig;
-	std::string mResult;
-	LLWString mWResult; // for displaying
+	mutable std::string mResult;
+	mutable LLWString mWResult; // for displaying
 	LLStringUtil::format_map_t mArgs;
+
+	// controls lazy evaluation
+	mutable bool	mNeedsResult;
+	mutable bool	mNeedsWResult;
 };
 
 #endif // LL_LLUISTRING_H

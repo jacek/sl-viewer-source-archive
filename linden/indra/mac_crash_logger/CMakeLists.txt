@@ -10,6 +10,7 @@ include(LLMessage)
 include(LLVFS)
 include(LLXML)
 include(Linking)
+include(LLSharedLibs)
 
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
@@ -73,4 +74,7 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/CrashReporter.nib
     ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/mac-crash-logger.app/Contents/Resources/CrashReporter.nib
   )
+
+ll_deploy_sharedlibs_command(mac-crash-logger)
+
 

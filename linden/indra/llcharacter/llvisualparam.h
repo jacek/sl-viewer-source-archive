@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,6 +36,7 @@
 #include "v3math.h"
 #include "llstring.h"
 #include "llxmltree.h"
+#include <boost/function.hpp>
 
 class LLPolyMesh;
 class LLXmlTreeNode;
@@ -68,6 +69,10 @@ public:
 	virtual ~LLVisualParamInfo() {};
 
 	virtual BOOL parseXml(LLXmlTreeNode *node);
+
+	S32 getID() const { return mID; }
+
+	virtual void toStream(std::ostream &out);
 	
 protected:
 	S32					mID;				// ID associated with VisualParam
@@ -92,6 +97,8 @@ protected:
 class LLVisualParam
 {
 public:
+	typedef	boost::function<LLVisualParam*(S32)> visual_param_mapper;
+
 	LLVisualParam();
 	virtual ~LLVisualParam();
 
@@ -106,13 +113,16 @@ public:
 	//virtual BOOL			parseData( LLXmlTreeNode *node ) = 0;
 	virtual void			apply( ESex avatar_sex ) = 0;
 	//  Default functions
-	virtual void			setWeight(F32 weight, BOOL set_by_user);
-	virtual void			setAnimationTarget( F32 target_value, BOOL set_by_user );
-	virtual void			animate(F32 delta, BOOL set_by_user);
-	virtual void			stopAnimating(BOOL set_by_user);
+	virtual void			setWeight(F32 weight, BOOL upload_bake);
+	virtual void			setAnimationTarget( F32 target_value, BOOL upload_bake );
+	virtual void			animate(F32 delta, BOOL upload_bake);
+	virtual void			stopAnimating(BOOL upload_bake);
+
+	virtual BOOL			linkDrivenParams(visual_param_mapper mapper, BOOL only_cross_params);
+	virtual void			resetDrivenParams();
 
 	// Interface methods
-	S32						getID() 			{ return mID; }
+	S32						getID() const		{ return mID; }
 	void					setID(S32 id) 		{ llassert(!mInfo); mID = id; }
 	
 	const std::string&		getName() const 			{ return mInfo->mName; }
@@ -124,22 +134,24 @@ public:
 	void					setMaxDisplayName(const std::string& s) { mInfo->mMaxName = s; }
 	void					setMinDisplayName(const std::string& s) { mInfo->mMinName = s; }
 
-	EVisualParamGroup		getGroup() 			{ return mInfo->mGroup; }
-	F32						getMinWeight() 		{ return mInfo->mMinWeight; }
-	F32						getMaxWeight() 		{ return mInfo->mMaxWeight; }
-	F32						getDefaultWeight() 	{ return mInfo->mDefaultWeight; }
-	ESex					getSex()			{ return mInfo->mSex; }
+	EVisualParamGroup		getGroup() const 			{ return mInfo->mGroup; }
+	F32						getMinWeight() const		{ return mInfo->mMinWeight; }
+	F32						getMaxWeight() const		{ return mInfo->mMaxWeight; }
+	F32						getDefaultWeight() const 	{ return mInfo->mDefaultWeight; }
+	ESex					getSex() const			{ return mInfo->mSex; }
 
-	F32						getWeight() 		{ return mIsAnimating ? mTargetWeight : mCurWeight; }
-	F32						getCurrentWeight() 	{ return mCurWeight; }
-	F32						getLastWeight() 	{ return mLastWeight; }
-	BOOL					isAnimating() 	{ return mIsAnimating; }
+	F32						getWeight() const		{ return mIsAnimating ? mTargetWeight : mCurWeight; }
+	F32						getCurrentWeight() const 	{ return mCurWeight; }
+	F32						getLastWeight() const	{ return mLastWeight; }
+	BOOL					isAnimating() const	{ return mIsAnimating; }
 
 	LLVisualParam*			getNextParam()		{ return mNext; }
 	void					setNextParam( LLVisualParam *next );
 	
-	virtual void			setAnimating(BOOL is_animating) { mIsAnimating = is_animating; }
-	BOOL					getAnimating() { return mIsAnimating; }
+	virtual void			setAnimating(BOOL is_animating) { mIsAnimating = is_animating && !mIsDummy; }
+	BOOL					getAnimating() const { return mIsAnimating; }
+
+	void					setIsDummy(BOOL is_dummy) { mIsDummy = is_dummy; }
 
 protected:
 	F32					mCurWeight;			// current weight
@@ -147,6 +159,8 @@ protected:
 	LLVisualParam*		mNext;				// next param in a shared chain
 	F32					mTargetWeight;		// interpolation target
 	BOOL				mIsAnimating;	// this value has been given an interpolation target
+	BOOL				mIsDummy;  // this is used to prevent dummy visual params from animating
+
 
 	S32					mID;				// id for storing weight/morphtarget compares compactly
 	LLVisualParamInfo	*mInfo;

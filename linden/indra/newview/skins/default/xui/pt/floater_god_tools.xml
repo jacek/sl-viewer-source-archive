@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="godtools floater" title="Ferramentas de Deus">
+<floater name="godtools floater" title="FERRAMENTAS DE DEUS">
 	<tab_container name="GodTools Tabs">
 		<panel label="Grade" name="grid">
 			<button label="Desconectar todos os usuários" label_selected="Desconectar todos os usuários" name="Kick all users"/>
@@ -39,7 +39,7 @@
 				Fator cobrança:
 			</text>
 			<text name="land cost text">
-				L$ por metros quadrados
+				L$ por m²:
 			</text>
 			<button label="Atualizar" label_selected="Atualizar" name="Refresh" tool_tip="Clique aqui para atualizar a informação acima."/>
 			<button label="Aplicar" label_selected="Aplicar" name="Apply" tool_tip="Clique aqui para aplicar qualquer mudança acima"/>
@@ -73,29 +73,17 @@
 				Destino:
 			</text>
 			<combo_box name="destination">
-				<combo_item name="Selection">
-					Seleção
-				</combo_item>
-				<combo_item name="AgentRegion">
-					Região do Agente
-				</combo_item>
+				<combo_box.item name="item1" label="Seleção" />
+				<combo_box.item name="item2" label="Região do Agente" />
 			</combo_box>
 			<text name="Request:">
 				Requisição:
 			</text>
 			<combo_box name="request">
-				<combo_item name="colliders&lt;steps&gt;">
-					Passos de Colisão
-				</combo_item>
-				<combo_item name="scripts&lt;count&gt;,&lt;optionalpattern&gt;">
-					Contagem de scripts, padrão opcional
-				</combo_item>
-				<combo_item name="objects&lt;pattern&gt;">
-					Padrão de Objetos
-				</combo_item>
-				<combo_item name="rez&lt;asset_id&gt;">
-					rez &lt;asset_id&gt;
-				</combo_item>
+				<combo_box.item name="item1" label="Passos de Colisão" />
+				<combo_box.item name="item2" label="Contagem de scripts, padrão opcional" />
+				<combo_box.item name="item3" label="Padrão de Objetos" />
+				<combo_box.item name="item4" label="rez &lt;asset_id&gt;" />
 			</combo_box>
 			<text name="Parameter:">
 				Parametro:

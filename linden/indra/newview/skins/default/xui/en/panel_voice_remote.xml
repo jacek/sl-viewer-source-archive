@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ follows="right|bottom"
+ height="26"
+ layout="topleft"
+ left="0"
+ name="voice_remote"
+ top="26"
+ use_bounding_rect="true"
+ width="130">
+    <panel
+     filename="panel_bg_tab.xml"
+     height="26"
+     layout="topleft"
+     left="0"
+     name="panel_bg_tab"
+     top="-1"
+     width="130" />
+    <panel
+     filename="panel_voice_controls.xml"
+     height="20"
+     layout="topleft"
+     left="1"
+     name="panel_voice_controls"
+     top="3"
+     width="130" />
+</panel>

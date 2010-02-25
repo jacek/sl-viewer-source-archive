@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -56,6 +56,8 @@ public:
 	virtual ~LLViewerJoystick();
 	
 	void init(bool autoenable);
+	void terminate();
+
 	void updateStatus();
 	void scanJoystick();
 	void moveObjects(bool reset = false);
@@ -76,13 +78,13 @@ public:
 	
 protected:
 	void updateEnabled(bool autoenable);
-	void terminate();
 	void handleRun(F32 inc);
 	void agentSlide(F32 inc);
 	void agentPush(F32 inc);
 	void agentFly(F32 inc);
-	void agentRotate(F32 pitch_inc, F32 turn_inc);
-    void agentJump();
+	void agentPitch(F32 pitch_inc);
+	void agentYaw(F32 yaw_inc);
+	void agentJump();
 	void resetDeltas(S32 axis[]);
 #if LIB_NDOF
 	static NDOF_HotPlugResult HotPlugAddCallback(NDOF_Device *dev);

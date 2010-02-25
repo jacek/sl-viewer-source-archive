@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,13 +47,16 @@
 #include "apr_pools.h"
 #include "apr_getopt.h"
 
-extern void ll_init_apr();
-
 // the CTYPE_WORKAROUND is needed for linux dev stations that don't
 // have the broken libc6 packages needed by our out-of-date static 
 // libs (such as libcrypto and libcurl). -- Leviathan 20060113
 #ifdef CTYPE_WORKAROUND
 #	include "ctype_workaround.h"
+#endif
+
+#ifndef LL_WINDOWS
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #endif
 
 namespace tut
@@ -138,34 +141,31 @@ public:
 			run_completed_(*mStream);
 		}
 		run_completed_(std::cout);
-
-		if (mFailedTests > 0)
-		{
-			exit(1);
-		}
 	}
+
+	int getFailedTests() const { return mFailedTests; }
 	
 private:
 	void run_completed_(std::ostream &stream)
 	{
+		stream << "\tTotal Tests:\t" << mTotalTests << std::endl;
+		stream << "\tPassed Tests:\t" << mPassedTests;
+		if (mPassedTests == mTotalTests)
+		{
+			stream << "\tYAY!! \\o/";
+		}
 		stream << std::endl;
-		stream << "Total Tests:   " << mTotalTests << std::endl;
-		stream << "Passed Tests: " << mPassedTests << std::endl;
 
-		stream << std::endl;
-		stream << "Total Tests:   " << mTotalTests << std::endl;
-		stream << "Passed Tests: " << mPassedTests << std::endl;
-		
 		if (mSkippedTests > 0)
 		{
-			stream << "Skipped known failures: " << mSkippedTests
+			stream << "\tSkipped known failures:\t" << mSkippedTests
 				<< std::endl;
 		}
 
 		if(mFailedTests > 0)
 		{
 			stream << "*********************************" << std::endl;
-			stream << "Failed Tests:   " << mFailedTests << std::endl;
+			stream << "Failed Tests:\t" << mFailedTests << std::endl;
 			stream << "Please report or fix the problem." << std::endl;
 			stream << "*********************************" << std::endl;
 		}
@@ -240,6 +240,11 @@ void wouldHaveCrashed(const std::string& message)
 
 int main(int argc, char **argv)
 {
+	// The following line must be executed to initialize Google Mock
+	// (and Google Test) before running the tests.
+#ifndef LL_WINDOWS
+	::testing::InitGoogleMock(&argc, argv);
+#endif
 	LLError::initForApplication(".");
 	LLError::setFatalFunction(wouldHaveCrashed);
 	LLError::setDefaultLevel(LLError::LEVEL_ERROR);
@@ -250,7 +255,7 @@ int main(int argc, char **argv)
 	ctype_workaround();
 #endif
 
-	ll_init_apr();
+	apr_initialize();
 	apr_pool_t* pool = NULL;
 	if(APR_SUCCESS != apr_pool_create(&pool, NULL))
 	{
@@ -342,9 +347,11 @@ int main(int argc, char **argv)
 		tut::runner.get().run_tests(test_group);
 	}
 
+	bool success = (callback.getFailedTests() == 0);
+
 	if (wait_at_exit)
 	{
-		std::cerr << "Waiting for input before exiting..." << std::endl;
+		std::cerr << "Press return to exit..." << std::endl;
 		std::cin.get();
 	}
 	
@@ -354,7 +361,7 @@ int main(int argc, char **argv)
 		delete output;
 	}
 
-	if (touch)
+	if (touch && success)
 	{
 		std::ofstream s;
 		s.open(touch);
@@ -363,5 +370,7 @@ int main(int argc, char **argv)
 	}
 	
 	apr_terminate();
-	return 0;
+	
+	int retval = (success ? 0 : 1);
+	return retval;
 }

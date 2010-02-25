@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="camera_floater">
+	<floater.string name="rotate_tooltip">
+		Rotér kamera omkring fokus
+	</floater.string>
+	<floater.string name="zoom_tooltip">
+		Zoom kamera mod fokus
+	</floater.string>
+	<floater.string name="move_tooltip">
+		Flyt kamera op og ned, til venstre og højre
+	</floater.string>
+</floater>

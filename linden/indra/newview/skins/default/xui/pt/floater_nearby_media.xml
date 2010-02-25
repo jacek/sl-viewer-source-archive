@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MÍDIAS POR PERTO">
+	<string name="media_item_count_format">
+		(%ld itens de mídia)
+	</string>
+	<string name="default_location_text">
+		Desconhecido
+	</string>
+	<string name="empty_item_text">
+		&lt;empty&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;Nenhuma mídia disponível&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Liga/Desl mídia do lote
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? itens de mídia)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Liga/Desl mídias por perto"/>
+		</panel>
+		<panel>
+			<button name="parcel_media_enable_btn" tool_tip="Liga/Desl mídia do lote"/>
+			<text name="parcel_media_name">
+				&lt;Nenhuma mídia disponível&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Tocar mídia do lote"/>
+			<button name="parcel_media_pause_btn" tool_tip="Pausar mídia do lote"/>
+			<button name="parcel_media_stop_btn" tool_tip="Para mídia do lote"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Tocar áudio do lote"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Pausar áudio do lote"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Parar áudio do lote"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="Liga/Desliga" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Nome" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Autorizar auto-play de mídias" name="media_auto_play_btn" tool_tip="Autorizar auto-play de mídias" value="true"/>
+		</panel>
+	</panel>
+</floater>

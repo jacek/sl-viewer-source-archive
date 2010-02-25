@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,6 +45,12 @@
 #include "llchainio.h"
 #include "llerror.h"
 
+
+extern const std::string CONTEXT_REQUEST;
+extern const std::string CONTEXT_DEST_URI_SD_LABEL;
+extern const std::string CONTEXT_RESPONSE;
+extern const std::string CONTEXT_TRANSFERED_BYTES;
+
 class LLURLRequestDetail;
 
 class LLURLRequestComplete;
@@ -80,6 +86,11 @@ public:
 		HTTP_MOVE, // Caller will need to set 'Destination' header
 		REQUEST_ACTION_COUNT
 	};
+
+	/**
+	 * @brief Turn the requst action into an http verb.
+	 */
+	static std::string actionAsVerb(ERequestAction action);
 
 	/** 
 	 * @brief Constructor.
@@ -203,6 +214,8 @@ protected:
 	ERequestAction mAction;
 	LLURLRequestDetail* mDetail;
 	LLIOPipe::ptr_t mCompletionCallback;
+	 S32 mRequestTransferedBytes;
+	 S32 mResponseTransferedBytes;
 
 private:
 	/** 

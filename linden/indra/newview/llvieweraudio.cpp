@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -86,16 +86,6 @@ void init_audio()
 		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndObjectDelete")));
 		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndObjectRezIn")));
 		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndObjectRezOut")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuAppear")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuHide")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight0")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight1")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight2")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight3")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight4")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight5")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight6")));
-		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndPieMenuSliceHighlight7")));
 		gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndSnapshot")));
 		//gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndStartAutopilot")));
 		//gAudiop->preloadSound(LLUUID(gSavedSettings.getString("UISndStartFollowpilot")));
@@ -129,6 +119,10 @@ void audio_update_volume(bool force_update)
 
 		gAudiop->setDopplerFactor(gSavedSettings.getF32("AudioLevelDoppler"));
 		gAudiop->setRolloffFactor(gSavedSettings.getF32("AudioLevelRolloff"));
+#ifdef kAUDIO_ENABLE_WIND
+		gAudiop->enableWind(!mute_audio);
+#endif
+
 		gAudiop->setMuted(mute_audio);
 		
 		if (force_update)
@@ -217,29 +211,60 @@ void audio_update_wind(bool force_update)
 		//
 		if (force_update || (last_camera_water_height * camera_water_height) < 0.f)
 		{
+            static LLUICachedControl<F32> rolloff("AudioLevelRolloff", 1.0f);
 			if (camera_water_height < 0.f)
 			{
-				gAudiop->setRolloffFactor(gSavedSettings.getF32("AudioLevelRolloff") * LL_ROLLOFF_MULTIPLIER_UNDER_WATER);
+				gAudiop->setRolloffFactor(rolloff * LL_ROLLOFF_MULTIPLIER_UNDER_WATER);
 			}
 			else 
 			{
-				gAudiop->setRolloffFactor(gSavedSettings.getF32("AudioLevelRolloff"));
+				gAudiop->setRolloffFactor(rolloff);
 			}
 		}
-		// this line rotates the wind vector to be listener (agent) relative
-		// unfortunately we have to pre-translate to undo the translation that
-		// occurs in the transform call
-		gRelativeWindVec = gAgent.getFrameAgent().rotateToLocal(gWindVec - gAgent.getVelocity());
+        
+        // Scale down the contribution of weather-simulation wind to the
+        // ambient wind noise.  Wind velocity averages 3.5 m/s, with gusts to 7 m/s
+        // whereas steady-state avatar walk velocity is only 3.2 m/s.
+        // Without this the world feels desolate on first login when you are
+        // standing still.
+        static LLUICachedControl<F32> wind_level("AudioLevelWind", 0.5f);
+        LLVector3 scaled_wind_vec = gWindVec * wind_level;
+        
+        // Mix in the avatar's motion, subtract because when you walk north,
+        // the apparent wind moves south.
+        LLVector3 final_wind_vec = scaled_wind_vec - gAgent.getVelocity();
+        
+		// rotate the wind vector to be listener (agent) relative
+		gRelativeWindVec = gAgent.getFrameAgent().rotateToLocal( final_wind_vec );
 
 		// don't use the setter setMaxWindGain() because we don't
 		// want to screw up the fade-in on startup by setting actual source gain
 		// outside the fade-in.
 		F32 master_volume  = gSavedSettings.getBOOL("MuteAudio") ? 0.f : gSavedSettings.getF32("AudioLevelMaster");
 		F32 ambient_volume = gSavedSettings.getBOOL("MuteAmbient") ? 0.f : gSavedSettings.getF32("AudioLevelAmbient");
+		F32 max_wind_volume = master_volume * ambient_volume;
 
-		F32 wind_volume = master_volume * ambient_volume;
-		gAudiop->mMaxWindGain = wind_volume;
-		
+		const F32 WIND_SOUND_TRANSITION_TIME = 2.f;
+		// amount to change volume this frame
+		F32 volume_delta = (LLFrameTimer::getFrameDeltaTimeF32() / WIND_SOUND_TRANSITION_TIME) * max_wind_volume;
+		if (force_update) 
+		{
+			// initialize wind volume (force_update) by using large volume_delta
+			// which is sufficient to completely turn off or turn on wind noise
+			volume_delta = 1.f;
+		}
+
+		// mute wind when not flying
+		if (gAgent.getFlying())
+		{
+			// volume increases by volume_delta, up to no more than max_wind_volume
+			gAudiop->mMaxWindGain = llmin(gAudiop->mMaxWindGain + volume_delta, max_wind_volume);
+		}
+		else
+		{
+			// volume decreases by volume_delta, down to no less than 0
+			gAudiop->mMaxWindGain = llmax(gAudiop->mMaxWindGain - volume_delta, 0.f);
+		}
 		
 		last_camera_water_height = camera_water_height;
 		gAudiop->updateWind(gRelativeWindVec, camera_water_height);

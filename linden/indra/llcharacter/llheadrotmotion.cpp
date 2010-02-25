@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -251,10 +251,13 @@ BOOL LLHeadRotMotion::onUpdate(F32 time, U8* joint_mask)
 	mLastHeadRot = head_rot_local;
 
 	// Set the head rotation.
-	LLQuaternion torsoRotLocal =  mNeckState->getJoint()->getParent()->getWorldRotation() * currentInvRootRotWorld;
-	head_rot_local = head_rot_local * ~torsoRotLocal;
-	mNeckState->setRotation( nlerp(NECK_LAG, LLQuaternion::DEFAULT, head_rot_local) );
-	mHeadState->setRotation( nlerp(1.f - NECK_LAG, LLQuaternion::DEFAULT, head_rot_local));
+	if(mNeckState->getJoint() && mNeckState->getJoint()->getParent())
+	{
+		LLQuaternion torsoRotLocal =  mNeckState->getJoint()->getParent()->getWorldRotation() * currentInvRootRotWorld;
+		head_rot_local = head_rot_local * ~torsoRotLocal;
+		mNeckState->setRotation( nlerp(NECK_LAG, LLQuaternion::DEFAULT, head_rot_local) );
+		mHeadState->setRotation( nlerp(1.f - NECK_LAG, LLQuaternion::DEFAULT, head_rot_local));
+	}
 
 	return TRUE;
 }

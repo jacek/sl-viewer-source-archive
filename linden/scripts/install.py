@@ -11,7 +11,7 @@ https://wiki.lindenlab.com/wiki/User:Phoenix/Library_Installation
 
 $LicenseInfo:firstyear=2007&license=mit$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2007-2010, Linden Research, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,6 @@ def add_indra_lib_path():
 base_dir = add_indra_lib_path()
 
 import copy
-import md5
 import optparse
 import os
 import platform
@@ -75,7 +74,12 @@ import tempfile
 import urllib2
 import urlparse
 
-from sets import Set as set, ImmutableSet as frozenset
+try:
+    # Python 2.6
+    from hashlib import md5
+except ImportError:
+    # Python 2.5 and earlier
+    from md5 import new as md5
 
 from indra.base import llsd
 from indra.util import helpformatter
@@ -106,7 +110,7 @@ class InstallFile(object):
         return "ifile{%s:%s}" % (self.pkgname, self.url)
 
     def _is_md5sum_match(self):
-        hasher = md5.new(file(self.filename, 'rb').read())
+        hasher = md5(file(self.filename, 'rb').read())
         if hasher.hexdigest() == self.md5sum:
             return  True
         return False
@@ -643,12 +647,6 @@ windows/i686/vs/2003 -- specify a windows visual studio 2003 package"""
             install_dir,
             cache_dir)
         scp_or_http.cleanup()
-
-        # Verify that requested packages are installed
-        for pkg in installables:
-            if pkg not in self._installed:
-                raise RuntimeError("No '%s' available for '%s'." %
-                                   (pkg, platform))
     
     def do_uninstall(self, installables, install_dir):
         # Do not bother to check license if we're uninstalling.
@@ -795,8 +793,13 @@ def _getuser():
         import getpass
         return getpass.getuser()
     except ImportError:
-        import win32api
-        return win32api.GetUserName()
+        import ctypes
+        MAX_PATH = 260                  # according to a recent WinDef.h
+        name = ctypes.create_unicode_buffer(MAX_PATH)
+        namelen = ctypes.c_int(len(name)) # len in chars, NOT bytes
+        if not ctypes.windll.advapi32.GetUserNameW(name, ctypes.byref(namelen)):
+            raise ctypes.WinError()
+        return name.value
 
 def _default_installable_cache():
     """In general, the installable files do not change much, so find a 

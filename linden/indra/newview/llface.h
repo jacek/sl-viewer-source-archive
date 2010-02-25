@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,17 +45,18 @@
 #include "xform.h"
 #include "lldarrayptr.h"
 #include "llvertexbuffer.h"
-#include "llviewerimage.h"
-#include "llstat.h"
+#include "llviewertexture.h"
 #include "lldrawable.h"
+#include "lltextureatlasmanager.h"
 
 class LLFacePool;
 class LLVolume;
-class LLViewerImage;
+class LLViewerTexture;
 class LLTextureEntry;
 class LLVertexProgram;
-class LLViewerImage;
+class LLViewerTexture;
 class LLGeometryManager;
+class LLTextureAtlasSlot;
 
 const F32 MIN_ALPHA_SIZE = 1024.f;
 const F32 MIN_TEX_ANIM_SIZE = 512.f;
@@ -87,8 +88,9 @@ public:
 	U16				getGeomCount()		const	{ return mGeomCount; }		// vertex count for this face
 	U16				getGeomIndex()		const	{ return mGeomIndex; }		// index into draw pool
 	U16				getGeomStart()		const	{ return mGeomIndex; }		// index into draw pool
-	LLViewerImage*	getTexture()		const	{ return mTexture; }
-	void			setTexture(LLViewerImage* tex) ;
+	void			setTexture(LLViewerTexture* tex) ;
+	void            switchTexture(LLViewerTexture* new_texture);
+	void            dirtyTexture();
 	LLXformMatrix*	getXform()			const	{ return mXform; }
 	BOOL			hasGeometry()		const	{ return mGeomCount > 0; }
 	LLVector3		getPositionAgent()	const;
@@ -102,6 +104,9 @@ public:
 	void			setPixelArea(F32 area)	{ mPixelArea = area; }
 	F32				getVirtualSize() const { return mVSize; }
 	F32				getPixelArea() const { return mPixelArea; }
+
+	S32             getIndexInTex() const {return mIndexInTex ;}
+	void            setIndexInTex(S32 index) { mIndexInTex = index ;}
 
 	void			renderSetColor() const;
 	S32				renderElements(const U16 *index_array) const;
@@ -120,10 +125,10 @@ public:
 	LLVertexBuffer* getVertexBuffer()	const	{ return mVertexBuffer; }
 	void			setPoolType(U32 type)		{ mPoolType = type; }
 	S32				getTEOffset()				{ return mTEOffset; }
-	LLViewerImage*	getTexture()				{ return mTexture; }
+	LLViewerTexture*	getTexture() const;
 
 	void			setViewerObject(LLViewerObject* object);
-	void			setPool(LLFacePool *pool, LLViewerImage *texturep);
+	void			setPool(LLFacePool *pool, LLViewerTexture *texturep);
 	
 	void			setDrawable(LLDrawable *drawable);
 	void			setTEOffset(const S32 te_offset);
@@ -172,7 +177,7 @@ public:
 	void		renderSelectedUV();
 
 	void		renderForSelect(U32 data_mask = LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_TEXCOORD0);
-	void		renderSelected(LLImageGL *image, const LLColor4 &color);
+	void		renderSelected(LLViewerTexture *image, const LLColor4 &color);
 
 	F32			getKey()					const	{ return mDistance; }
 
@@ -189,9 +194,24 @@ public:
 	F32         getTextureVirtualSize() ;
 	F32         getImportanceToCamera()const {return mImportanceToCamera ;}
 
+	void        setHasMedia(bool has_media)  { mHasMedia = has_media ;}
+	BOOL        hasMedia() const ;
+
+	//for atlas
+	LLTextureAtlasSlot*   getAtlasInfo() ;
+	void                  setAtlasInUse(BOOL flag);
+	void                  setAtlasInfo(LLTextureAtlasSlot* atlasp);
+	BOOL                  isAtlasInUse()const;
+	BOOL                  canUseAtlas() const;
+	const LLVector2*      getTexCoordScale() const ;
+	const LLVector2*      getTexCoordOffset()const;
+	const LLTextureAtlas* getAtlas()const ;
+	void                  removeAtlas() ;
+	BOOL                  switchTexture() ;
+
 private:	
 	F32         adjustPartialOverlapPixelArea(F32 cos_angle_to_view_dir, F32 radius );
-	F32         calcPixelArea(F32& cos_angle_to_view_dir, F32& radius) ;
+	BOOL        calcPixelArea(F32& cos_angle_to_view_dir, F32& radius) ;
 public:
 	static F32  calcImportanceToCamera(F32 to_view_dir, F32 dist);
 
@@ -222,6 +242,7 @@ private:
 	U16			mGeomIndex;			// index into draw pool
 	U32			mIndicesCount;
 	U32			mIndicesIndex;		// index into draw pool for indices (yeah, I know!)
+	S32         mIndexInTex ;
 
 	//previous rebuild's geometry info
 	U16			mLastGeomCount;
@@ -230,7 +251,7 @@ private:
 	U32			mLastIndicesIndex;
 
 	LLXformMatrix* mXform;
-	LLPointer<LLViewerImage> mTexture;
+	LLPointer<LLViewerTexture> mTexture;
 	LLPointer<LLDrawable> mDrawablep;
 	LLPointer<LLViewerObject> mVObjp;
 	S32			mTEOffset;
@@ -244,7 +265,12 @@ private:
 	//based on the distance from the face to the view point and the angle from the face center to the view direction.
 	F32         mImportanceToCamera ; 
 	F32         mBoundingSphereRadius ;
+	bool        mHasMedia ;
 
+	//atlas
+	LLPointer<LLTextureAtlasSlot> mAtlasInfop ;
+	BOOL                          mUsingAtlas ;
+	
 protected:
 	static BOOL	sSafeRenderSelect;
 	
@@ -272,7 +298,7 @@ public:
 			const LLTextureEntry* lte = lhs->getTextureEntry();
 			const LLTextureEntry* rte = rhs->getTextureEntry();
 
-			if (lhs->getTexture() != rhs->getTexture())
+			if(lhs->getTexture() != rhs->getTexture())
 			{
 				return lhs->getTexture() < rhs->getTexture();
 			}

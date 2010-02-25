@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -77,10 +77,24 @@ public:
 
 class LLVFS
 {
-public:
+private:
+	// Use createLLVFS() to open a VFS file
 	// Pass 0 to not presize
-	LLVFS(const std::string& index_filename, const std::string& data_filename, const BOOL read_only, const U32 presize, const BOOL remove_after_crash);
+	LLVFS(const std::string& index_filename, 
+			const std::string& data_filename, 
+			const BOOL read_only, 
+			const U32 presize, 
+			const BOOL remove_after_crash);
+public:
 	~LLVFS();
+
+	// Use this function normally to create LLVFS files
+	// Pass 0 to not presize
+	static LLVFS * createLLVFS(const std::string& index_filename, 
+			const std::string& data_filename, 
+			const BOOL read_only, 
+			const U32 presize, 
+			const BOOL remove_after_crash);
 
 	BOOL isValid() const			{ return (VFSVALID_OK == mValid); }
 	EVFSValid getValidState() const	{ return mValid; }

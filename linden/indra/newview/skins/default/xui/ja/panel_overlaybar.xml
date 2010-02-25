@@ -4,11 +4,11 @@
 		<layout_panel name="main_panel">
 			<layout_stack name="chatbar_and_buttons">
 				<layout_panel name="state_buttons">
-					<button font="SansSerifSmall" label="受信済みIM" label_selected="受信済みIM" name="IM Received" tool_tip="インスタント・メッセージが保留になっています。ここをクリックして、IMを見てください。"/>
+					<button font="SansSerifSmall" label="受信済みIM" label_selected="受信済みIM" name="IM Received" tool_tip="インスタントメッセージが保留になっています。ここをクリックして、IMを見てください。"/>
 					<button font="SansSerifSmall" label="取り込み中の解除" label_selected="取り込み中の解除" name="Set Not Busy" tool_tip="「チャット」と「IM」ボタンが隠れています。ここをクリックして「取り込み中」を解除してください。"/>
-					<button label="フライ・カメラ" label_selected="フライ・カメラ" name="Flycam" tool_tip="あなたのカメラはジョイスティックにより操作されています。解除するにはここをクリックしてください。"/>
-					<button font="SansSerifSmall" label="マウスルック" label_selected="マウスルック" name="Mouselook" tool_tip="視点を操作するのにマウスを使用してください。銃器を持っている場合、クリックすると発砲します。"/>
-					<button font="SansSerifSmall" label="立ち上がる" label_selected="立ち上がる" name="Stand Up" tool_tip="ここをクリックして、立ち上がってください。"/>
+					<button label="フライカム" label_selected="フライカム" name="Flycam" tool_tip="あなたのカメラはジョイスティックにより操作されています。解除するにはここをクリックしてください。" width="90"/>
+					<button font="SansSerifSmall" label="一人称視点" label_selected="一人称視点" name="Mouselook" tool_tip="視点を操作するのにマウスを使用してください。銃器を持っている場合、クリックすると発砲します。" width="90"/>
+					<button font="SansSerifSmall" label="立ち上がる" label_selected="立ち上がる" name="Stand Up" tool_tip="ここをクリックして立ち上がります。"/>
 				</layout_panel>
 			</layout_stack>
 		</layout_panel>

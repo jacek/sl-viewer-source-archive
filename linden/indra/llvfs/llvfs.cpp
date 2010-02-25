@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,7 +46,9 @@
 #endif
     
 #include "llvfs.h"
+
 #include "llstl.h"
+#include "lltimer.h"
     
 const S32 FILE_BLOCK_MASK = 0x000003FF;	 // 1024-byte blocks
 const S32 VFS_CLEANUP_SIZE = 5242880;  // how much space we free up in a single stroke
@@ -234,7 +236,9 @@ const S32 LLVFSFileBlock::SERIAL_SIZE = 34;
      
 
 LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename, const BOOL read_only, const U32 presize, const BOOL remove_after_crash)
-:	mRemoveAfterCrash(remove_after_crash)
+:	mRemoveAfterCrash(remove_after_crash),
+	mDataFP(NULL),
+	mIndexFP(NULL)
 {
 	mDataMutex = new LLMutex(0);
 
@@ -250,17 +254,21 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
     
 	const char *file_mode = mReadOnly ? "rb" : "r+b";
     
-	if (! (mDataFP = openAndLock(mDataFilename, file_mode, mReadOnly)))
+	LL_INFOS("VFS") << "Attempting to open VFS index file " << mIndexFilename << LL_ENDL;
+	LL_INFOS("VFS") << "Attempting to open VFS data file " << mDataFilename << LL_ENDL;
+
+	mDataFP = openAndLock(mDataFilename, file_mode, mReadOnly);
+	if (!mDataFP)
 	{
-    	
 		if (mReadOnly)
 		{
 			LL_WARNS("VFS") << "Can't find " << mDataFilename << " to open read-only VFS" << LL_ENDL;
 			mValid = VFSVALID_BAD_CANNOT_OPEN_READONLY;
 			return;
 		}
-    
-		if((mDataFP = openAndLock(mDataFilename, "w+b", FALSE)))
+
+		mDataFP = openAndLock(mDataFilename, "w+b", FALSE);
+		if (mDataFP)
 		{
 			// Since we're creating this data file, assume any index file is bogus
 			// remove the index, since this vfs is now blank
@@ -268,41 +276,12 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 		}
 		else
 		{
-			LL_WARNS("VFS") << "Can't open VFS data file " << mDataFilename << " attempting to use alternate" << LL_ENDL;
-    
-			std::string temp_index;
-			std::string temp_data;
-
-			for (U32 count = 0; count < 256; count++)
-			{
-				temp_index = mIndexFilename + llformat(".%u",count);
-				temp_data = mDataFilename + llformat(".%u", count);
-    
-				// try just opening, then creating, each alternate
-				if ((mDataFP = openAndLock(temp_data, "r+b", FALSE)))
-				{
-					break;
-				}
-
-				if ((mDataFP = openAndLock(temp_data, "w+b", FALSE)))
-				{
-					// we're creating the datafile, so nuke the indexfile
-					LLFile::remove(temp_index);
-					break;
-				}
-			}
-    
-			if (! mDataFP)
-			{
-				LL_WARNS("VFS") << "Couldn't open vfs data file after trying many alternates" << LL_ENDL;
-				mValid = VFSVALID_BAD_CANNOT_CREATE;
-				return;
-			}
-
-			mIndexFilename = temp_index;
-			mDataFilename = temp_data;
+			LL_WARNS("VFS") << "Couldn't open vfs data file " 
+				<< mDataFilename << LL_ENDL;
+			mValid = VFSVALID_BAD_CANNOT_CREATE;
+			return;
 		}
-    
+
 		if (presize)
 		{
 			presizeDataFile(presize);
@@ -351,21 +330,20 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 	llstat fbuf;
 	if (! LLFile::stat(mIndexFilename, &fbuf) &&
 		fbuf.st_size >= LLVFSFileBlock::SERIAL_SIZE &&
-		(mIndexFP = openAndLock(mIndexFilename, file_mode, mReadOnly))
+		(mIndexFP = openAndLock(mIndexFilename, file_mode, mReadOnly))	// Yes, this is an assignment and not '=='
 		)
 	{	
-		U8 *buffer = new U8[fbuf.st_size];
-		size_t nread = fread(buffer, 1, fbuf.st_size, mIndexFP);
-    
-		U8 *tmp_ptr = buffer;
-    
+		std::vector<U8> buffer(fbuf.st_size);
+    		size_t buf_offset = 0;
+		size_t nread = fread(&buffer[0], 1, fbuf.st_size, mIndexFP);
+ 
 		std::vector<LLVFSFileBlock*> files_by_loc;
 		
-		while (tmp_ptr < buffer + nread)
+		while (buf_offset < nread)
 		{
 			LLVFSFileBlock *block = new LLVFSFileBlock();
     
-			block->deserialize(tmp_ptr, (S32)(tmp_ptr - buffer));
+			block->deserialize(&buffer[buf_offset], (S32)buf_offset);
     
 			// Do sanity check on this block.
 			// Note that this skips zero size blocks, which helps VFS
@@ -389,7 +367,6 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 				LL_WARNS("VFS") << "Length: " << block->mLength << "\tLocation: " << block->mLocation << "\tSize: " << block->mSize << LL_ENDL;
 				LL_WARNS("VFS") << "File has bad data - VFS removed" << LL_ENDL;
 
-				delete[] buffer;
 				delete block;
 
 				unlockAndClose( mIndexFP );
@@ -412,15 +389,13 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 			else
 			{
 				// this is a null or bad entry, skip it
-				S32 index_loc = (S32)(tmp_ptr - buffer);
-				mIndexHoles.push_back(index_loc);
+				mIndexHoles.push_back(buf_offset);
     
 				delete block;
 			}
     
-			tmp_ptr += LLVFSFileBlock::SERIAL_SIZE;
+			buf_offset += LLVFSFileBlock::SERIAL_SIZE;
 		}
-		delete[] buffer;
 
 		std::sort(
 			files_by_loc.begin(),
@@ -543,7 +518,7 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 			addFreeBlock(new LLVFSBlock(0, data_size));
 		}
 	}
-	else
+	else	// Pre-existing index file wasn't opened
 	{
 		if (mReadOnly)
 		{
@@ -583,8 +558,8 @@ LLVFS::LLVFS(const std::string& index_filename, const std::string& data_filename
 		}
 	}
 
-	LL_WARNS("VFS") << "Using index file " << mIndexFilename << LL_ENDL;
-	LL_WARNS("VFS") << "Using data file " << mDataFilename << LL_ENDL;
+	LL_INFOS("VFS") << "Using VFS index file " << mIndexFilename << LL_ENDL;
+	LL_INFOS("VFS") << "Using VFS data file " << mDataFilename << LL_ENDL;
 
 	mValid = VFSVALID_OK;
 }
@@ -622,6 +597,47 @@ LLVFS::~LLVFS()
 
 	delete mDataMutex;
 }
+
+
+// Use this function normally to create LLVFS files.  
+// Will append digits to the end of the filename with multiple re-trys
+// static 
+LLVFS * LLVFS::createLLVFS(const std::string& index_filename, 
+		const std::string& data_filename, 
+		const BOOL read_only, 
+		const U32 presize, 
+		const BOOL remove_after_crash)
+{
+	LLVFS * new_vfs = new LLVFS(index_filename, data_filename, read_only, presize, remove_after_crash);
+
+	if( !new_vfs->isValid() )
+	{	// First name failed, retry with new names
+		std::string retry_vfs_index_name;
+		std::string retry_vfs_data_name;
+		S32 count = 0;
+		while (!new_vfs->isValid() &&
+				count < 256)
+		{	// Append '.<number>' to end of filenames
+			retry_vfs_index_name = index_filename + llformat(".%u",count);
+			retry_vfs_data_name = data_filename + llformat(".%u", count);
+
+			delete new_vfs;	// Delete bad VFS and try again
+			new_vfs = new LLVFS(retry_vfs_index_name, retry_vfs_data_name, read_only, presize, remove_after_crash);
+
+			count++;
+		}
+	}
+
+	if( !new_vfs->isValid() )
+	{
+		delete new_vfs;		// Delete bad VFS
+		new_vfs = NULL;		// Total failure
+	}
+
+	return new_vfs;
+}
+
+
 
 void LLVFS::presizeDataFile(const U32 size)
 {
@@ -861,20 +877,18 @@ BOOL LLVFS::setMaxSize(const LLUUID &file_id, const LLAssetType::EType file_type
 					if (block->mSize > 0)
 					{
 						// move the file into the new block
-						U8 *buffer = new U8[block->mSize];
+						std::vector<U8> buffer(block->mSize);
 						fseek(mDataFP, block->mLocation, SEEK_SET);
-						if (fread(buffer, block->mSize, 1, mDataFP) == 1)
+						if (fread(&buffer[0], block->mSize, 1, mDataFP) == 1)
 						{
 							fseek(mDataFP, new_data_location, SEEK_SET);
-							if (fwrite(buffer, block->mSize, 1, mDataFP) != 1)
+							if (fwrite(&buffer[0], block->mSize, 1, mDataFP) != 1)
 							{
 								llwarns << "Short write" << llendl;
 							}
 						} else {
 							llwarns << "Short read" << llendl;
 						}
-    
-						delete[] buffer;
 					}
 				}
     
@@ -1698,32 +1712,32 @@ void LLVFS::audit()
 	fflush(mIndexFP);
 
 	fseek(mIndexFP, 0, SEEK_END);
-	long index_size = ftell(mIndexFP);
+	size_t index_size = ftell(mIndexFP);
 	fseek(mIndexFP, 0, SEEK_SET);
     
 	BOOL vfs_corrupt = FALSE;
 	
-	U8 *buffer = new U8[index_size];
+	std::vector<U8> buffer(index_size);
 
-	if (fread(buffer, 1, index_size, mIndexFP) != index_size)
+	if (fread(&buffer[0], 1, index_size, mIndexFP) != index_size)
 	{
 		llwarns << "Index truncated" << llendl;
 		vfs_corrupt = TRUE;
 	}
     
-	U8 *tmp_ptr = buffer;
+	size_t buf_offset = 0;
     
 	std::map<LLVFSFileSpecifier, LLVFSFileBlock*>	found_files;
 	U32 cur_time = (U32)time(NULL);
 
 	std::vector<LLVFSFileBlock*> audit_blocks;
-	while (!vfs_corrupt && tmp_ptr < buffer + index_size)
+	while (!vfs_corrupt && buf_offset < index_size)
 	{
 		LLVFSFileBlock *block = new LLVFSFileBlock();
 		audit_blocks.push_back(block);
 		
-		block->deserialize(tmp_ptr, (S32)(tmp_ptr - buffer));
-		tmp_ptr += block->SERIAL_SIZE;
+		block->deserialize(&buffer[buf_offset], (S32)buf_offset);
+		buf_offset += block->SERIAL_SIZE;
     
 		// do sanity check on this block
 		if (block->mLength >= 0 &&
@@ -1782,8 +1796,6 @@ void LLVFS::audit()
 		}
 	}
     
-	delete[] buffer;
-
 	if (!vfs_corrupt)
 	{
 		for (fileblock_map::iterator it = mFileBlocks.begin(); it != mFileBlocks.end(); ++it)
@@ -2078,21 +2090,21 @@ void LLVFS::dumpFiles()
 		{
 			LLUUID id = file_spec.mFileID;
 			LLAssetType::EType type = file_spec.mFileType;
-			U8* buffer = new U8[size];
+			std::vector<U8> buffer(size);
 
 			unlockData();
-			getData(id, type, buffer, 0, size);
+			getData(id, type, &buffer[0], 0, size);
 			lockData();
 			
 			std::string extension = get_extension(type);
 			std::string filename = id.asString() + extension;
 			llinfos << " Writing " << filename << llendl;
 			
-			LLAPRFile outfile ;
-			outfile.open(filename, LL_APR_WB, LLAPRFile::global);
-			outfile.write(buffer, size);
+			LLAPRFile outfile;
+			outfile.open(filename, LL_APR_WB);
+			outfile.write(&buffer[0], size);
 			outfile.close();
-			delete[] buffer;
+
 			files_extracted++;
 		}
 	}

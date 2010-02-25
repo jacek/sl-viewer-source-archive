@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,7 +32,7 @@
 
 /*
  * Shows the contents of an object.
- * A floater wrapper for llpanelinventory
+ * A floater wrapper for LLPanelObjectInventory
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -41,13 +41,15 @@
 
 #include "llcachename.h"
 #include "llbutton.h"
+#include "llnotificationsutil.h"
 #include "lltextbox.h"
 
-#include "llagent.h"			// for agent id
-#include "llalertdialog.h"
-#include "llinventoryview.h"
+#include "llinventorybridge.h"
+#include "llfloaterinventory.h"
 #include "llinventorymodel.h"
-#include "llpanelinventory.h"
+#include "llinventorypanel.h"
+#include "llpanelobjectinventory.h"
+#include "llfloaterreg.h"
 #include "llselectmgr.h"
 #include "lluiconstants.h"
 #include "llviewerobject.h"
@@ -55,37 +57,98 @@
 #include "llviewerwindow.h"
 
 
-LLFloaterOpenObject* LLFloaterOpenObject::sInstance = NULL;
-
-LLFloaterOpenObject::LLFloaterOpenObject()
-:	LLFloater(std::string("object_contents")),
-	mPanelInventory(NULL),
+LLFloaterOpenObject::LLFloaterOpenObject(const LLSD& key)
+:	LLFloater(key),
+	mPanelInventoryObject(NULL),
 	mDirty(TRUE)
 {
-	LLCallbackMap::map_t factory_map;
-	factory_map["object_contents"] = LLCallbackMap(createPanelInventory, this);
-	LLUICtrlFactory::getInstance()->buildFloater(this,"floater_openobject.xml",&factory_map);
-
-	childSetAction("copy_to_inventory_button", onClickMoveToInventory, this);
-	childSetAction("copy_and_wear_button", onClickMoveAndWear, this);
-	childSetTextArg("object_name", "[DESC]", std::string("Object") ); // *Note: probably do not want to translate this
+//	LLUICtrlFactory::getInstance()->buildFloater(this,"floater_openobject.xml");
+	mCommitCallbackRegistrar.add("OpenObject.MoveToInventory",	boost::bind(&LLFloaterOpenObject::onClickMoveToInventory, this));
+	mCommitCallbackRegistrar.add("OpenObject.MoveAndWear",		boost::bind(&LLFloaterOpenObject::onClickMoveAndWear, this));
 }
 
 LLFloaterOpenObject::~LLFloaterOpenObject()
 {
-	sInstance = NULL;
+//	sInstance = NULL;
+}
+
+// virtual
+BOOL LLFloaterOpenObject::postBuild()
+{
+	childSetTextArg("object_name", "[DESC]", std::string("Object") ); // *Note: probably do not want to translate this
+	mPanelInventoryObject = getChild<LLPanelObjectInventory>("object_contents");
+	
+	refresh();
+	return TRUE;
+}
+
+void LLFloaterOpenObject::onOpen(const LLSD& key)
+{
+	LLObjectSelectionHandle object_selection = LLSelectMgr::getInstance()->getSelection();
+	if (object_selection->getRootObjectCount() != 1)
+	{
+		LLNotificationsUtil::add("UnableToViewContentsMoreThanOne");
+		closeFloater();
+		return;
+	}
+	if(!(object_selection->getPrimaryObject())) 
+	{
+		closeFloater();
+		return;
+	}
+	mObjectSelection = LLSelectMgr::getInstance()->getEditSelection();
+	refresh();
 }
 
 void LLFloaterOpenObject::refresh()
 {
-	mPanelInventory->refresh();
+	mPanelInventoryObject->refresh();
+
+	std::string name = "";
+	
+	// Enable the copy || copy & wear buttons only if we have something we can copy or copy & wear (respectively).
+	bool copy_enabled = false;
+	bool wear_enabled = false;
 
 	LLSelectNode* node = mObjectSelection->getFirstRootNode();
-	if (node)
+	if (node) 
 	{
-		std::string name = node->mName;
-		childSetTextArg("object_name", "[DESC]", name);
+		name = node->mName;
+		copy_enabled = true;
+		
+		LLViewerObject* object = node->getObject();
+		if (object)
+		{
+			// this folder is coming from an object, as there is only one folder in an object, the root,
+			// we need to collect the entire contents and handle them as a group
+			InventoryObjectList inventory_objects;
+			object->getInventoryContents(inventory_objects);
+			
+			if (!inventory_objects.empty())
+			{
+				for (InventoryObjectList::iterator it = inventory_objects.begin(); 
+					 it != inventory_objects.end(); 
+					 ++it)
+				{
+					LLInventoryItem* item = static_cast<LLInventoryItem*> ((LLInventoryObject*)(*it));
+					LLInventoryType::EType type = item->getInventoryType();
+					if (type == LLInventoryType::IT_OBJECT 
+						|| type == LLInventoryType::IT_ATTACHMENT 
+						|| type == LLInventoryType::IT_WEARABLE
+						|| type == LLInventoryType::IT_GESTURE)
+					{
+						wear_enabled = true;
+						break;
+					}
+				}
+			}
+		}
 	}
+
+	childSetTextArg("object_name", "[DESC]", name);
+	childSetEnabled("copy_to_inventory_button", copy_enabled);
+	childSetEnabled("copy_and_wear_button", wear_enabled);
+
 }
 
 void LLFloaterOpenObject::draw()
@@ -98,41 +161,18 @@ void LLFloaterOpenObject::draw()
 	LLFloater::draw();
 }
 
-// static
 void LLFloaterOpenObject::dirty()
 {
-	if (sInstance) sInstance->mDirty = TRUE;
+	mDirty = TRUE;
 }
 
-// static
-void LLFloaterOpenObject::show()
-{
-	LLObjectSelectionHandle object_selection = LLSelectMgr::getInstance()->getSelection();
-	if (object_selection->getRootObjectCount() != 1)
-	{
-		LLNotifications::instance().add("UnableToViewContentsMoreThanOne");
-		return;
-	}
-
-	// Create a new instance only if needed
-	if (!sInstance)
-	{
-		sInstance = new LLFloaterOpenObject();
-		sInstance->center();
-	}
-
-	sInstance->open();		/* Flawfinder: ignore */
-	sInstance->setFocus(TRUE);
-
-	sInstance->mObjectSelection = LLSelectMgr::getInstance()->getEditSelection();
-}
 
 
 void LLFloaterOpenObject::moveToInventory(bool wear)
 {
 	if (mObjectSelection->getRootObjectCount() != 1)
 	{
-		LLNotifications::instance().add("OnlyCopyContentsOfSingleItem");
+		LLNotificationsUtil::add("OnlyCopyContentsOfSingleItem");
 		return;
 	}
 
@@ -149,14 +189,14 @@ void LLFloaterOpenObject::moveToInventory(bool wear)
 	if (wear)
 	{
 		parent_category_id = gInventory.findCategoryUUIDForType(
-			LLAssetType::AT_CLOTHING);
+			LLFolderType::FT_CLOTHING);
 	}
 	else
 	{
-		parent_category_id = gAgent.getInventoryRootID();
+		parent_category_id = gInventory.getRootFolderID();
 	}
 	LLUUID category_id = gInventory.createNewCategory(parent_category_id, 
-		LLAssetType::AT_NONE, 
+		LLFolderType::FT_NONE, 
 		name);
 
 	LLCatAndWear* data = new LLCatAndWear;
@@ -173,7 +213,7 @@ void LLFloaterOpenObject::moveToInventory(bool wear)
 		delete data;
 		data = NULL;
 
-		LLNotifications::instance().add("OpenObjectCannotCopy");
+		LLNotificationsUtil::add("OpenObjectCannotCopy");
 	}
 }
 
@@ -184,38 +224,25 @@ void LLFloaterOpenObject::callbackMoveInventory(S32 result, void* data)
 
 	if (result == 0)
 	{
-		LLInventoryView::showAgentInventory();
-		LLInventoryView* view = LLInventoryView::getActiveInventory();
-		if (view)
+		LLInventoryPanel *active_panel = LLInventoryPanel::getActiveInventoryPanel();
+		if (active_panel)
 		{
-			view->getPanel()->setSelection(cat->mCatID, TAKE_FOCUS_NO);
+			active_panel->setSelection(cat->mCatID, TAKE_FOCUS_NO);
 		}
 	}
 
 	delete cat;
 }
 
-
-// static
-void LLFloaterOpenObject::onClickMoveToInventory(void* data)
+void LLFloaterOpenObject::onClickMoveToInventory()
 {
-	LLFloaterOpenObject* self = (LLFloaterOpenObject*)data;
-	self->moveToInventory(false);
-	self->close();
+	moveToInventory(false);
+	closeFloater();
 }
 
-// static
-void LLFloaterOpenObject::onClickMoveAndWear(void* data)
+void LLFloaterOpenObject::onClickMoveAndWear()
 {
-	LLFloaterOpenObject* self = (LLFloaterOpenObject*)data;
-	self->moveToInventory(true);
-	self->close();
+	moveToInventory(true);
+	closeFloater();
 }
 
-//static
-void* LLFloaterOpenObject::createPanelInventory(void* data)
-{
-	LLFloaterOpenObject* floater = (LLFloaterOpenObject*)data;
-	floater->mPanelInventory = new LLPanelInventory(std::string("Object Contents"), LLRect());
-	return floater->mPanelInventory;
-}

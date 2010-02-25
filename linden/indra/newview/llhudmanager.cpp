@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,6 +40,7 @@
 #include "llagent.h"
 #include "llhudeffect.h"
 #include "pipeline.h"
+#include "llui.h"
 #include "llviewercontrol.h"
 #include "llviewerobjectlist.h"
 
@@ -52,19 +53,20 @@ LLColor4 LLHUDManager::sChildColor;
 LLHUDManager::LLHUDManager()
 {
 
-	LLHUDManager::sParentColor = gColors.getColor("FocusColor");
+	LLHUDManager::sParentColor = LLUIColorTable::instance().getColor("FocusColor");
 	// rdw commented out since it's not used.  Also removed from colors_base.xml
-	//LLHUDManager::sChildColor = gColors.getColor("FocusSecondaryColor");
+	//LLHUDManager::sChildColor =LLUIColorTable::instance().getColor("FocusSecondaryColor");
 }
 
 LLHUDManager::~LLHUDManager()
 {
 }
 
+static LLFastTimer::DeclareTimer FTM_HUD_EFFECTS("Hud Effects");
 
 void LLHUDManager::updateEffects()
 {
-	LLFastTimer ftm(LLFastTimer::FTM_HUD_EFFECTS);
+	LLFastTimer ftm(FTM_HUD_EFFECTS);
 	S32 i;
 	for (i = 0; i < mHUDEffects.count(); i++)
 	{

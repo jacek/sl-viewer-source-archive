@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Event" title="イベント">
+<panel label="イベント" name="Event" title="イベント">
+	<panel.string name="none">
+		なし
+	</panel.string>
+	<panel.string name="notify">
+		通知
+	</panel.string>
+	<panel.string name="dont_notify">
+		通知しない
+	</panel.string>
 	<text name="event_name_label">
 		名前：
 	</text>
@@ -13,7 +22,7 @@
 		（なし）
 	</text>
 	<text name="event_mature_label">
-		Matureコンテンツ：
+		控えめコンテンツ：
 	</text>
 	<text name="event_mature_yes">
 		はい
@@ -34,19 +43,19 @@
 		（なし）
 	</text>
 	<text name="event_runby_label">
-		実行者/物：
+		実行者・物：
 	</text>
 	<text left="150" name="event_runby">
 		（なし）
 	</text>
 	<text name="event_location_label">
-		ロケーション：
+		場所：
 	</text>
 	<text left="150" name="event_location">
 		（なし）
 	</text>
 	<text name="event_cover_label">
-		カバー・チャージ：
+		カバーチャージ：
 	</text>
 	<text left="150" name="event_cover">
 		（なし）
@@ -55,16 +64,7 @@
 		説明：
 	</text>
 	<button label="テレポート" name="teleport_btn"/>
-	<button label="地図上に表示" name="map_btn"/>
+	<button label="地図" name="map_btn"/>
 	<button label="通知" name="notify_btn"/>
 	<button label="イベント作成..." name="create_event_btn"/>
-	<string name="none">
-		なし
-	</string>
-	<string name="notify">
-		通知
-	</string>
-	<string name="dont_notify">
-		通知しない
-	</string>
 </panel>

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,12 +43,12 @@ class LLFloaterParcelInfo
 public:
 	static	void*	createPanelPlace(void*	data);
 
-	LLFloaterParcelInfo(const std::string& name, const LLUUID &parcel_id );
+	LLFloaterParcelInfo( const LLSD& parcel_id );
 	/*virtual*/ ~LLFloaterParcelInfo();
-
+	
+	/*virtual*/ BOOL postBuild();
+	
 	void displayParcelInfo(const LLUUID& parcel_id);
-
-	static LLFloaterParcelInfo* show(const LLUUID& parcel_id);
 
 private:
 	LLUUID			mParcelID;			// for which parcel is this window?

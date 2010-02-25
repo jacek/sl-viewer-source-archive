@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,12 @@ typedef void (*LLTTFCompleteCallback)(const LLTSCode status, void *user_data);
 class LLTransferTargetParamsFile : public LLTransferTargetParams
 {
 public:
-	LLTransferTargetParamsFile() : LLTransferTargetParams(LLTTT_FILE) {}
+	LLTransferTargetParamsFile()
+		: LLTransferTargetParams(LLTTT_FILE),
+
+		mCompleteCallback(NULL),
+		mUserData(NULL)
+	{}
 	void setFilename(const std::string& filename)	{ mFilename = filename; }
 	void setCallback(LLTTFCompleteCallback cb, void *user_data)		{ mCompleteCallback = cb; mUserData = user_data; }
 

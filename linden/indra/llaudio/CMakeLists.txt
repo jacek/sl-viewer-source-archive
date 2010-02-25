@@ -31,7 +31,6 @@ set(llaudio_SOURCE_FILES
     llaudioengine.cpp
     lllistener.cpp
     llaudiodecodemgr.cpp
-    llvorbisdecode.cpp
     llvorbisencode.cpp
     )
 
@@ -41,7 +40,6 @@ set(llaudio_HEADER_FILES
     llaudioengine.h
     lllistener.h
     llaudiodecodemgr.h
-    llvorbisdecode.h
     llvorbisencode.h
     llwindgen.h
     )
@@ -60,10 +58,11 @@ if (FMOD)
          )
 
     if (LINUX)
-      if (${CXX_VERSION} MATCHES "4.[23]")
+      if (${CXX_VERSION_NUMBER} GREATER 419)
         set_source_files_properties(llaudioengine_fmod.cpp
-                                    COMPILE_FLAGS -Wno-error=write-strings)
-      endif (${CXX_VERSION} MATCHES "4.[23]")
+                                    llstreamingaudio_fmod.cpp
+                                    COMPILE_FLAGS -Wno-write-strings)
+      endif (${CXX_VERSION_NUMBER} GREATER 419)
     endif (LINUX)
 endif (FMOD)
 
@@ -85,7 +84,6 @@ set_source_files_properties(${llaudio_HEADER_FILES}
 list(APPEND llaudio_SOURCE_FILES ${llaudio_HEADER_FILES})
 
 add_library (llaudio ${llaudio_SOURCE_FILES})
-add_dependencies(llaudio prepare)
 target_link_libraries(
     llaudio
     ${VORBISENC_LIBRARIES}

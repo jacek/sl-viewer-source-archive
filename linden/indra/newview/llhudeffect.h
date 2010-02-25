@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,9 +37,6 @@
 
 #include "lluuid.h"
 #include "v4coloru.h"
-#include "llinterp.h"
-#include "llframetimer.h"
-#include "llmemory.h"
 
 const F32 LL_HUD_DUR_SHORT = 1.f;
 

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -89,7 +89,7 @@
 	@nosubgrouping
 */
 
-class LLSD
+class LL_COMMON_API LLSD
 {
 public:
 		LLSD();		///< initially Undefined
@@ -223,8 +223,9 @@ public:
 		
 		bool has(const String&) const;
 		LLSD get(const String&) const;
-		LLSD& insert(const String&, const LLSD&);
+		void insert(const String&, const LLSD&);
 		void erase(const String&);
+		LLSD& with(const String&, const LLSD&);
 		
 		LLSD& operator[](const String&);
 		LLSD& operator[](const char* c)			{ return (*this)[String(c)]; }
@@ -238,9 +239,10 @@ public:
 		
 		LLSD get(Integer) const;
 		void set(Integer, const LLSD&);
-		LLSD& insert(Integer, const LLSD&);
+		void insert(Integer, const LLSD&);
 		void append(const LLSD&);
 		void erase(Integer);
+		LLSD& with(Integer, const LLSD&);
 		
 		const LLSD& operator[](Integer) const;
 		LLSD& operator[](Integer);
@@ -387,7 +389,7 @@ struct llsd_select_string : public std::unary_function<LLSD, LLSD::String>
 	}
 };
 
-std::ostream& operator<<(std::ostream& s, const LLSD& llsd);
+LL_COMMON_API std::ostream& operator<<(std::ostream& s, const LLSD& llsd);
 
 /** QUESTIONS & TO DOS
 	- Would Binary be more convenient as usigned char* buffer semantics?

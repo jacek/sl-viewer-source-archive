@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,9 +41,6 @@
 #include "v4coloru.h"
 #include "llvosky.h"
 #include "llvoground.h"
-
-const F32 NIGHTTIME_ELEVATION			= -8.0f;	// degrees
-const F32 NIGHTTIME_ELEVATION_COS		= (F32)sin(NIGHTTIME_ELEVATION*DEG_TO_RAD);
 
 class LLViewerCamera;
 
@@ -110,6 +107,9 @@ public:
 
 	// Legacy stuff
 	LLVector3 mSunDefaultPosition;
+
+	static const F32 NIGHTTIME_ELEVATION;	// degrees
+	static const F32 NIGHTTIME_ELEVATION_COS;
 
 protected:
 	BOOL			mOverrideSimSunPosition;

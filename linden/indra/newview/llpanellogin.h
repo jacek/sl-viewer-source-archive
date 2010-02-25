@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,11 +34,13 @@
 #define LL_LLPANELLOGIN_H
 
 #include "llpanel.h"
-#include "llmemory.h"			// LLPointer<>
+#include "llpointer.h"			// LLPointer<>
 #include "llmediactrl.h"	// LLMediaCtrlObserver
+#include <boost/scoped_ptr.hpp>
 
+class LLLineEditor;
 class LLUIImage;
-
+class LLPanelLoginListener;
 
 class LLPanelLogin:	
 	public LLPanel,
@@ -55,6 +57,10 @@ public:
 	virtual void draw();
 	virtual void setFocus( BOOL b );
 
+	// Show the XUI first name, last name, and password widgets.  They are
+	// hidden on startup for reg-in-client
+	static void showLoginWidgets();
+
 	static void show(const LLRect &rect, BOOL show_server, 
 		void (*callback)(S32 option, void* user_data), 
 		void* callback_data);
@@ -65,6 +71,7 @@ public:
 
 	static void addServer(const std::string& server, S32 domain_name);
 	static void refreshLocation( bool force_visible );
+	static void updateLocationUI();
 
 	static void getFields(std::string *firstname, std::string *lastname,
 						  std::string *password);
@@ -72,7 +79,7 @@ public:
 	static BOOL isGridComboDirty();
 	static void getLocation(std::string &location);
 
-	static void close();
+	static void closePanel();
 
 	void setSiteIsAlive( bool alive );
 
@@ -85,18 +92,21 @@ public:
 	/*virtual*/ void handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event);
 
 private:
+	friend class LLPanelLoginListener;
+	void reshapeBrowser();
 	static void onClickConnect(void*);
 	static void onClickNewAccount(void*);
-	static bool newAccountAlertCallback(const LLSD& notification, const LLSD& response);
-	static void onClickQuit(void*);
+//	static bool newAccountAlertCallback(const LLSD& notification, const LLSD& response);
 	static void onClickVersion(void*);
 	static void onClickForgotPassword(void*);
+	static void onClickHelp(void*);
 	static void onPassKey(LLLineEditor* caller, void* user_data);
 	static void onSelectServer(LLUICtrl*, void*);
-	static void onServerComboLostFocus(LLFocusableElement*, void*);
-	
+	static void onServerComboLostFocus(LLFocusableElement*);
+
 private:
 	LLPointer<LLUIImage> mLogoImage;
+	boost::scoped_ptr<LLPanelLoginListener> mListener;
 
 	void			(*mCallback)(S32 option, void *userdata);
 	void*			mCallbackData;

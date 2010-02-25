@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ follows="right|bottom"
+ height="20"
+ layout="topleft"
+ left="0"
+ name="voice_controls"
+ top="22"
+ width="128">
+    <button
+     height="22"
+     image_overlay="active_speakers.tga"
+     layout="topleft"
+     left="2"
+     name="speakers_btn"
+     tool_tip="Show list of Residents using voice chat around you"
+     top="0"
+     width="38">
+        <button.commit_callback
+         function="Floater.Toggle"
+		 parameter="active_speakers" />
+	</button>
+    <button
+     height="22"
+     label="Talk"
+     layout="topleft"
+     left_pad="2"
+     name="push_to_talk"
+     tab_stop="false"
+     tool_tip="Hold the button to talk"
+     top_delta="0"
+     width="64" />
+    <button
+     height="16"
+     image_selected="ptt_lock_on.tga"
+     image_unselected="ptt_lock_off.tga"
+     is_toggle="true"
+     layout="topleft"
+     left_delta="4"
+     name="ptt_lock"
+     scale_image="false"
+     tool_tip="Click lock to switch to talk mode"
+     top_delta="3"
+     width="16">
+        <button.commit_callback
+         function="VoiceRemote.Lock" />
+	</button>	 
+    <icon
+     height="16"
+     image_name="icn_voice_ptt-off.tga"
+     layout="topleft"
+     left_pad="26"
+     name="voice_volume"
+     top_delta="0"
+     width="16" />
+    <button
+     control_name="ShowVoiceChannelPopup"
+     height="22"
+     is_toggle="true"
+     layout="topleft"
+     left_pad="4"
+     name="show_channel"
+     tool_tip="Click to show current voice channel"
+     top_delta="-3"
+     width="22">
+        <button.commit_callback
+         function="VoiceRemote.Popup" />
+	</button>
+</panel>

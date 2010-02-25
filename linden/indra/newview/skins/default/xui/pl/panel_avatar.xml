@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="Panel Avatar">
 	<tab_container name="tab">
-		<panel label="Życie #2" name="2nd Life">
+		<panel label="SL" name="2nd Life">
 			<string name="CaptionTextAcctInfo">
 				[ACCTTYPE]
 [PAYMENTINFO]
@@ -50,12 +50,12 @@
 			</text>
 			<view_border name="acct_border"/>
 			<text name="acct"/>
-			<text name="partner_label" tool_tip="Partner w Second Life. Więcej informacji na www.secondlife.com/partner">
+			<text name="partner_label" tool_tip="Partner w [SECOND_LIFE]. Więcej informacji na www.secondlife.com/partner">
 				Partner:
 			</text>
 			<button label="i" label_selected="i" name="partner_info" tool_tip="Kliknij żeby zobaczyć profil partnera"/>
 			<button label="?" label_selected="?" name="partner_help"/>
-			<line_editor name="partner_edit" tool_tip="Partner w Second Life. Więcej informacji pod www.secondlife.com/partner">
+			<line_editor name="partner_edit" tool_tip="Partner w [SECOND_LIFE]. Więcej informacji pod www.secondlife.com/partner">
 				[FIRST] [LAST]
 			</line_editor>
 			<text name="Photo:">
@@ -93,12 +93,12 @@
 		<panel label="WWW" name="WebProfile">
 			<line_editor name="url_edit"/>
 			<flyout_button label="Załaduj" label_selected="Załaduj" name="load" tool_tip="Załaduj stronę profilu używając wbudowanej przeglądarki.">
-				<flyout_button_item name="open_item">
-					Użyj zewnętrznej przeglądarki
-				</flyout_button_item>
-				<flyout_button_item name="home_item">
-					Otwórz URL strony profilu
-				</flyout_button_item>
+			  <flyout_button.item name="open_item">
+				Użyj zewnętrznej przeglądarki
+			  </flyout_button.item>
+			  <flyout_button.item name="home_item">
+				Otwórz URL strony profilu
+			  </flyout_button.item>
 			</flyout_button>
 			<button label="?" label_selected="?" name="web_profile_help"/>
 			<check_box label="Automatyczne ładowanie profilu z Internetu" name="auto_load" tool_tip="Automatycznie ładuj stronę profilu."/>
@@ -135,7 +135,7 @@
 		</panel>
 		<panel label="Lubię" name="Picks">
 			<text name="Tell everyone about your favorite places in Second Life.">
-				Pokaż Twoje ulubione miejsca w Second Life.
+				Pokaż Twoje ulubione miejsca w [SECOND_LIFE].
 			</text>
 			<button label="Dodaj..." label_selected="Dodaj..." name="New..."/>
 			<button label="Usuń..." label_selected="Usuń..." name="Delete..."/>
@@ -146,7 +146,7 @@
 		</panel>
 		<panel label="Reklama" name="Classified">
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				Zamieść reklamę w Second Life.
+				Zamieść reklamę w [SECOND_LIFE].
 			</text>
 			<button label="Dodaj..." label_selected="Dodaj..." name="New..."/>
 			<button label="Usuń..." label_selected="Usuń..." name="Delete..."/>
@@ -155,7 +155,7 @@
 				Ładowanie...
 			</text>
 		</panel>
-		<panel label="Życie #1" name="1st Life">
+		<panel name="Real World">
 			<text name="Photo:">
 				Zdjęcie:
 			</text>
@@ -193,7 +193,7 @@ nie jesteście znajomymi.
 	<string name="ShowOnMapFriendOffline">
 		Zlokalizuj na mapie.
 Nie możesz tego użyć ponieważ
-osoby nie ma obecnie w Second Life.
+osoby nie ma obecnie w [SECOND_LIFE].
 	</string>
 	<string name="ShowOnMapFriendOnline">
 		Zlokalizuj na mapie.

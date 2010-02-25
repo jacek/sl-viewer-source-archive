@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -56,13 +56,12 @@
 #include "llsky.h"
 #include "lltexlayer.h"
 #include "lltoolmgr.h"
-#include "lltoolview.h"
 #include "llui.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "pipeline.h"
 
 
@@ -82,7 +81,7 @@ LLVisualParamHint::LLVisualParamHint(
 	LLViewerVisualParam *param,
 	F32 param_weight)
 	:
-	LLDynamicTexture(width, height, 3, LLDynamicTexture::ORDER_MIDDLE, TRUE ),
+	LLViewerDynamicTexture(width, height, 3, LLViewerDynamicTexture::ORDER_MIDDLE, TRUE ),
 	mNeedsUpdate( TRUE ),
 	mIsVisible( FALSE ),
 	mJointMesh( mesh ),
@@ -145,10 +144,11 @@ BOOL LLVisualParamHint::needsRender()
 
 void LLVisualParamHint::preRender(BOOL clear_depth)
 {
-	LLVOAvatar* avatarp = gAgent.getAvatarObject();
+	LLVOAvatarSelf* avatarp = gAgent.getAvatarObject();
 
-	mLastParamWeight = avatarp->getVisualParamWeight(mVisualParam);
-	avatarp->setVisualParamWeight(mVisualParam, mVisualParamWeight);
+	mLastParamWeight = mVisualParam->getWeight();
+	mVisualParam->setWeight(mVisualParamWeight, FALSE);
+	avatarp->setVisualParamWeight(mVisualParam->getID(), mVisualParamWeight, FALSE);
 	avatarp->setVisualParamWeight("Blink_Left", 0.f);
 	avatarp->setVisualParamWeight("Blink_Right", 0.f);
 	avatarp->updateComposites();
@@ -156,7 +156,7 @@ void LLVisualParamHint::preRender(BOOL clear_depth)
 	avatarp->updateGeometry(avatarp->mDrawable);
 	avatarp->updateLOD();
 
-	LLDynamicTexture::preRender(clear_depth);
+	LLViewerDynamicTexture::preRender(clear_depth);
 }
 
 //-----------------------------------------------------------------------------
@@ -170,7 +170,7 @@ BOOL LLVisualParamHint::render()
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	glOrtho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f);
+	glOrtho(0.0f, mFullWidth, 0.0f, mFullHeight, -1.0f, 1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
@@ -178,7 +178,7 @@ BOOL LLVisualParamHint::render()
 
 	LLGLSUIDefault gls_ui;
 	//LLGLState::verify(TRUE);
-	mBackgroundp->draw(0, 0, mWidth, mHeight);
+	mBackgroundp->draw(0, 0, mFullWidth, mFullHeight);
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
@@ -225,13 +225,13 @@ BOOL LLVisualParamHint::render()
 	
 	gGL.flush();
 	
-	LLViewerCamera::getInstance()->setAspect((F32)mWidth / (F32)mHeight);
+	LLViewerCamera::getInstance()->setAspect((F32)mFullWidth / (F32)mFullHeight);
 	LLViewerCamera::getInstance()->setOriginAndLookAt(
 		camera_pos,		// camera
 		LLVector3(0.f, 0.f, 1.f),						// up
 		target_pos );	// point of interest
 
-	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mWidth, mHeight, FALSE);
+	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, FALSE);
 
 	if (avatarp->mDrawable.notNull())
 	{
@@ -243,9 +243,10 @@ BOOL LLVisualParamHint::render()
 		gGL.setSceneBlendType(LLRender::BT_ALPHA);
 		gGL.setAlphaRejectSettings(LLRender::CF_DEFAULT);
 	}
-	avatarp->setVisualParamWeight(mVisualParam, mLastParamWeight);
+	avatarp->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
+	mVisualParam->setWeight(mLastParamWeight, FALSE);
 	gGL.color4f(1,1,1,1);
-	mTexture->setGLTextureCreated(true);
+	mGLTexturep->setGLTextureCreated(true);
 	return TRUE;
 }
 
@@ -257,7 +258,7 @@ void LLVisualParamHint::draw()
 {
 	if (!mIsVisible) return;
 
-	gGL.getTexUnit(0)->bind(getTexture());
+	gGL.getTexUnit(0)->bind(this);
 
 	gGL.color4f(1.f, 1.f, 1.f, 1.f);
 
@@ -265,13 +266,13 @@ void LLVisualParamHint::draw()
 	gGL.begin(LLRender::QUADS);
 	{
 		gGL.texCoord2i(0, 1);
-		gGL.vertex2i(0, mHeight);
+		gGL.vertex2i(0, mFullHeight);
 		gGL.texCoord2i(0, 0);
 		gGL.vertex2i(0, 0);
 		gGL.texCoord2i(1, 0);
-		gGL.vertex2i(mWidth, 0);
+		gGL.vertex2i(mFullWidth, 0);
 		gGL.texCoord2i(1, 1);
-		gGL.vertex2i(mWidth, mHeight);
+		gGL.vertex2i(mFullWidth, mFullHeight);
 	}
 	gGL.end();
 
@@ -281,7 +282,7 @@ void LLVisualParamHint::draw()
 //-----------------------------------------------------------------------------
 // LLVisualParamReset()
 //-----------------------------------------------------------------------------
-LLVisualParamReset::LLVisualParamReset() : LLDynamicTexture(1, 1, 1, ORDER_RESET, FALSE)
+LLVisualParamReset::LLVisualParamReset() : LLViewerDynamicTexture(1, 1, 1, ORDER_RESET, FALSE)
 {	
 }
 
@@ -292,7 +293,7 @@ BOOL LLVisualParamReset::render()
 {
 	if (sDirty)
 	{
-		LLVOAvatar* avatarp = gAgent.getAvatarObject();
+		LLVOAvatarSelf* avatarp = gAgent.getAvatarObject();
 		avatarp->updateComposites();
 		avatarp->updateVisualParams();
 		avatarp->updateGeometry(avatarp->mDrawable);

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,6 +47,8 @@
 #include "lluuid.h"
 #include "llfloater.h"
 #include <map>
+#include <boost/function.hpp>
+#include <boost/signals2.hpp>
 
 class LLUICtrl;
 class LLTextBox;
@@ -54,13 +56,15 @@ class LLScrollListCtrl;
 class LLButton;
 class LLFloaterGroupPicker;
 
-class LLFloaterGroupPicker : public LLFloater, public LLUIFactory<LLFloaterGroupPicker, LLFloaterGroupPicker, VisibilityPolicy<LLFloater> >
+class LLFloaterGroupPicker : public LLFloater
 {
-	friend class LLUIFactory<LLFloaterGroupPicker>;
 public:
+	LLFloaterGroupPicker(const LLSD& seed);
 	~LLFloaterGroupPicker();
-	void setSelectCallback( void (*callback)(LLUUID, void*), 
-							void* userdata);
+	
+	// Note: Don't return connection; use boost::bind + boost::signals2::trackable to disconnect slots
+	typedef boost::signals2::signal<void (LLUUID id)> signal_t;	
+	void setSelectGroupCallback(const signal_t::slot_type& cb) { mGroupSelectSignal.connect(cb); }
 	void setPowersMask(U64 powers_mask);
 	BOOL postBuild();
 
@@ -68,8 +72,10 @@ public:
 	static LLFloaterGroupPicker* findInstance(const LLSD& seed);
 	static LLFloaterGroupPicker* createInstance(const LLSD& seed);
 
+	// for cases like inviting avatar to group we don't want the none option
+	void removeNoneOption();
+
 protected:
-	LLFloaterGroupPicker(const LLSD& seed);
 	void ok();
 	static void onBtnOK(void* userdata);
 	static void onBtnCancel(void* userdata);
@@ -77,21 +83,20 @@ protected:
 protected:
 	LLUUID mID;
 	U64 mPowersMask;
-	void (*mSelectCallback)(LLUUID id, void* userdata);
-	void* mCallbackUserdata;
+	signal_t mGroupSelectSignal;
 
 	typedef std::map<const LLUUID, LLFloaterGroupPicker*> instance_map_t;
 	static instance_map_t sInstances;
 };
 
-class LLPanelGroups : public LLPanel, public LLSimpleListener
+class LLPanelGroups : public LLPanel, public LLOldEvents::LLSimpleListener
 {
 public:
 	LLPanelGroups();
 	virtual ~LLPanelGroups();
 
 	//LLEventListener
-	/*virtual*/ bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata);
+	/*virtual*/ bool handleEvent(LLPointer<LLOldEvents::LLEvent> event, const LLSD& userdata);
 	
 	// clear the group list, and get a fresh set of info.
 	void reset();

@@ -1,16 +1,12 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Udseende" name="Skins panel">
-	<text type="string" length="1" name="muting_text">
+	<text name="muting_text">
 		Vælg brugerflade (kræver genstart):
 	</text>
 	<radio_group name="skin_selection">
-		<radio_item name="default">
-			Standard
-		</radio_item>
-		<radio_item name="silver">
-			Silver
-		</radio_item>
+		<radio_item label="Standard" name="default"/>
+		<radio_item label="Skitse" name="sketch"/>
+		<radio_item label="2009" name="2009"/>
 	</radio_group>
-	<button label="" name="classic_preview" />
-	<button label="" name="silver_preview" />
+	<button label="" name="classic_preview"/>
 </panel>

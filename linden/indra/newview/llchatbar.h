@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,6 +45,7 @@ class LLFrameTimer;
 class LLChatBarGestureObserver;
 class LLComboBox;
 
+
 class LLChatBar
 :	public LLPanel
 {
@@ -82,14 +83,14 @@ public:
 	LLWString stripChannelNumber(const LLWString &mesg, S32* channel);
 
 	// callbacks
-	static void	onClickSay( LLUICtrl*, void* userdata );
+	void onClickSay(LLUICtrl* ctrl);
 
 	static void	onTabClick( void* userdata );
 	static void	onInputEditorKeystroke(LLLineEditor* caller, void* userdata);
-	static void	onInputEditorFocusLost(LLFocusableElement* caller,void* userdata);
-	static void	onInputEditorGainFocus(LLFocusableElement* caller,void* userdata);
+	static void	onInputEditorFocusLost();
+	static void	onInputEditorGainFocus();
 
-	static void onCommitGesture(LLUICtrl* ctrl, void* data);
+	void onCommitGesture(LLUICtrl* ctrl);
 
 	static void startChat(const char* line);
 	static void stopChat();

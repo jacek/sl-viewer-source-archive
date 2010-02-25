@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -62,7 +62,7 @@ public:
 		desc.source(__FILE__, __LINE__);
 	}
     
-	virtual LLSD get() const
+	virtual LLSD simpleGet() const
 	{
 		LLSD result = "hello";
 		return result;
@@ -86,7 +86,7 @@ public:
 		desc.source(__FILE__, __LINE__);
 	}
 	
-    virtual LLSD post(const LLSD& params) const
+	virtual LLSD simplePost(const LLSD& params) const
 	{
 		return params;
 	}

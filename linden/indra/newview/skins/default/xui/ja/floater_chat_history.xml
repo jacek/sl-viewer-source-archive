@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="chat floater" title="ローカル・チャット" min_width="515" width="515">
+<floater min_width="515" name="chat floater" title="ローカルチャット" width="515">
 	<string name="ringing">
 		インワールドボイスチャットに接続中...
 	</string>
@@ -7,16 +7,16 @@
 		接続しました
 	</string>
 	<string name="unavailable">
-		あなたの現在のロケーションでは、ボイスを利用できません。
+		現在地では、ボイスを利用できません。
 	</string>
 	<string name="hang_up">
 		インワールドボイスチャットの通話が切断されました
 	</string>
 	<string name="voice_icon">
-		icn_voice-localchat.tga
+		Unread_IM
 	</string>
 	<string name="IM_logging_string">
-		-- インスタント・メッセージのログ記録が有効 --
+		-- インスタントメッセージのログ記録が有効です --
 	</string>
 	<string name="IM_end_log_string">
 		-- ログ記録終了 --
@@ -63,30 +63,22 @@
 	<layout_stack name="panels" width="510">
 		<layout_panel name="im_contents_panel">
 			<combo_box label="ジェスチャー" name="Gesture">
-				<combo_item name="Gestures">
-					ジェスチャー
-				</combo_item>
+				<combo_box.item label="ジェスチャー" name="Gestures"/>
 			</combo_box>
-			<check_box label="無視されたテキストを表示" name="show mutes"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="ここをクリックするとこのIMセッションの参加者を表示します。"/>
+			<check_box label="ブロックされた文字を表示" name="show mutes"/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="ここをクリックするとこのIMセッションの参加者を表示します"/>
 			<panel name="chat_panel">
 				<string name="gesture_label">
 					ジェスチャー
 				</string>
 				<line_editor label="ここをクリックして発言" name="Chat Editor"/>
 				<flyout_button label="発言" name="Say" tool_tip="（入力）">
-					<flyout_button_item name="shout_item">
-						叫ぶ
-					</flyout_button_item>
-					<flyout_button_item name="say_item">
-						発言
-					</flyout_button_item>
-					<flyout_button_item name="whisper_item">
-						ささやく
-					</flyout_button_item>
+					<flyout_button.item label="叫ぶ" name="shout_item"/>
+					<flyout_button.item label="発言" name="say_item"/>
+					<flyout_button.item label="ささやく" name="whisper_item"/>
 				</flyout_button>
 			</panel>
 		</layout_panel>
-		<layout_panel min_width="200" name="active_speakers_panel" width="200" />
+		<layout_panel min_width="200" name="active_speakers_panel" width="200"/>
 	</layout_stack>
 </floater>

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -226,7 +226,10 @@ void LLTransferSourceAsset::responderCallback(LLVFS *vfs, const LLUUID& uuid, LL
 
 
 
-LLTransferSourceParamsAsset::LLTransferSourceParamsAsset() : LLTransferSourceParams(LLTST_ASSET)
+LLTransferSourceParamsAsset::LLTransferSourceParamsAsset()
+	: LLTransferSourceParams(LLTST_ASSET),
+
+	  mAssetType(LLAssetType::AT_NONE)
 {
 }
 
@@ -264,16 +267,16 @@ bool is_asset_fetch_by_id_allowed(LLAssetType::EType type)
 	bool rv = false;
 	switch(type)
 	{
-	case LLAssetType::AT_SOUND:
-	case LLAssetType::AT_LANDMARK:
-	case LLAssetType::AT_CLOTHING:
-	case LLAssetType::AT_BODYPART:
-	case LLAssetType::AT_ANIMATION:
-	case LLAssetType::AT_GESTURE:
-		rv = true;
-		break;
-	default:
-		break;
+		case LLAssetType::AT_SOUND:
+		case LLAssetType::AT_LANDMARK:
+		case LLAssetType::AT_CLOTHING:
+		case LLAssetType::AT_BODYPART:
+		case LLAssetType::AT_ANIMATION:
+		case LLAssetType::AT_GESTURE:
+			rv = true;
+			break;
+		default:
+			break;
 	}
 	return rv;
 }
@@ -284,18 +287,20 @@ bool is_asset_id_knowable(LLAssetType::EType type)
 	bool rv = false;
 	switch(type)
 	{
-	case LLAssetType::AT_TEXTURE:
-	case LLAssetType::AT_SOUND:
-	case LLAssetType::AT_LANDMARK:
-	case LLAssetType::AT_CLOTHING:
-	case LLAssetType::AT_NOTECARD:
-	case LLAssetType::AT_BODYPART:
-	case LLAssetType::AT_ANIMATION:
-	case LLAssetType::AT_GESTURE:
-		rv = true;
-		break;
-	default:
-		break;
+		case LLAssetType::AT_TEXTURE:
+		case LLAssetType::AT_SOUND:
+		case LLAssetType::AT_LANDMARK:
+		case LLAssetType::AT_CLOTHING:
+		case LLAssetType::AT_NOTECARD:
+		case LLAssetType::AT_BODYPART:
+		case LLAssetType::AT_ANIMATION:
+		case LLAssetType::AT_GESTURE:
+		case LLAssetType::AT_LINK:
+		case LLAssetType::AT_LINK_FOLDER:
+			rv = true;
+			break;
+		default:
+			break;
 	}
 	return rv;
 }

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,6 +33,7 @@
 #ifndef LL_LLFLOATERANIMPREVIEW_H
 #define LL_LLFLOATERANIMPREVIEW_H
 
+#include "llassettype.h"
 #include "llfloaternamedesc.h"
 #include "lldynamictexture.h"
 #include "llcharacter.h"
@@ -41,11 +42,13 @@
 class LLVOAvatar;
 class LLViewerJointMesh;
 
-class LLPreviewAnimation : public LLDynamicTexture
+class LLPreviewAnimation : public LLViewerDynamicTexture
 {
-public:
-	LLPreviewAnimation(S32 width, S32 height);
+protected:
 	virtual ~LLPreviewAnimation();
+
+public:
+	LLPreviewAnimation(S32 width, S32 height);	
 
 	BOOL	render();
 	void	requestUpdate();
@@ -85,23 +88,23 @@ public:
 	void refresh();
 
 	static void	onBtnPlay(void*);
+	static void	onBtnPause(void*);	
 	static void	onBtnStop(void*);
-	static void setUploadAmount(S32 amount) { sUploadAmount = amount; }
 	static void onSliderMove(LLUICtrl*, void*);
 	static void onCommitBaseAnim(LLUICtrl*, void*);
 	static void onCommitLoop(LLUICtrl*, void*);
 	static void onCommitLoopIn(LLUICtrl*, void*);
 	static void onCommitLoopOut(LLUICtrl*, void*);
-	static BOOL validateLoopIn(LLUICtrl*, void*);
-	static BOOL validateLoopOut(LLUICtrl*, void*);
+	bool validateLoopIn(const LLSD& data);
+	bool validateLoopOut(const LLSD& data);
 	static void onCommitName(LLUICtrl*, void*);
 	static void onCommitHandPose(LLUICtrl*, void*);
 	static void onCommitEmote(LLUICtrl*, void*);
 	static void onCommitPriority(LLUICtrl*, void*);
 	static void onCommitEaseIn(LLUICtrl*, void*);
 	static void onCommitEaseOut(LLUICtrl*, void*);
-	static BOOL validateEaseIn(LLUICtrl*, void*);
-	static BOOL validateEaseOut(LLUICtrl*, void*);
+	bool validateEaseIn(const LLSD& data);
+	bool validateEaseOut(const LLSD& data);
 	static void	onBtnOK(void*);
 	static void onSaveComplete(const LLUUID& asset_uuid,
 									   LLAssetType::EType type,
@@ -114,21 +117,19 @@ protected:
 	void			draw();
 	void			resetMotion();
 
-	LLPreviewAnimation* mAnimPreview;
+	LLPointer< LLPreviewAnimation > mAnimPreview;
 	S32					mLastMouseX;
 	S32					mLastMouseY;
 	LLButton*			mPlayButton;
+	LLButton*			mPauseButton;	
 	LLButton*			mStopButton;
 	LLRect				mPreviewRect;
 	LLRectf				mPreviewImageRect;
 	LLAssetID			mMotionID;
 	LLTransactionID		mTransactionID;
-	BOOL				mEnabled;
 	LLAnimPauseRequest	mPauseRequest;
 
 	std::map<std::string, LLUUID>	mIDList;
-
-	static S32 sUploadAmount;
 };
 
 #endif  // LL_LLFLOATERANIMPREVIEW_H

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(inconnue)" name="im_floater" title="(inconnue)">
+<floater label="(inconnue)" name="im_floater" title="(INCONNU)">
 	<string name="ringing">
 		Appel en cours...
 	</string>
@@ -37,7 +37,7 @@
 	<button label="Appeler" name="start_call_btn"/>
 	<button label="Raccrocher" name="end_call_btn"/>
 	<panel name="speaker_controls">
-		<button label="" name="mute_btn" tool_tip="Ignorez"/>
+		<button label="" name="mute_btn" tool_tip="Bloquer la voix"/>
 	</panel>
 	<line_editor label="Cliquez ici pour envoyer un message instantané" name="chat_editor"/>
 	<button label="Envoyer" name="send_btn"/>

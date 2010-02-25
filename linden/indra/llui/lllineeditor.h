@@ -13,7 +13,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -51,39 +51,63 @@
 #include "llviewborder.h"
 
 #include "llpreeditor.h"
+#include "lltextvalidate.h"
 
 class LLFontGL;
 class LLLineEditorRollback;
 class LLButton;
-
-typedef BOOL (*LLLinePrevalidateFunc)(const LLWString &wstr);
-
+class LLContextMenu;
 
 class LLLineEditor
 : public LLUICtrl, public LLEditMenuHandler, protected LLPreeditor
 {
-
 public:
-	LLLineEditor(const std::string& name, 
-				 const LLRect& rect,
-				 const std::string& default_text = LLStringUtil::null,
-				 const LLFontGL* glfont = NULL,
-				 S32 max_length_bytes = 254,
-				 void (*commit_callback)(LLUICtrl* caller, void* user_data) = NULL,
-				 void (*keystroke_callback)(LLLineEditor* caller, void* user_data) = NULL,
-				 void (*focus_lost_callback)(LLFocusableElement* caller, void* user_data) = NULL,
-				 void* userdata = NULL,
-				 LLLinePrevalidateFunc prevalidate_func = NULL,
-				 LLViewBorder::EBevel border_bevel = LLViewBorder::BEVEL_IN,
-				 LLViewBorder::EStyle border_style = LLViewBorder::STYLE_LINE,
-				 S32 border_thickness = 1);
 
+	typedef boost::function<void (LLLineEditor* caller)> keystroke_callback_t;
+	
+	struct Params : public LLInitParam::Block<Params, LLUICtrl::Params>
+	{
+		Optional<std::string>			default_text;
+		Optional<S32>					max_length_bytes;
+
+		Optional<keystroke_callback_t>	keystroke_callback;
+
+		Optional<LLTextValidate::validate_func_t, LLTextValidate::ValidateTextNamedFuncs>	prevalidate_callback;
+		
+		Optional<LLViewBorder::Params>	border;
+
+		Optional<LLUIImage*>			background_image,
+										background_image_disabled,
+										background_image_focused;
+
+		Optional<bool>					select_on_focus,
+										handle_edit_keys_directly,
+										revert_on_esc,
+										commit_on_focus_lost,
+										ignore_tab;
+
+		// colors
+		Optional<LLUIColor>				cursor_color,
+										text_color,
+										text_readonly_color,
+										text_tentative_color,
+										highlight_color,
+										preedit_bg_color;
+		
+		Optional<S32>					text_pad_left,
+										text_pad_right;
+
+		Ignored							bg_visible;
+		
+		Params();
+	};
+protected:
+	LLLineEditor(const Params&);
+	friend class LLUICtrlFactory;
+	friend class LLFloaterEditUI;
+	void showContextMenu(S32 x, S32 y);
+public:
 	virtual ~LLLineEditor();
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	void setColorParameters(LLXMLNodePtr node);
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-	static void cleanupLineEditor();
 
 	// mousehandler overrides
 	/*virtual*/ BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
@@ -91,6 +115,7 @@ public:
 	/*virtual*/ BOOL	handleHover(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL	handleDoubleClick(S32 x,S32 y,MASK mask);
 	/*virtual*/ BOOL	handleMiddleMouseDown(S32 x,S32 y,MASK mask);
+	/*virtual*/ BOOL	handleRightMouseDown(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL	handleKeyHere(KEY key, MASK mask );
 	/*virtual*/ BOOL	handleUnicodeCharHere(llwchar uni_char);
 	/*virtual*/ void	onMouseCaptureLost();
@@ -98,10 +123,8 @@ public:
 	// LLEditMenuHandler overrides
 	virtual void	cut();
 	virtual BOOL	canCut() const;
-
 	virtual void	copy();
 	virtual BOOL	canCopy() const;
-
 	virtual void	paste();
 	virtual BOOL	canPaste() const;
 
@@ -133,20 +156,22 @@ public:
 	virtual void 	setRect(const LLRect& rect);
 	virtual BOOL	acceptsTextInput() const;
 	virtual void	onCommit();
-	virtual BOOL	isDirty() const { return mText.getString() != mPrevText; }	// Returns TRUE if user changed value at all
-	virtual void	resetDirty() { mPrevText = mText.getString(); }		// Clear dirty state
+	virtual BOOL	isDirty() const;	// Returns TRUE if user changed value at all
+	virtual void	resetDirty();		// Clear dirty state
 
 	// assumes UTF8 text
-	virtual void	setValue(const LLSD& value ) { setText(value.asString()); }
-	virtual LLSD	getValue() const { return LLSD(getText()); }
+	virtual void	setValue(const LLSD& value );
+	virtual LLSD	getValue() const;
 	virtual BOOL	setTextArg( const std::string& key, const LLStringExplicit& text );
 	virtual BOOL	setLabelArg( const std::string& key, const LLStringExplicit& text );
 
 	void			setLabel(const LLStringExplicit &new_label) { mLabel = new_label; }
+	const std::string& 	getLabel()	{ return mLabel.getString(); }
+
 	void			setText(const LLStringExplicit &new_text);
 
 	const std::string& getText() const		{ return mText.getString(); }
-	const LLWString& getWText() const	{ return mText.getWString(); }
+	LLWString       getWText() const	{ return mText.getWString(); }
 	LLWString getConvertedText() const; // trimmed text with paragraphs converted to newlines
 
 	S32				getLength() const	{ return mText.length(); }
@@ -157,26 +182,23 @@ public:
 
 	// Selects characters 'start' to 'end'.
 	void			setSelection(S32 start, S32 end);
+	virtual void	getSelectionRange(S32 *position, S32 *length) const;
 	
 	void			setCommitOnFocusLost( BOOL b )	{ mCommitOnFocusLost = b; }
 	void			setRevertOnEsc( BOOL b )		{ mRevertOnEsc = b; }
 
 	void setCursorColor(const LLColor4& c)			{ mCursorColor = c; }
-	const LLColor4& getCursorColor() const			{ return mCursorColor; }
+	const LLColor4& getCursorColor() const			{ return mCursorColor.get(); }
 
 	void setFgColor( const LLColor4& c )			{ mFgColor = c; }
 	void setReadOnlyFgColor( const LLColor4& c )	{ mReadOnlyFgColor = c; }
 	void setTentativeFgColor(const LLColor4& c)		{ mTentativeFgColor = c; }
-	void setWriteableBgColor( const LLColor4& c )	{ mWriteableBgColor = c; }
-	void setReadOnlyBgColor( const LLColor4& c )	{ mReadOnlyBgColor = c; }
-	void setFocusBgColor(const LLColor4& c)			{ mFocusBgColor = c; }
 
-	const LLColor4& getFgColor() const			{ return mFgColor; }
-	const LLColor4& getReadOnlyFgColor() const	{ return mReadOnlyFgColor; }
-	const LLColor4& getTentativeFgColor() const { return mTentativeFgColor; }
-	const LLColor4& getWriteableBgColor() const	{ return mWriteableBgColor; }
-	const LLColor4& getReadOnlyBgColor() const	{ return mReadOnlyBgColor; }
-	const LLColor4& getFocusBgColor() const		{ return mFocusBgColor; }
+	const LLColor4& getFgColor() const			{ return mFgColor.get(); }
+	const LLColor4& getReadOnlyFgColor() const	{ return mReadOnlyFgColor.get(); }
+	const LLColor4& getTentativeFgColor() const { return mTentativeFgColor.get(); }
+
+	const LLFontGL* getFont() const { return mGLFont; }
 
 	void			setIgnoreArrowKeys(BOOL b)		{ mIgnoreArrowKeys = b; }
 	void			setIgnoreTab(BOOL b)			{ mIgnoreTab = b; }
@@ -195,24 +217,17 @@ public:
 
 	void			setHandleEditKeysDirectly( BOOL b ) { mHandleEditKeysDirectly = b; }
 	void			setSelectAllonFocusReceived(BOOL b);
-
-	void			setKeystrokeCallback(void (*keystroke_callback)(LLLineEditor* caller, void* user_data));
+	
+	typedef boost::function<void (LLLineEditor* caller, void* user_data)> callback_t;
+	void			setKeystrokeCallback(callback_t callback, void* user_data);
 
 	void			setMaxTextLength(S32 max_text_length);
-	void			setTextPadding(S32 left, S32 right); // Used to specify room for children before or after text.
+	// Manipulate left and right padding for text
+	void getTextPadding(S32 *left, S32 *right);
+	void setTextPadding(S32 left, S32 right);
 
 	// Prevalidation controls which keystrokes can affect the editor
-	void			setPrevalidate( BOOL (*func)(const LLWString &) );
-	static BOOL		prevalidateFloat(const LLWString &str );
-	static BOOL		prevalidateInt(const LLWString &str );
-	static BOOL		prevalidatePositiveS32(const LLWString &str);
-	static BOOL		prevalidateNonNegativeS32(const LLWString &str);
-	static BOOL		prevalidateAlphaNum(const LLWString &str );
-	static BOOL		prevalidateAlphaNumSpace(const LLWString &str );
-	static BOOL		prevalidatePrintableNotPipe(const LLWString &str); 
-	static BOOL		prevalidatePrintableNoSpace(const LLWString &str);
-	static BOOL		prevalidateASCII(const LLWString &str);
-
+	void			setPrevalidate( LLTextValidate::validate_func_t func );
 	static BOOL		postvalidateFloat(const std::string &str);
 
 	// line history support:
@@ -220,11 +235,13 @@ public:
 	void			updateHistory(); // stores current line in history
 
 	void			setReplaceNewlinesWithSpaces(BOOL replace);
-	
+
+	void			setContextMenu(LLContextMenu* new_context_menu);
+
 private:
 	// private helper methods
 
-	void            pasteHelper(bool is_primary);
+	void                    pasteHelper(bool is_primary);
 
 	void			removeChar();
 	void			addChar(const llwchar c);
@@ -235,6 +252,10 @@ private:
 	BOOL			handleSelectionKey(KEY key, MASK mask);
 	BOOL			handleControlKey(KEY key, MASK mask);
 	S32				handleCommitKey(KEY key, MASK mask);
+	void			updateTextPadding();
+	
+	// Draw the background image depending on enabled/focused state.
+	void			drawBackground();
 
 	//
 	// private data members
@@ -247,9 +268,9 @@ private:
 						const segment_lengths_t &preedit_segment_lengths, const standouts_t &preedit_standouts, S32 caret_position);
 	virtual void	markAsPreedit(S32 position, S32 length);
 	virtual void	getPreeditRange(S32 *position, S32 *length) const;
-	virtual void	getSelectionRange(S32 *position, S32 *length) const;
 	virtual BOOL	getPreeditLocation(S32 query_position, LLCoordGL *coord, LLRect *bounds, LLRect *control) const;
 	virtual S32		getPreeditFontSize() const;
+	virtual LLWString getPreeditString() const { return getWText(); }
 
 protected:
 	LLUIString		mText;					// The string being edited.
@@ -258,8 +279,8 @@ protected:
 
 	// line history support:
 	BOOL		mHaveHistory;				// flag for enabled line history
-	typedef	std::vector<std::string>	line_history_t;
-	line_history_t				mLineHistory;			// line history storage
+	typedef std::vector<std::string>	line_history_t;
+	line_history_t	mLineHistory;			// line history storage
 	line_history_t::iterator	mCurrentHistoryLine;	// currently browsed history line
 
 	LLViewBorder* mBorder;
@@ -270,13 +291,13 @@ protected:
 	LLFrameTimer mScrollTimer;
 	S32			mTextPadLeft;				// Used to reserve space before the beginning of the text for children.
 	S32			mTextPadRight;				// Used to reserve space after the end of the text for children.
-	S32			mMinHPixels;
-	S32			mMaxHPixels;
+	S32			mTextLeftEdge;				// Pixels, cached left edge of text based on left padding and width
+	S32			mTextRightEdge;				// Pixels, cached right edge of text based on right padding and width
 
 	BOOL		mCommitOnFocusLost;
 	BOOL		mRevertOnEsc;
 
-	void		(*mKeystrokeCallback)( LLLineEditor* caller, void* userdata );
+	keystroke_callback_t mKeystrokeCallback;
 
 	BOOL		mIsSelecting;				// Selection for clipboard operations
 	S32			mSelectionStart;
@@ -286,18 +307,17 @@ protected:
 	S32			mLastSelectionStart;
 	S32			mLastSelectionEnd;
 
-	S32			(*mPrevalidateFunc)(const LLWString &str);
+	LLTextValidate::validate_func_t mPrevalidateFunc;
 
 	LLFrameTimer mKeystrokeTimer;
+	LLTimer		mTripleClickTimer;
 
-	LLColor4	mCursorColor;
-
-	LLColor4	mFgColor;
-	LLColor4	mReadOnlyFgColor;
-	LLColor4	mTentativeFgColor;
-	LLColor4	mWriteableBgColor;
-	LLColor4	mReadOnlyBgColor;
-	LLColor4	mFocusBgColor;
+	LLUIColor	mCursorColor;
+	LLUIColor	mFgColor;
+	LLUIColor	mReadOnlyFgColor;
+	LLUIColor	mTentativeFgColor;
+	LLUIColor	mHighlightColor;		// background for selected text
+	LLUIColor	mPreeditBgColor;		// preedit marker background color
 
 	S32			mBorderThickness;
 
@@ -316,14 +336,13 @@ protected:
 	std::vector<S32> mPreeditPositions;
 	LLPreeditor::standouts_t mPreeditStandouts;
 
+	LLHandle<LLView> mContextMenuHandle;
+
 private:
-	// Utility on top of LLUI::getUIImage, looks up a named image in a given XML node and returns it if possible
-	// or returns a given default image if anything in the process fails.
-	static LLPointer<LLUIImage> parseImage(std::string name, LLXMLNodePtr from, LLPointer<LLUIImage> def);
-	// Global instance used as default for member instance below.
-	static LLPointer<LLUIImage> sImage;
 	// Instances that by default point to the statics but can be overidden in XML.
-	LLPointer<LLUIImage> mImage;
+	LLPointer<LLUIImage> mBgImage;
+	LLPointer<LLUIImage> mBgImageDisabled;
+	LLPointer<LLUIImage> mBgImageFocused;
 
 	BOOL        mReplaceNewlinesWithSpaces; // if false, will replace pasted newlines with paragraph symbol.
 
@@ -366,46 +385,10 @@ private:
 
 }; // end class LLLineEditor
 
-
-
-/*
- * @brief A line editor with a button to clear it and a callback to call on every edit event.
- */
-class LLSearchEditor : public LLUICtrl
-{
-public:
-	LLSearchEditor(const std::string& name, 
-		const LLRect& rect,
-		S32 max_length_bytes,
-		void (*search_callback)(const std::string& search_string, void* user_data),
-		void* userdata);
-
-	virtual ~LLSearchEditor() {}
-
-	/*virtual*/ void	draw();
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-
-	void setText(const LLStringExplicit &new_text) { mSearchEdit->setText(new_text); }
-
-	void setSearchCallback(void (*search_callback)(const std::string& search_string, void* user_data), void* data) { mSearchCallback = search_callback; mCallbackUserData = data; }
-
-	// LLUICtrl interface
-	virtual void	setValue(const LLSD& value );
-	virtual LLSD	getValue() const;
-	virtual BOOL	setTextArg( const std::string& key, const LLStringExplicit& text );
-	virtual BOOL	setLabelArg( const std::string& key, const LLStringExplicit& text );
-	virtual void	clear();
-
-private:
-	static void onSearchEdit(LLLineEditor* caller, void* user_data );
-	static void onClearSearch(void* user_data);
-
-	LLLineEditor* mSearchEdit;
-	class LLButton* mClearSearchButton;
-	void (*mSearchCallback)(const std::string& search_string, void* user_data);
-
-};
+// Build time optimization, generate once in .cpp file
+#ifndef LLLINEEDITOR_CPP
+extern template class LLLineEditor* LLView::getChild<class LLLineEditor>(
+	const std::string& name, BOOL recurse) const;
+#endif
 
 #endif  // LL_LINEEDITOR_

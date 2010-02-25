@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -131,7 +131,7 @@ namespace LLError
 	
 	class CallSite;
 	
-	class Log
+	class LL_COMMON_API Log
 	{
 	public:
 		static bool shouldLog(CallSite&);
@@ -140,7 +140,7 @@ namespace LLError
 		static void flush(std::ostringstream*, const CallSite&);
 	};
 	
-	class CallSite
+	class LL_COMMON_API CallSite
 	{
 		// Represents a specific place in the code where a message is logged
 		// This is public because it is used by the macros below.  It is not
@@ -189,7 +189,7 @@ namespace LLError
 	//LLCallStacks is designed not to be thread-safe.
    //so try not to use it in multiple parallel threads at same time.
    //Used in a single thread at a time is fine.
-   class LLCallStacks
+   class LL_COMMON_API LLCallStacks
    {
    private:
        static char**  sBuffer ;
@@ -242,7 +242,7 @@ typedef LLError::NoClassInfo _LL_CLASS_TO_LOG;
 	do { \
 		static LLError::CallSite _site( \
 			level, __FILE__, __LINE__, typeid(_LL_CLASS_TO_LOG), __FUNCTION__, broadTag, narrowTag, once);\
-		if (_site.shouldLog()) \
+		if (LL_UNLIKELY(_site.shouldLog()))			\
 		{ \
 			std::ostringstream* _out = LLError::Log::out(); \
 			(*_out)
@@ -302,8 +302,5 @@ typedef LLError::NoClassInfo _LL_CLASS_TO_LOG;
 		Such computation is done iff the message will be logged.
 	*/
 
-#ifdef SHOW_ASSERT
-extern bool is_main_thread();
-#endif
 
 #endif // LL_LLERROR_H

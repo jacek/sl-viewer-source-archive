@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,6 @@
 #ifndef LL_LLFLEXIBLEOBJECT_H
 #define LL_LLFLEXIBLEOBJECT_H
 
-#include "llmemory.h"
 #include "llprimitive.h"
 #include "llvovolume.h"
 #include "llwind.h"

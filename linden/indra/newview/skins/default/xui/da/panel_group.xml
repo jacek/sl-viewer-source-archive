@@ -1,13 +1,22 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<panel name="GroupInfo" title="Gruppe-info">
-	<string name="default_needs_apply_text">
-		Der er ændringer på denne fane der ikke er gemt.
-	</string>
-	<string name="want_apply_text">
-		Vil du anvende gemme ændringer?
-	</string>
-	<button label="Anvend" label_selected="Anvend" name="btn_apply" />
-	<button label="Annullér" label_selected="Annullér" name="btn_cancel" />
-	<button label="OK" label_selected="OK" name="btn_ok" />
-	<button label="Genopfrisk" label_selected="Genopfrisk" name="btn_refresh" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Gruppe info" name="GroupInfo" title="Gruppe-info">
+	<panel.string name="default_needs_apply_text">
+		Der er ændringer på denne fane der ikke er gemt
+	</panel.string>
+	<panel.string name="want_apply_text">
+		Vil du gemme disse ændringer?
+	</panel.string>
+	<line_editor label="Skriv det nye gruppenavn her" name="group_name_editor"/>
+	<texture_picker name="insignia" tool_tip="Klik for at vælge et billede"/>
+	<accordion name="groups_accordion">
+		<accordion_tab name="tab_general" title="Generelt"/>
+		<accordion_tab name="tab_roles" title="Roller"/>
+		<accordion_tab name="tab_notices" title="Beskeder"/>
+		<accordion_tab name="tab_land" title="Land/Aktiver"/>
+	</accordion>
+	<button label="Annullér" label_selected="Annullér" name="btn_cancel"/>
+	<button label="Gem" label_selected="Gem" name="btn_ok"/>
+	<button label="Genopfrisk" label_selected="Genopfrisk" name="btn_refresh"/>
+	<button label="Tilmeld (L$0)" label_selected="Tilmeld (L$0)" name="join_button"/>
+	<button label="Detaljer" label_selected="Detaljeret visning" name="info_button"/>
 </panel>

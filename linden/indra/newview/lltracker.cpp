@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,7 +39,7 @@
 #include "llgl.h"
 #include "llrender.h"
 #include "llinventory.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llstring.h"
 #include "lluuid.h"
 #include "v3math.h"
@@ -51,11 +51,11 @@
 #include "lltracker.h"
 #include "llagent.h"
 #include "llcallingcard.h"
-#include "llcolorscheme.h"
 #include "llfloaterworldmap.h"
 #include "llhudtext.h"
 #include "llhudview.h"
 #include "llinventorymodel.h"
+#include "llinventoryobserver.h"
 #include "lllandmarklist.h"
 #include "llsky.h"
 #include "llui.h"
@@ -113,12 +113,14 @@ void LLTracker::stopTracking(void* userdata)
 // static virtual
 void LLTracker::drawHUDArrow()
 {
+	static LLUIColor map_track_color = LLUIColorTable::instance().getColor("MapTrackColor", LLColor4::white);
+	
 	/* tracking autopilot destination has been disabled 
 	   -- 2004.01.09, Leviathan
 	// Draw dot for autopilot target
 	if (gAgent.getAutoPilot())
 	{
-		instance()->drawMarker( gAgent.getAutoPilotTargetGlobal(), gTrackColor );
+		instance()->drawMarker( gAgent.getAutoPilotTargetGlobal(), map_track_color );
 		return;
 	}
 	*/
@@ -128,12 +130,12 @@ void LLTracker::drawHUDArrow()
 		// Tracked avatar
 		if(LLAvatarTracker::instance().haveTrackingInfo())
 		{
-			instance()->drawMarker( LLAvatarTracker::instance().getGlobalPos(), gTrackColor );
+			instance()->drawMarker( LLAvatarTracker::instance().getGlobalPos(), map_track_color );
 		} 
 		break;
 
 	case TRACKING_LANDMARK:
-		instance()->drawMarker( getTrackedPositionGlobal(), gTrackColor );
+		instance()->drawMarker( getTrackedPositionGlobal(), map_track_color );
 		break;
 
 	case TRACKING_LOCATION:
@@ -145,7 +147,7 @@ void LLTracker::drawHUDArrow()
 				+ 0.1f * (LLWorld::getInstance()->resolveLandHeightGlobal(getTrackedPositionGlobal()) + 1.5f);
 #endif
 		instance()->mTrackedPositionGlobal.mdV[VZ] = llclamp((F32)instance()->mTrackedPositionGlobal.mdV[VZ], LLWorld::getInstance()->resolveLandHeightGlobal(getTrackedPositionGlobal()) + 1.5f, (F32)instance()->getTrackedPositionGlobal().mdV[VZ]);
-		instance()->drawMarker( getTrackedPositionGlobal(), gTrackColor );
+		instance()->drawMarker( getTrackedPositionGlobal(), map_track_color );
 		break;
 
 	default:
@@ -161,7 +163,9 @@ void LLTracker::render3D()
 	{
 		return;
 	}
-
+	
+	static LLUIColor map_track_color = LLUIColorTable::instance().getColor("MapTrackColor", LLColor4::white);
+	
 	// Arbitary location beacon
 	if( instance()->mIsTrackingLocation )
  	{
@@ -181,7 +185,7 @@ void LLTracker::render3D()
 		}
 		else
 		{
-			renderBeacon( instance()->mTrackedPositionGlobal, gTrackColor, 
+			renderBeacon( instance()->mTrackedPositionGlobal, map_track_color, 
 					  	instance()->mBeaconText, instance()->mTrackedLocationName );
 		}
 	}
@@ -223,7 +227,7 @@ void LLTracker::render3D()
 					// and back again
 					instance()->mHasReachedLandmark = FALSE;
 				}
-				renderBeacon( instance()->mTrackedPositionGlobal, gTrackColor, 
+				renderBeacon( instance()->mTrackedPositionGlobal, map_track_color, 
 							  instance()->mBeaconText, instance()->mTrackedLandmarkName );
 			}
 		}
@@ -252,7 +256,7 @@ void LLTracker::render3D()
 			}
 			else
 			{
-				renderBeacon( av_tracker.getGlobalPos(), gTrackColor, 
+				renderBeacon( av_tracker.getGlobalPos(), map_track_color, 
 						  	instance()->mBeaconText, av_tracker.getName() );
 			}
 		}
@@ -294,6 +298,7 @@ void LLTracker::trackAvatar( const LLUUID& avatar_id, const std::string& name )
 	LLAvatarTracker::instance().track( avatar_id, name );
 	instance()->mTrackingStatus = TRACKING_AVATAR;
 	instance()->mLabel = name;
+	instance()->mToolTip = "";
 }
 
 
@@ -309,6 +314,7 @@ void LLTracker::trackLandmark( const LLUUID& asset_id, const LLUUID& item_id, co
 	instance()->cacheLandmarkPosition();
 	instance()->mTrackingStatus = TRACKING_LANDMARK;
 	instance()->mLabel = name;
+	instance()->mToolTip = "";
 }
 
 
@@ -411,10 +417,10 @@ F32 pulse_func(F32 t, F32 z)
 		return 0.f;
 	}
 	
-	t *= 3.14159f;
+	t *= F_PI;
 	z -= t*64.f - 256.f;
 	
-	F32 a = cosf(z*3.14159/512.f)*10.0f;
+	F32 a = cosf(z*F_PI/512.f)*10.0f;
 	a = llmax(a, 9.9f);
 	a -= 9.9f;
 	a *= 10.f;
@@ -428,7 +434,7 @@ void draw_shockwave(F32 center_z, F32 t, S32 steps, LLColor4 color)
 		return;
 	}
 	
-	t *= 0.6284f/3.14159f;
+	t *= 0.6284f/F_PI;
 	
 	t -= (F32) (S32) t;	
 

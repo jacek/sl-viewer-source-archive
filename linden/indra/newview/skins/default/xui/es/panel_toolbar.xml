@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="toolbar">
-	<string name="Redock Windows">
+	<panel.string name="Redock Windows">
 		Ventanas en cascada
-	</string>
+	</panel.string>
+	<panel.string name="Blocked List">
+		&quot;Residentes y Objetos ignorados&quot;
+	</panel.string>
 	<layout_stack name="toolbar_stack">
-		<button label="" name="chat_btn" tool_tip="Mostrar la barra del chat. (Intro)"/>
-		<flyout_button label="Comunicarse" name="communicate_btn" tool_tip="Comunicarse con sus amigos y grupos."/>
-		<button label="Volar" label_selected="Dejar de volar" name="fly_btn" tool_tip="Empezar a volar. Use E/C o RePág/AvPág para ascender y descender."/>
-		<button label="Foto" name="snapshot_btn" tool_tip="Guardar una captura de pantalla en el disco o el inventario."/>
-		<button label="Buscar" name="directory_btn" tool_tip="Buscar lugares, eventos, gente, y más."/>
-		<button label="Construir" name="build_btn" tool_tip="Crear objetos nuevos."/>
-		<button label="Mapa" name="map_btn" tool_tip="Mapa del mundo. (Ctrl-M)"/>
-		<button label="Minimapa" name="radar_btn" tool_tip="Mapa de la zona que le rodea. (Ctrl-May-M)"/>
-		<button label="Inventario" name="inventory_btn" tool_tip="Sus ítems. (Ctrl-I)"/>
+		<button label="" name="chat_btn" tool_tip="Muestra la barra del chat (Enter)"/>
+		<flyout_button label="Comunicarse" name="communicate_btn" tool_tip="Comunicarte con tus amigos y grupos"/>
+		<button label="Volar" label_selected="" name="fly_btn" tool_tip="Empezar a volar. Para subir o bajar, usa e/c o RePág/AvPág"/>
+		<button label="Foto" name="snapshot_btn" tool_tip="Guardar una captura de pantalla en el ordenador o el inventario"/>
+		<button label="Buscar" name="directory_btn" tool_tip="Busca lugares, eventos, gente..."/>
+		<button label="Construir" name="build_btn" tool_tip="Crear objetos nuevos"/>
+		<button label="Mapa" name="map_btn" tool_tip="Mapa del mundo (Ctrl+M)"/>
+		<button label="Minimapa" name="radar_btn" tool_tip="Mapa del área que te rodea (Ctrl+Shift+M)"/>
+		<button label="Inventario" name="inventory_btn" tool_tip="Tus ítems (Ctrl+I)"/>
 	</layout_stack>
 </panel>

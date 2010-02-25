@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,6 +38,14 @@
 #if LL_LINUX || LL_SOLARIS
 #include <sys/param.h>  // Need PATH_MAX in APR headers...
 #endif
+#if LL_WINDOWS
+	// Limit Windows API to small and manageable set.
+	// If you get undefined symbols, find the appropriate
+	// Windows header file and include that in your .cpp file.
+	#define WIN32_LEAN_AND_MEAN
+	#include <winsock2.h>
+	#include <windows.h>
+#endif
 
 #include <boost/noncopyable.hpp>
 
@@ -48,31 +56,31 @@
 #include "apr_atomic.h"
 #include "llstring.h"
 
-extern apr_thread_mutex_t* gLogMutexp;
+extern LL_COMMON_API apr_thread_mutex_t* gLogMutexp;
 extern apr_thread_mutex_t* gCallStacksLogMutexp;
 
 /** 
  * @brief initialize the common apr constructs -- apr itself, the
  * global pool, and a mutex.
  */
-void ll_init_apr();
+void LL_COMMON_API ll_init_apr();
 
 /** 
  * @brief Cleanup those common apr constructs.
  */
-void ll_cleanup_apr();
+void LL_COMMON_API ll_cleanup_apr();
 
 //
 //LL apr_pool
 //manage apr_pool_t, destroy allocated apr_pool in the destruction function.
 //
-class LLAPRPool
+class LL_COMMON_API LLAPRPool
 {
 public:
 	LLAPRPool(apr_pool_t *parent = NULL, apr_size_t size = 0, BOOL releasePoolFlag = TRUE) ;
-	~LLAPRPool() ;
+	virtual ~LLAPRPool() ;
 
-	apr_pool_t* getAPRPool() ;
+	virtual apr_pool_t* getAPRPool() ;
 	apr_status_t getStatus() {return mStatus ; }
 
 protected:
@@ -92,29 +100,24 @@ protected:
 //which clears memory automatically.
 //so it can not hold static data or data after memory is cleared
 //
-class LLVolatileAPRPool : protected LLAPRPool
+class LL_COMMON_API LLVolatileAPRPool : public LLAPRPool
 {
 public:
-	LLVolatileAPRPool(apr_pool_t *parent = NULL, apr_size_t size = 0, BOOL releasePoolFlag = TRUE);
-	~LLVolatileAPRPool(){}
+	LLVolatileAPRPool(BOOL is_local = TRUE, apr_pool_t *parent = NULL, apr_size_t size = 0, BOOL releasePoolFlag = TRUE);
+	virtual ~LLVolatileAPRPool();
 
-	apr_pool_t* getVolatileAPRPool() ;
-	
+	/*virtual*/ apr_pool_t* getAPRPool() ; //define this virtual function to avoid any mistakenly calling LLAPRPool::getAPRPool().
+	apr_pool_t* getVolatileAPRPool() ;	
 	void        clearVolatileAPRPool() ;
 
 	BOOL        isFull() ;
-	BOOL        isEmpty() {return !mNumActiveRef ;}
-
-	static void initLocalAPRFilePool();
-	static void createLocalAPRFilePool();
-	static void destroyLocalAPRFilePool(void* thread_local_data);
-	static LLVolatileAPRPool* getLocalAPRFilePool();
-
+	
 private:
 	S32 mNumActiveRef ; //number of active pointers pointing to the apr_pool.
-	S32 mNumTotalRef ;  //number of total pointers pointing to the apr_pool since last creating.   
+	S32 mNumTotalRef ;  //number of total pointers pointing to the apr_pool since last creating.  
 
-	static apr_threadkey_t*		sLocalAPRFilePoolKey;
+	apr_thread_mutex_t *mMutexp;
+	apr_pool_t         *mMutexPool;
 } ;
 
 /** 
@@ -126,7 +129,7 @@ private:
  * destructor handles the unlock. Instances of this class are
  * <b>not</b> thread safe.
  */
-class LLScopedLock : private boost::noncopyable
+class LL_COMMON_API LLScopedLock : private boost::noncopyable
 {
 public:
 	/**
@@ -201,7 +204,7 @@ typedef LLAtomic32<S32> LLAtomicS32;
 //      2, a global pool.
 //
 
-class LLAPRFile : boost::noncopyable
+class LL_COMMON_API LLAPRFile : boost::noncopyable
 {
 	// make this non copyable since a copy closes the file
 private:
@@ -209,16 +212,12 @@ private:
 	LLVolatileAPRPool *mCurrentFilePoolp ; //currently in use apr_pool, could be one of them: sAPRFilePoolp, or a temp pool. 
 
 public:
-	enum access_t {
-		global,		// Use a global pool for long-lived file accesses. This should really only happen from the main thread.
-		local		// Use a thread-local volatile pool for short file accesses.
-	};
-
 	LLAPRFile() ;
-	LLAPRFile(const std::string& filename, apr_int32_t flags, access_t access_type);
+	LLAPRFile(const std::string& filename, apr_int32_t flags, LLVolatileAPRPool* pool = NULL);
 	~LLAPRFile() ;
-
-	apr_status_t open(const std::string& filename, apr_int32_t flags, access_t access_type, S32* sizep = NULL);
+	
+	apr_status_t open(const std::string& filename, apr_int32_t flags, LLVolatileAPRPool* pool = NULL, S32* sizep = NULL);
+	apr_status_t open(const std::string& filename, apr_int32_t flags, BOOL use_global_pool); //use gAPRPoolp.
 	apr_status_t close() ;
 
 	// Returns actual offset, -1 if seek fails
@@ -231,24 +230,32 @@ public:
 	
 	apr_file_t* getFileHandle() {return mFile;}	
 
+private:
+	apr_pool_t* getAPRFilePool(apr_pool_t* pool) ;	
+	
 //
 //*******************************************************************************************************************************
 //static components
 //
+public:
+	static LLVolatileAPRPool *sAPRFilePoolp ; //a global apr_pool for APRFile, which is used only when local pool does not exist.
+
 private:
+	static apr_file_t* open(const std::string& filename, LLVolatileAPRPool* pool, apr_int32_t flags);
+	static apr_status_t close(apr_file_t* file, LLVolatileAPRPool* pool) ;
 	static S32 seek(apr_file_t* file, apr_seek_where_t where, S32 offset);
 public:
 	// returns false if failure:
-	static bool remove(const std::string& filename);
-	static bool rename(const std::string& filename, const std::string& newname);
-	static bool isExist(const std::string& filename, apr_int32_t flags = APR_READ);
-	static S32 size(const std::string& filename);
-	static bool makeDir(const std::string& dirname);
-	static bool removeDir(const std::string& dirname);
+	static bool remove(const std::string& filename, LLVolatileAPRPool* pool = NULL);
+	static bool rename(const std::string& filename, const std::string& newname, LLVolatileAPRPool* pool = NULL);
+	static bool isExist(const std::string& filename, LLVolatileAPRPool* pool = NULL, apr_int32_t flags = APR_READ);
+	static S32 size(const std::string& filename, LLVolatileAPRPool* pool = NULL);
+	static bool makeDir(const std::string& dirname, LLVolatileAPRPool* pool = NULL);
+	static bool removeDir(const std::string& dirname, LLVolatileAPRPool* pool = NULL);
 
 	// Returns bytes read/written, 0 if read/write fails:
-	static S32 readEx(const std::string& filename, void *buf, S32 offset, S32 nbytes);
-	static S32 writeEx(const std::string& filename, void *buf, S32 offset, S32 nbytes);
+	static S32 readEx(const std::string& filename, void *buf, S32 offset, S32 nbytes, LLVolatileAPRPool* pool = NULL);	
+	static S32 writeEx(const std::string& filename, void *buf, S32 offset, S32 nbytes, LLVolatileAPRPool* pool = NULL);	
 //*******************************************************************************************************************************
 };
 
@@ -257,10 +264,10 @@ public:
  * APR_SUCCESS.
  * @return Returns <code>true</code> if status is an error condition.
  */
-bool ll_apr_warn_status(apr_status_t status);
+bool LL_COMMON_API ll_apr_warn_status(apr_status_t status);
 
-void ll_apr_assert_status(apr_status_t status);
+void LL_COMMON_API ll_apr_assert_status(apr_status_t status);
 
-extern "C" apr_pool_t* gAPRPoolp; // Global APR memory pool
+extern "C" LL_COMMON_API apr_pool_t* gAPRPoolp; // Global APR memory pool
 
 #endif // LL_LLAPR_H

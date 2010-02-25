@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,22 +33,23 @@
 
 #include "llviewerprecompiledheaders.h"
 
+#include "llregionhandle.h"
+#include "v3dmath.h"
+
 #include "llfloaterurldisplay.h"
 
 #include "llpanelplace.h"
 #include "lluictrlfactory.h"
-
-#include "v3dmath.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // LLFloaterURLDisplay
 
 
 LLFloaterURLDisplay::LLFloaterURLDisplay(const LLSD& sd)
+	: LLFloater(sd)
 {	
 	mFactoryMap["place_details_panel"] = LLCallbackMap(LLFloaterURLDisplay::createPlaceDetail, this);
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_preview_url.xml", &getFactoryMap());
-	this->setVisible(false);
+//	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_preview_url.xml");
 
 	// If positioned at 0,0 the teleport button is behind the toolbar.
 	LLRect r = getRect();

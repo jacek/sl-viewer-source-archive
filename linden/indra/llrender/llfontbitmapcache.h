@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,7 @@
 #include <vector>
 
 // Maintain a collection of bitmaps containing rendered glyphs.
-// Generalizes the single-bitmap logic from LLFont and LLFontGL.
+// Generalizes the single-bitmap logic from LLFontFreetype and LLFontGL.
 class LLFontBitmapCache: public LLRefCount
 {
 public:
@@ -71,7 +71,6 @@ private:
 	S32 mMaxCharHeight;
 	S32 mCurrentOffsetX;
 	S32 mCurrentOffsetY;
-	S32 mCurrentBitmapNum;
 	std::vector<LLPointer<LLImageRaw> >	mImageRawVec;
 	std::vector<LLPointer<LLImageGL> > mImageGLVec;
 };

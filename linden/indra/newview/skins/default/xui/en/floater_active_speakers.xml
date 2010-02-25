@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<floater
+ legacy_header_height="18"
+ can_resize="true"
+ height="300"
+ layout="topleft"
+ min_height="200"
+ min_width="180"
+ name="active_speakers"
+ help_topic="active_speakers"
+ save_rect="true"
+ save_visibility="true"
+ single_instance="true"
+ title="NEARBY SPEAKERS"
+ width="250">
+    <panel
+     bottom="300"
+     follows="left|top|right|bottom"
+     layout="topleft"
+     left="0"
+     mouse_opaque="false"
+     name="active_speakers_panel"
+     right="250"
+     top="0">
+        <scroll_list
+         bottom="265"
+         column_padding="0"
+         draw_heading="true"
+         draw_stripes="false"
+         follows="left|top|bottom|right"
+         layout="topleft"
+         left="10"
+         name="speakers_list"
+         right="-10"
+         search_column="1"
+         sort_column="2"
+         top="20">
+            <scroll_list.columns
+             name="icon_speaking_status"
+             sort_column="speaking_status"
+             width="20" />
+            <scroll_list.columns
+             dynamic_width="true"
+             label="Name"
+             name="speaker_name" />
+            <scroll_list.columns
+             label=""
+             name="speaking_status"
+             width="0" />
+        </scroll_list>
+        <panel
+         bevel_style="in"
+         bg_alpha_color="0 0 0 0"
+         bg_opaque_color="0 0 0 0.3"
+         bottom="295"
+         follows="left|right|bottom"
+         height="20"
+         layout="topleft"
+         left="10"
+         name="volume_container"
+         right="-10">
+            <slider_bar
+             follows="left|bottom"
+             height="15"
+             increment="0.05"
+             initial_value="0.5"
+             layout="topleft"
+             left_delta="10"
+             name="speaker_volume"
+             top="0"
+             width="110" />
+            <button
+             height="20"
+             image_selected="icn_speaker-muted_dark.tga"
+             image_unselected="icn_speaker_dark.tga"
+             is_toggle="true"
+             layout="topleft"
+             left_delta="115"
+             name="mute_btn"
+             tool_tip="Block voice for this Resident"
+             top="-5"
+             width="25" />
+        </panel>
+    </panel>
+</floater>

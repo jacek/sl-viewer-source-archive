@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -59,13 +59,9 @@ BOOL					LLViewerJoint::sDisableLOD = FALSE;
 // Class Constructor
 //-----------------------------------------------------------------------------
 LLViewerJoint::LLViewerJoint()
+	:       LLJoint()
 {
-	mUpdateXform = TRUE;
-	mValid = FALSE;
-	mComponents = SC_JOINT | SC_BONE | SC_AXES;
-	mMinPixelArea = DEFAULT_LOD;
-	mPickName = PN_DEFAULT;
-	mVisible = TRUE;
+	init();
 }
 
 
@@ -73,13 +69,21 @@ LLViewerJoint::LLViewerJoint()
 // LLViewerJoint()
 // Class Constructor
 //-----------------------------------------------------------------------------
-LLViewerJoint::LLViewerJoint(const std::string &name, LLJoint *parent) :
-	LLJoint(name, parent)
+LLViewerJoint::LLViewerJoint(const std::string &name, LLJoint *parent)
+	:	LLJoint(name, parent)
+{
+	init();
+}
+
+
+void LLViewerJoint::init()
 {
 	mValid = FALSE;
 	mComponents = SC_JOINT | SC_BONE | SC_AXES;
 	mMinPixelArea = DEFAULT_LOD;
 	mPickName = PN_DEFAULT;
+	mVisible = TRUE;
+	mMeshID = 0;
 }
 
 

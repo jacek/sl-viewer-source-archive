@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,7 +39,8 @@ class LLMessageSystem;
 class LLWorldMapMessage : public LLSingleton<LLWorldMapMessage>
 {
 public:
-	typedef void(*url_callback_t)(U64 region_handle, const std::string& url, const LLUUID& snapshot_id, bool teleport);
+	typedef boost::function<void(U64 region_handle, const std::string& url, const LLUUID& snapshot_id, bool teleport)>
+		url_callback_t;
 
 	LLWorldMapMessage();
 	~LLWorldMapMessage();

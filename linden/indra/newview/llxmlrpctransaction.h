@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -100,7 +100,7 @@ public:
 		
 	~LLXMLRPCTransaction();
 	
-	typedef enum {
+	typedef enum e_status {
 		StatusNotStarted,
 		StatusStarted,
 		StatusDownloading,
@@ -108,12 +108,12 @@ public:
 		StatusCURLError,
 		StatusXMLRPCError,
 		StatusOtherError
-	} Status;
+	} EStatus;
 
 	bool process();
 		// run the request a little, returns true when done
 		
-	Status status(int* curlCode);
+	EStatus status(int* curlCode);
 		// return status, and extended CURL code, if code isn't null
 	std::string statusMessage();
 		// return a message string, suitable for showing the user

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,20 +33,24 @@
 #ifndef LL_LLVIEWERMESSAGE_H
 #define LL_LLVIEWERMESSAGE_H
 
+#include "llassettype.h"
 #include "llinstantmessage.h"
+#include "llpointer.h"
 #include "lltransactiontypes.h"
 #include "lluuid.h"
-#include "llchat.h"
+#include "message.h"
 #include "stdenums.h"
 
 //
 // Forward declarations
 //
 class LLColor4;
-class LLViewerObject;
 class LLInventoryObject;
 class LLInventoryItem;
+class LLMeanCollisionData;
 class LLMessageSystem;
+class LLVFS;
+class LLViewerObject;
 class LLViewerRegion;
 
 //
@@ -58,7 +62,8 @@ enum InventoryOfferResponse
 	IOR_ACCEPT,
 	IOR_DECLINE,
 	IOR_MUTE,
-	IOR_BUSY
+	IOR_BUSY,
+	IOR_SHOW
 };
 
 BOOL can_afford_transaction(S32 cost);
@@ -74,9 +79,6 @@ void send_sound_trigger(const LLUUID& sound_id, F32 gain);
 void process_improved_im(LLMessageSystem *msg, void **user_data);
 void process_script_question(LLMessageSystem *msg, void **user_data);
 void process_chat_from_simulator(LLMessageSystem *mesgsys, void **user_data);
-
-void add_floater_chat(const LLChat &chat, const BOOL history);
-void check_translate_chat(const std::string &mesg, LLChat &chat, const BOOL history);
 
 //void process_agent_to_new_region(LLMessageSystem *mesgsys, void **user_data);
 void send_agent_update(BOOL force_send, BOOL send_reliable = FALSE);
@@ -155,7 +157,7 @@ void send_group_notice(const LLUUID& group_id,
 					   const LLInventoryItem* item);
 
 void handle_lure(const LLUUID& invitee);
-void handle_lure(LLDynamicArray<LLUUID>& ids);
+void handle_lure(const std::vector<LLUUID>& ids);
 
 // always from gAgent and 
 // routes through the gAgent's current simulator
@@ -199,10 +201,18 @@ void invalid_message_callback(LLMessageSystem*, void*, EMessageException);
 
 void process_initiate_download(LLMessageSystem* msg, void**);
 void start_new_inventory_observer();
+void open_inventory_offer(const std::vector<LLUUID>& items, const std::string& from_name);
+
+// Returns true if item is not in certain "quiet" folder which don't need UI
+// notification (e.g. trash, cof, lost-and-found) and agent is not AFK, false otherwise.
+// Returns false if item is not found.
+bool highlight_offered_item(const LLUUID& item_id);
 
 struct LLOfferInfo
 {
-	LLOfferInfo() {};
+        LLOfferInfo()
+	:	mFromGroup(FALSE), mFromObject(FALSE),
+		mIM(IM_NOTHING_SPECIAL), mType(LLAssetType::AT_NONE) {};
 	LLOfferInfo(const LLSD& sd);
 
 	void forceResponse(InventoryOfferResponse response);
@@ -220,7 +230,9 @@ struct LLOfferInfo
 	LLHost mHost;
 
 	LLSD asLLSD();
+	void send_auto_receive_response(void);
 	bool inventory_offer_callback(const LLSD& notification, const LLSD& response);
+	bool inventory_task_offer_callback(const LLSD& notification, const LLSD& response);
 
 };
 

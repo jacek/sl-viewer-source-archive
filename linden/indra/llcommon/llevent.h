@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,8 +35,11 @@
 #define LL_EVENT_H
 
 #include "llsd.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llthread.h"
+
+namespace LLOldEvents
+{
 
 class LLEventListener;
 class LLEvent;
@@ -44,7 +47,7 @@ class LLEventDispatcher;
 class LLObservable;
 
 // Abstract event. All events derive from LLEvent
-class LLEvent : public LLThreadSafeRefCount
+class LL_COMMON_API LLEvent : public LLThreadSafeRefCount
 {
 protected:
 	virtual ~LLEvent();
@@ -72,7 +75,7 @@ private:
 };
 
 // Abstract listener. All listeners derive from LLEventListener
-class LLEventListener : public LLThreadSafeRefCount
+class LL_COMMON_API LLEventListener : public LLThreadSafeRefCount
 {
 protected:
 	virtual ~LLEventListener();
@@ -89,7 +92,7 @@ public:
 };
 
 // A listener which tracks references to it and cleans up when it's deallocated
-class LLSimpleListener : public LLEventListener
+class LL_COMMON_API LLSimpleListener : public LLEventListener
 {
 public:
 	void clearDispatchers();
@@ -114,7 +117,7 @@ struct LLListenerEntry
 // Base class for a dispatcher - an object which listens
 // to events being fired and relays them to their
 // appropriate destinations.
-class LLEventDispatcher : public LLThreadSafeRefCount
+class LL_COMMON_API LLEventDispatcher : public LLThreadSafeRefCount
 {
 protected:
 	virtual ~LLEventDispatcher();
@@ -157,7 +160,7 @@ private:
 // In order for this class to work properly, it needs
 // an instance of an LLEventDispatcher to route events to their
 // listeners.
-class LLObservable
+class LL_COMMON_API LLObservable
 {
 public:
 	// Initialize with the default Dispatcher
@@ -193,5 +196,7 @@ public:
 	LLSD getValue() { return mValue; }
 	LLSD mValue;
 };
+
+} // LLOldEvents
 
 #endif // LL_EVENT_H

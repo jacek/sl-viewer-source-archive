@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ default_tab_group="1"
+ follows="all"
+ height="22"
+ layout="topleft"
+ left="0"
+ name="bg_tab"
+ top="22"
+ use_bounding_rect="true"
+ width="100">
+    <icon
+     follows="all"
+     height="22"
+     image_name="TabTop_Left_Off"
+     layout="topleft"
+     left="1"
+     name="toolbar_tab"
+     top="2"
+     width="100" />
+</panel>

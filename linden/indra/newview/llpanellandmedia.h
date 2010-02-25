@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -57,16 +57,12 @@ private:
 	static void onCommitType(LLUICtrl* ctrl, void *userdata);
 	static void onSetBtn(void* userdata);
 	static void onResetBtn(void* userdata);
-	static void onClickAddURLFilter(void *userdata);
-	static void onClickRemoveURLFilter(void *userdata);
 	
 private:
 	LLLineEditor*	mMediaURLEdit;
 	LLLineEditor*	mMediaDescEdit;
 	LLComboBox*		mMediaTypeCombo;
 	LLButton*		mSetURLButton;
-	LLButton*		mResetURLButton;
-	LLSpinCtrl*		mMediaResetCtrl;
 	LLSpinCtrl*		mMediaHeightCtrl;
 	LLSpinCtrl*		mMediaWidthCtrl;
 	LLTextBox*		mMediaResetCtrlLabel;
@@ -76,13 +72,6 @@ private:
 	LLCheckBoxCtrl*	mMediaLoopCheck;
 	LLCheckBoxCtrl* mMediaUrlCheck;
 	LLHandle<LLFloater>	mURLEntryFloater;
-	LLCheckBoxCtrl* mMediaNavigateAllowCheck;
-	LLCheckBoxCtrl* mMediaURLFilterCheck;
-	LLLineEditor*	mMediaURLFilterDomainEdit;
-	LLButton*		mMediaURLFilterAddButton;
-	LLButton*		mMediaURLFilterRemoveButton;
-	LLScrollListCtrl*   mURLFilterList;
-	LLRadioGroup*	mRadioNavigateControl;
 
 
 	

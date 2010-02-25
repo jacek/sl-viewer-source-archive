@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -60,6 +60,7 @@ public:
 	// this method stores an array of objects
 	void store(const LLDynamicArray<LLUUID>& inventory_objects);
 
+	void cut(const LLUUID& object);
 	// this method gets the objects in the clipboard by copying them
 	// into the array provided.
 	void retrieve(LLDynamicArray<LLUUID>& inventory_objects) const;
@@ -69,11 +70,13 @@ public:
 
 	// returns true if the clipboard has something pasteable in it.
 	BOOL hasContents() const;
+	bool isCutMode() const { return mCutMode; }
 
 protected:
 	static LLInventoryClipboard sInstance;
 
 	LLDynamicArray<LLUUID> mObjects;
+	bool mCutMode;
 
 public:
 	// please don't actually call these

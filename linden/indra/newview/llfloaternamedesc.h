@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,11 +44,14 @@ class LLRadioGroup;
 class LLFloaterNameDesc : public LLFloater
 {
 public:
-	LLFloaterNameDesc(const std::string& filename);
+	LLFloaterNameDesc(const LLSD& filename);
 	virtual ~LLFloaterNameDesc();
 	virtual BOOL postBuild();
-
-	static void			doCommit(class LLUICtrl *, void* userdata);
+	
+	void		onBtnOK();
+	void		onBtnCancel();
+	void		doCommit();
+	
 protected:
 	virtual void		onCommit();
 
@@ -57,9 +60,13 @@ protected:
 
 	std::string		mFilenameAndPath;
 	std::string		mFilename;
-
-	static void		onBtnOK(void*);
-	static void		onBtnCancel(void*);
 };
 
+class LLFloaterSoundPreview : public LLFloaterNameDesc
+{
+public:
+	LLFloaterSoundPreview(const LLSD& filename );
+	virtual BOOL postBuild();
+};
+	
 #endif  // LL_LLFLOATERNAMEDESC_H

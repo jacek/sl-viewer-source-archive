@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,35 +39,36 @@
 #include "indra_constants.h"
 #include "llcachename.h"
 #include "llgl.h"
+#include "llnotifications.h"
+#include "llnotificationsutil.h"
 #include "llparcel.h"
 #include "llsecondlifeurls.h"
 #include "message.h"
+#include "llfloaterreg.h"
 
 // Viewer includes
 #include "llagent.h"
-#include "llfloatergroupinfo.h"
 #include "llviewerwindow.h"
 #include "llviewercontrol.h"
-#include "llfirstuse.h"
+//#include "llfirstuse.h"
 #include "llfloaterbuyland.h"
 #include "llfloatergroups.h"
-//#include "llfloaterhtml.h"
+#include "llpanelnearbymedia.h"
 #include "llfloatersellland.h"
 #include "llfloatertools.h"
-#include "llnotify.h"
 #include "llparcelselection.h"
 #include "llresmgr.h"
 #include "llsdutil.h"
+#include "llsdutil_math.h"
 #include "llstatusbar.h"
 #include "llui.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llviewermenu.h"
 #include "llviewerparcelmedia.h"
 #include "llviewerparceloverlay.h"
 #include "llviewerregion.h"
 #include "llworld.h"
-#include "lloverlaybar.h"
 #include "roles_constants.h"
 #include "llweb.h"
 
@@ -80,8 +81,8 @@ U8* LLViewerParcelMgr::sPackedOverlay = NULL;
 
 LLUUID gCurrentMovieID = LLUUID::null;
 
-LLPointer<LLViewerImage> sBlockedImage;
-LLPointer<LLViewerImage> sPassImage;
+LLPointer<LLViewerTexture> sBlockedImage;
+LLPointer<LLViewerTexture> sPassImage;
 
 // Local functions
 void optionally_start_music(const std::string& music_url);
@@ -143,8 +144,11 @@ LLViewerParcelMgr::LLViewerParcelMgr()
 	mCollisionSegments = new U8[(mParcelsPerEdge+1)*(mParcelsPerEdge+1)];
 	resetSegments(mCollisionSegments);
 
-	mBlockedImage = gImageList.getImageFromFile("noentrylines.j2c");
-	mPassImage = gImageList.getImageFromFile("noentrypasslines.j2c");
+	// JC: Resolved a merge conflict here, eliminated
+	// mBlockedImage->setAddressMode(LLTexUnit::TAM_WRAP);
+	// because it is done in llviewertexturelist.cpp
+	mBlockedImage = LLViewerTextureManager::getFetchedTextureFromFile("world/NoEntryLines.png");
+	mPassImage = LLViewerTextureManager::getFetchedTextureFromFile("world/NoEntryPassLines.png");
 
 	S32 overlay_size = mParcelsPerEdge * mParcelsPerEdge / PARCEL_OVERLAY_CHUNKS;
 	sPackedOverlay = new U8[overlay_size];
@@ -155,6 +159,8 @@ LLViewerParcelMgr::LLViewerParcelMgr()
 	{
 		mAgentParcelOverlay[i] = 0;
 	}
+
+	mTeleportInProgress = TRUE; // the initial parcel update is treated like teleport
 }
 
 
@@ -516,7 +522,7 @@ LLParcelSelectionHandle LLViewerParcelMgr::selectLand(const LLVector3d &corner1,
 
 	if (region != region_other)
 	{
-		LLNotifications::instance().add("CantSelectLandFromMultipleRegions");
+		LLNotificationsUtil::add("CantSelectLandFromMultipleRegions");
 		mSelected = FALSE;
 		notifyObservers();
 		return NULL;
@@ -646,14 +652,13 @@ LLParcel *LLViewerParcelMgr::getAgentParcel() const
 }
 
 // Return whether the agent can build on the land they are on
-BOOL LLViewerParcelMgr::agentCanBuild() const
+bool LLViewerParcelMgr::allowAgentBuild() const
 {
 	if (mAgentParcel)
 	{
-		return (gAgent.isGodlike()
-				|| (mAgentParcel->allowModifyBy(
-						gAgent.getID(),
-						gAgent.getGroupID())));
+		return (gAgent.isGodlike() ||
+				(mAgentParcel->allowModifyBy(gAgent.getID(), gAgent.getGroupID())) ||
+				(isParcelOwnedByAgent(mAgentParcel, GP_LAND_ALLOW_CREATE)));
 	}
 	else
 	{
@@ -661,19 +666,53 @@ BOOL LLViewerParcelMgr::agentCanBuild() const
 	}
 }
 
-BOOL LLViewerParcelMgr::agentCanTakeDamage() const
+// Return whether anyone can build on the given parcel
+bool LLViewerParcelMgr::allowAgentBuild(const LLParcel* parcel) const
 {
-	return mAgentParcel->getAllowDamage();
+	return parcel->getAllowModify();
 }
 
-BOOL LLViewerParcelMgr::agentCanFly() const
+bool LLViewerParcelMgr::allowAgentVoice() const
 {
-	return TRUE;
+	return allowAgentVoice(gAgent.getRegion(), mAgentParcel);
 }
 
-F32 LLViewerParcelMgr::agentDrawDistance() const
+bool LLViewerParcelMgr::allowAgentVoice(const LLViewerRegion* region, const LLParcel* parcel) const
 {
-	return 512.f;
+	return region && region->isVoiceEnabled()
+		&& parcel	&& parcel->getParcelFlagAllowVoice();
+}
+
+bool LLViewerParcelMgr::allowAgentFly(const LLViewerRegion* region, const LLParcel* parcel) const
+{
+	return region && !region->getBlockFly()
+		&& parcel && parcel->getAllowFly();
+}
+
+// Can the agent be pushed around by LLPushObject?
+bool LLViewerParcelMgr::allowAgentPush(const LLViewerRegion* region, const LLParcel* parcel) const
+{
+	return region && !region->getRestrictPushObject()
+		&& parcel && !parcel->getRestrictPushObject();
+}
+
+bool LLViewerParcelMgr::allowAgentScripts(const LLViewerRegion* region, const LLParcel* parcel) const
+{
+	// *NOTE: This code does not take into account group-owned parcels
+	// and the flag to allow group-owned scripted objects to run.
+	// This mirrors the traditional menu bar parcel icon code, but is not
+	// technically correct.
+	return region
+		&& !(region->getRegionFlags() & REGION_FLAGS_SKIP_SCRIPTS)
+		&& !(region->getRegionFlags() & REGION_FLAGS_ESTATE_SKIP_SCRIPTS)
+		&& parcel
+		&& parcel->getAllowOtherScripts();
+}
+
+bool LLViewerParcelMgr::allowAgentDamage(const LLViewerRegion* region, const LLParcel* parcel) const
+{
+	return (region && region->getAllowDamage())
+		|| (parcel && parcel->getAllowDamage());
 }
 
 BOOL LLViewerParcelMgr::isOwnedAt(const LLVector3d& pos_global) const
@@ -761,13 +800,17 @@ BOOL LLViewerParcelMgr::canHearSound(const LLVector3d &pos_global) const
 BOOL LLViewerParcelMgr::inAgentParcel(const LLVector3d &pos_global) const
 {
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(pos_global);
-	if (region != gAgent.getRegion())
+	LLViewerRegion* agent_region = gAgent.getRegion();
+	if (!region || !agent_region)
+		return FALSE;
+
+	if (region != agent_region)
 	{
 		// Can't be in the agent parcel if you're not in the same region.
 		return FALSE;
 	}
 
-	LLVector3 pos_region = gAgent.getRegion()->getPosRegionFromGlobal(pos_global);
+	LLVector3 pos_region = agent_region->getPosRegionFromGlobal(pos_global);
 	S32 row =    S32(pos_region.mV[VY] / PARCEL_GRID_STEP_METERS);
 	S32 column = S32(pos_region.mV[VX] / PARCEL_GRID_STEP_METERS);
 
@@ -836,8 +879,11 @@ void LLViewerParcelMgr::renderParcelCollision()
 	if (mRenderCollision && gSavedSettings.getBOOL("ShowBanLines"))
 	{
 		LLViewerRegion* regionp = gAgent.getRegion();
-		BOOL use_pass = mCollisionParcel->getParcelFlag(PF_USE_PASS_LIST);
-		renderCollisionSegments(mCollisionSegments, use_pass, regionp);
+		if (regionp)
+		{
+			BOOL use_pass = mCollisionParcel->getParcelFlag(PF_USE_PASS_LIST);
+			renderCollisionSegments(mCollisionSegments, use_pass, regionp);
+		}
 	}
 }
 
@@ -905,7 +951,7 @@ void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 {
 	if (!mSelected)
 	{
-		LLNotifications::instance().add("CannotSetLandOwnerNothingSelected");
+		LLNotificationsUtil::add("CannotSetLandOwnerNothingSelected");
 		return;
 	}
 
@@ -920,7 +966,7 @@ void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 	if (!region)
 	{
 		// TODO: Add a force owner version of this alert.
-		LLNotifications::instance().add("CannotContentifyNoRegion");
+		LLNotificationsUtil::add("CannotContentifyNoRegion");
 		return;
 	}
 
@@ -928,7 +974,7 @@ void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 	LLViewerRegion *region2 = LLWorld::getInstance()->getRegionFromPosGlobal( east_north_region_check );
 	if (region != region2)
 	{
-		LLNotifications::instance().add("CannotSetLandOwnerMultipleRegions");
+		LLNotificationsUtil::add("CannotSetLandOwnerMultipleRegions");
 		return;
 	}
 
@@ -939,7 +985,7 @@ void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 	payload["parcel_local_id"] = mCurrentParcel->getLocalID();
 	payload["region_host"] = region->getHost().getIPandPort();
 	LLNotification::Params params("ForceOwnerAuctionWarning");
-	params.payload(payload).functor(callback_god_force_owner);
+	params.payload(payload).functor.function(callback_god_force_owner);
 
 	if(mCurrentParcel->getAuctionID())
 	{
@@ -953,7 +999,7 @@ void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 
 bool callback_god_force_owner(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if(0 == option)
 	{
 		LLMessageSystem* msg = gMessageSystem;
@@ -973,13 +1019,13 @@ void LLViewerParcelMgr::sendParcelGodForceToContent()
 {
 	if (!mSelected)
 	{
-		LLNotifications::instance().add("CannotContentifyNothingSelected");
+		LLNotificationsUtil::add("CannotContentifyNothingSelected");
 		return;
 	}
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal( mWestSouth );
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotContentifyNoRegion");
+		LLNotificationsUtil::add("CannotContentifyNoRegion");
 		return;
 	}
 
@@ -997,14 +1043,14 @@ void LLViewerParcelMgr::sendParcelRelease()
 {
 	if (!mSelected)
 	{
-        LLNotifications::instance().add("CannotReleaseLandNothingSelected");
+        LLNotificationsUtil::add("CannotReleaseLandNothingSelected");
 		return;
 	}
 
 	LLViewerRegion *region = LLWorld::getInstance()->getRegionFromPosGlobal( mWestSouth );
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotReleaseLandNoRegion");
+		LLNotificationsUtil::add("CannotReleaseLandNoRegion");
 		return;
 	}
 
@@ -1059,14 +1105,14 @@ LLViewerParcelMgr::ParcelBuyInfo* LLViewerParcelMgr::setupParcelBuy(
 {
 	if (!mSelected || !mCurrentParcel)
 	{
-		LLNotifications::instance().add("CannotBuyLandNothingSelected");
+		LLNotificationsUtil::add("CannotBuyLandNothingSelected");
 		return NULL;
 	}
 
 	LLViewerRegion *region = LLWorld::getInstance()->getRegionFromPosGlobal( mWestSouth );
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotBuyLandNoRegion");
+		LLNotificationsUtil::add("CannotBuyLandNoRegion");
 		return NULL;
 	}
 	
@@ -1084,7 +1130,7 @@ LLViewerParcelMgr::ParcelBuyInfo* LLViewerParcelMgr::setupParcelBuy(
 
 		if (region != region2)
 		{
-			LLNotifications::instance().add("CantBuyLandAcrossMultipleRegions");
+			LLNotificationsUtil::add("CantBuyLandAcrossMultipleRegions");
 			return NULL;
 		}
 	}
@@ -1155,28 +1201,29 @@ void LLViewerParcelMgr::sendParcelBuy(ParcelBuyInfo* info)
 	msg->sendReliable(info->mHost);
 }
 
-void LLViewerParcelMgr::deleteParcelBuy(ParcelBuyInfo*& info)
+void LLViewerParcelMgr::deleteParcelBuy(ParcelBuyInfo* *info)
 {
-	delete info;
-	info = NULL;
+	// Must be here because ParcelBuyInfo is local to this .cpp file
+	delete *info;
+	*info = NULL;
 }
 
 void LLViewerParcelMgr::sendParcelDeed(const LLUUID& group_id)
 {
 	if (!mSelected || !mCurrentParcel)
 	{
-		LLNotifications::instance().add("CannotDeedLandNothingSelected");
+		LLNotificationsUtil::add("CannotDeedLandNothingSelected");
 		return;
 	}
 	if(group_id.isNull())
 	{
-		LLNotifications::instance().add("CannotDeedLandNoGroup");
+		LLNotificationsUtil::add("CannotDeedLandNoGroup");
 		return;
 	}
 	LLViewerRegion *region = LLWorld::getInstance()->getRegionFromPosGlobal( mWestSouth );
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotDeedLandNoRegion");
+		LLNotificationsUtil::add("CannotDeedLandNoRegion");
 		return;
 	}
 
@@ -1276,13 +1323,38 @@ void LLViewerParcelMgr::sendParcelPropertiesUpdate(LLParcel* parcel, bool use_ag
 }
 
 
-void LLViewerParcelMgr::requestHoverParcelProperties(const LLVector3d& pos)
+void LLViewerParcelMgr::setHoverParcel(const LLVector3d& pos)
 {
+	static U32 last_west, last_south;
+
+
+	// only request parcel info when tooltip is shown
+	if (!gSavedSettings.getBOOL("ShowLandHoverTip"))
+	{
+		return;
+	}
+
+	// only request parcel info if position has changed outside of the
+	// last parcel grid step
+	U32 west_parcel_step = (U32) floor( pos.mdV[VX] / PARCEL_GRID_STEP_METERS );
+	U32 south_parcel_step = (U32) floor( pos.mdV[VY] / PARCEL_GRID_STEP_METERS );
+	
+	if ((west_parcel_step == last_west) && (south_parcel_step == last_south))
+	{
+		return;
+	}
+	else 
+	{
+		last_west = west_parcel_step;
+		last_south = south_parcel_step;
+	}
+
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal( pos );
 	if (!region)
 	{
 		return;
 	}
+
 
 	// Send a rectangle around the point.
 	// This means the parcel sent back is at least a rectangle around the point,
@@ -1514,6 +1586,17 @@ void LLViewerParcelMgr::processParcelProperties(LLMessageSystem *msg, void **use
 
 			LLViewerParcelMgr::getInstance()->writeAgentParcelFromBitmap(bitmap);
 			delete[] bitmap;
+
+			// Let interesting parties know about agent parcel change.
+			LLViewerParcelMgr* instance = LLViewerParcelMgr::getInstance();
+
+			instance->mAgentParcelChangedSignal();
+
+			if (instance->mTeleportInProgress)
+			{
+				instance->mTeleportInProgress = FALSE;
+				instance->mTeleportFinishedSignal(gAgent.getPositionGlobal());
+			}
 		}
 	}
 
@@ -1679,10 +1762,16 @@ void LLViewerParcelMgr::processParcelProperties(LLMessageSystem *msg, void **use
 						{
 							optionally_start_music(music_url);
 						}
+						else
+						{
+							llinfos << "Stopping parcel music (invalid audio stream URL)" << llendl;
+							// clears the URL 
+							gAudiop->startInternetStream(LLStringUtil::null); 
+						}
 					}
 					else if (!gAudiop->getInternetStreamURL().empty())
 					{
-						llinfos << "Stopping parcel music" << llendl;
+						llinfos << "Stopping parcel music (parcel stream URL is empty)" << llendl;
 						gAudiop->startInternetStream(LLStringUtil::null);
 					}
 				}
@@ -1701,15 +1790,20 @@ void LLViewerParcelMgr::processParcelProperties(LLMessageSystem *msg, void **use
 
 void optionally_start_music(const std::string& music_url)
 {
-	if (gSavedSettings.getBOOL("AudioStreamingMusic"))
+	if (gSavedSettings.getBOOL("AudioStreamingMusic") &&
+	    gSavedSettings.getBOOL("AudioStreamingMedia"))
 	{
-		// Make the user click the start button on the overlay bar. JC
-		//		llinfos << "Starting parcel music " << music_url << llendl;
-
-		// now only play music when you enter a new parcel if the control is in PLAY state
-		// changed as part of SL-4878
-		if ( gOverlayBar && gOverlayBar->musicPlaying())
+		// only play music when you enter a new parcel if the UI control for this
+		// was not *explicitly* stopped by the user. (part of SL-4878)
+		LLPanelNearByMedia* nearby_media_panel = gStatusBar->getNearbyMediaPanel();;
+		if ((nearby_media_panel &&
+		     nearby_media_panel->getParcelAudioAutoStart()) ||
+		    // or they have expressed no opinion in the UI, but have autoplay on...
+		    (!nearby_media_panel &&
+		     gSavedSettings.getBOOL(LLViewerMedia::AUTO_PLAY_MEDIA_SETTING) &&
+			 gSavedSettings.getBOOL("MediaTentativeAutoPlay")))
 		{
+			llinfos << "Starting parcel music " << music_url << llendl;
 			gAudiop->startInternetStream(music_url);
 		}
 	}
@@ -1733,7 +1827,7 @@ void LLViewerParcelMgr::processParcelAccessListReply(LLMessageSystem *msg, void 
 
 	if (parcel_id != parcel->getLocalID())
 	{
-		llwarns << "processParcelAccessListReply for parcel " << parcel_id
+		LL_WARNS_ONCE("") << "processParcelAccessListReply for parcel " << parcel_id
 			<< " which isn't the selected parcel " << parcel->getLocalID()<< llendl;
 		return;
 	}
@@ -1985,18 +2079,18 @@ void LLViewerParcelMgr::deedLandToGroup()
 		gCacheName->getName(mCurrentParcel->getOwnerID(), first_name, last_name);
 		args["FIRST_NAME"] = first_name;
 		args["LAST_NAME"] = last_name;
-		LLNotifications::instance().add("DeedLandToGroupWithContribution",args, LLSD(), deedAlertCB);
+		LLNotificationsUtil::add("DeedLandToGroupWithContribution",args, LLSD(), deedAlertCB);
 	}
 	else
 	{
-		LLNotifications::instance().add("DeedLandToGroup",args, LLSD(), deedAlertCB);
+		LLNotificationsUtil::add("DeedLandToGroup",args, LLSD(), deedAlertCB);
 	}
 }
 
 // static
 bool LLViewerParcelMgr::deedAlertCB(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if (option == 0)
 	{
 		LLParcel* parcel = LLViewerParcelMgr::getInstance()->getParcelSelection()->getParcel();
@@ -2015,26 +2109,26 @@ void LLViewerParcelMgr::startReleaseLand()
 {
 	if (!mSelected)
 	{
-		LLNotifications::instance().add("CannotReleaseLandNothingSelected");
+		LLNotificationsUtil::add("CannotReleaseLandNothingSelected");
 		return;
 	}
 
 	if (mRequestResult == PARCEL_RESULT_NO_DATA)
 	{
-		LLNotifications::instance().add("CannotReleaseLandWatingForServer");
+		LLNotificationsUtil::add("CannotReleaseLandWatingForServer");
 		return;
 	}
 
 	if (mRequestResult == PARCEL_RESULT_MULTIPLE)
 	{
-		LLNotifications::instance().add("CannotReleaseLandSelected");
+		LLNotificationsUtil::add("CannotReleaseLandSelected");
 		return;
 	}
 
 	if (!isParcelOwnedByAgent(mCurrentParcel, GP_LAND_RELEASE)
 		&& !(gAgent.canManageEstate()))
 	{
-		LLNotifications::instance().add("CannotReleaseLandDontOwn");
+		LLNotificationsUtil::add("CannotReleaseLandDontOwn");
 		return;
 	}
 
@@ -2042,7 +2136,7 @@ void LLViewerParcelMgr::startReleaseLand()
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(parcel_center);
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotReleaseLandRegionNotFound");
+		LLNotificationsUtil::add("CannotReleaseLandRegionNotFound");
 		return;
 	}
 /*
@@ -2051,21 +2145,21 @@ void LLViewerParcelMgr::startReleaseLand()
 	{
 		LLSD args;
 		args["REGION"] = region->getName();
-		LLNotifications::instance().add("CannotReleaseLandNoTransfer", args);
+		LLNotificationsUtil::add("CannotReleaseLandNoTransfer", args);
 		return;
 	}
 */
 
 	if (!mCurrentParcelSelection->mWholeParcelSelected)
 	{
-		LLNotifications::instance().add("CannotReleaseLandPartialSelection");
+		LLNotificationsUtil::add("CannotReleaseLandPartialSelection");
 		return;
 	}
 
 	// Compute claim price
 	LLSD args;
 	args["AREA"] = llformat("%d",mCurrentParcel->getArea());
-	LLNotifications::instance().add("ReleaseLandWarning", args, LLSD(), releaseAlertCB);
+	LLNotificationsUtil::add("ReleaseLandWarning", args, LLSD(), releaseAlertCB);
 }
 
 bool LLViewerParcelMgr::canAgentBuyParcel(LLParcel* parcel, bool forGroup) const
@@ -2140,13 +2234,13 @@ void LLViewerParcelMgr::startDivideLand()
 {
 	if (!mSelected)
 	{
-		LLNotifications::instance().add("CannotDivideLandNothingSelected");
+		LLNotificationsUtil::add("CannotDivideLandNothingSelected");
 		return;
 	}
 
 	if (mCurrentParcelSelection->mWholeParcelSelected)
 	{
-		LLNotifications::instance().add("CannotDivideLandPartialSelection");
+		LLNotificationsUtil::add("CannotDivideLandPartialSelection");
 		return;
 	}
 
@@ -2154,13 +2248,13 @@ void LLViewerParcelMgr::startDivideLand()
 	payload["west_south_border"] = ll_sd_from_vector3d(mWestSouth);
 	payload["east_north_border"] = ll_sd_from_vector3d(mEastNorth);
 
-	LLNotifications::instance().add("LandDivideWarning", LLSD(), payload, callbackDivideLand);
+	LLNotificationsUtil::add("LandDivideWarning", LLSD(), payload, callbackDivideLand);
 }
 
 // static
 bool LLViewerParcelMgr::callbackDivideLand(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	LLVector3d west_south_d = ll_vector3d_from_sd(notification["payload"]["west_south_border"]);
 	LLVector3d east_north_d = ll_vector3d_from_sd(notification["payload"]["east_north_border"]);
 	LLVector3d parcel_center = (west_south_d + east_north_d) / 2.0;
@@ -2168,7 +2262,7 @@ bool LLViewerParcelMgr::callbackDivideLand(const LLSD& notification, const LLSD&
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(parcel_center);
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotDivideLandNoRegion");
+		LLNotificationsUtil::add("CannotDivideLandNoRegion");
 		return false;
 	}
 
@@ -2197,19 +2291,19 @@ void LLViewerParcelMgr::startJoinLand()
 {
 	if (!mSelected)
 	{
-		LLNotifications::instance().add("CannotJoinLandNothingSelected");
+		LLNotificationsUtil::add("CannotJoinLandNothingSelected");
 		return;
 	}
 
 	if (mCurrentParcelSelection->mWholeParcelSelected)
 	{
-		LLNotifications::instance().add("CannotJoinLandEntireParcelSelected");
+		LLNotificationsUtil::add("CannotJoinLandEntireParcelSelected");
 		return;
 	}
 
 	if (!mCurrentParcelSelection->mSelectedMultipleOwners)
 	{
-		LLNotifications::instance().add("CannotJoinLandSelection");
+		LLNotificationsUtil::add("CannotJoinLandSelection");
 		return;
 	}
 
@@ -2217,13 +2311,13 @@ void LLViewerParcelMgr::startJoinLand()
 	payload["west_south_border"] = ll_sd_from_vector3d(mWestSouth);
 	payload["east_north_border"] = ll_sd_from_vector3d(mEastNorth);
 
-	LLNotifications::instance().add("JoinLandWarning", LLSD(), payload, callbackJoinLand);
+	LLNotificationsUtil::add("JoinLandWarning", LLSD(), payload, callbackJoinLand);
 }
 
 // static
 bool LLViewerParcelMgr::callbackJoinLand(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	LLVector3d west_south_d = ll_vector3d_from_sd(notification["payload"]["west_south_border"]);
 	LLVector3d east_north_d = ll_vector3d_from_sd(notification["payload"]["east_north_border"]);
 	LLVector3d parcel_center = (west_south_d + east_north_d) / 2.0;
@@ -2231,7 +2325,7 @@ bool LLViewerParcelMgr::callbackJoinLand(const LLSD& notification, const LLSD& r
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(parcel_center);
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotJoinLandNoRegion");
+		LLNotificationsUtil::add("CannotJoinLandNoRegion");
 		return false;
 	}
 
@@ -2260,19 +2354,19 @@ void LLViewerParcelMgr::startDeedLandToGroup()
 {
 	if (!mSelected || !mCurrentParcel)
 	{
-		LLNotifications::instance().add("CannotDeedLandNothingSelected");
+		LLNotificationsUtil::add("CannotDeedLandNothingSelected");
 		return;
 	}
 
 	if (mRequestResult == PARCEL_RESULT_NO_DATA)
 	{
-		LLNotifications::instance().add("CannotDeedLandWaitingForServer");
+		LLNotificationsUtil::add("CannotDeedLandWaitingForServer");
 		return;
 	}
 
 	if (mRequestResult == PARCEL_RESULT_MULTIPLE)
 	{
-		LLNotifications::instance().add("CannotDeedLandMultipleSelected");
+		LLNotificationsUtil::add("CannotDeedLandMultipleSelected");
 		return;
 	}
 
@@ -2280,7 +2374,7 @@ void LLViewerParcelMgr::startDeedLandToGroup()
 	LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(parcel_center);
 	if (!region)
 	{
-		LLNotifications::instance().add("CannotDeedLandNoRegion");
+		LLNotificationsUtil::add("CannotDeedLandNoRegion");
 		return;
 	}
 
@@ -2292,7 +2386,7 @@ void LLViewerParcelMgr::startDeedLandToGroup()
 		{
 			LLSD args;
 			args["REGION"] = region->getName();
-			LLNotifications::instance().add("CannotDeedLandNoTransfer", args);
+			LLNotificationsUtil::add("CannotDeedLandNoTransfer", args);
 			return;
 		}
 	}
@@ -2322,7 +2416,7 @@ void LLViewerParcelMgr::reclaimParcel()
 // static
 bool LLViewerParcelMgr::releaseAlertCB(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if (option == 0)
 	{
 		// Send the release message, not a force
@@ -2433,12 +2527,61 @@ void LLViewerParcelMgr::cleanupGlobals()
 	LLParcelSelection::sNullSelection = NULL;
 }
 
-LLViewerImage* LLViewerParcelMgr::getBlockedImage() const
+LLViewerTexture* LLViewerParcelMgr::getBlockedImage() const
 {
 	return sBlockedImage;
 }
 
-LLViewerImage* LLViewerParcelMgr::getPassImage() const
+LLViewerTexture* LLViewerParcelMgr::getPassImage() const
 {
 	return sPassImage;
+}
+
+boost::signals2::connection LLViewerParcelMgr::addAgentParcelChangedCallback(parcel_changed_callback_t cb)
+{
+	return mAgentParcelChangedSignal.connect(cb);
+}
+/*
+ * Set finish teleport callback. You can use it to observe all  teleport events.
+ * NOTE:
+ * After local( in one region) teleports we
+ *  cannot rely on gAgent.getPositionGlobal(),
+ *  so the new position gets passed explicitly.
+ *  Use args of this callback to get global position of avatar after teleport event.
+ */
+boost::signals2::connection LLViewerParcelMgr::setTeleportFinishedCallback(teleport_finished_callback_t cb)
+{
+	return mTeleportFinishedSignal.connect(cb);
+}
+
+boost::signals2::connection LLViewerParcelMgr::setTeleportFailedCallback(parcel_changed_callback_t cb)
+{
+	return mTeleportFailedSignal.connect(cb);
+}
+
+/* Ok, we're notified that teleport has been finished.
+ * We should now propagate the notification via mTeleportFinishedSignal
+ * to all interested parties.
+ */
+void LLViewerParcelMgr::onTeleportFinished(bool local, const LLVector3d& new_pos)
+{
+	// Treat only teleports within the same parcel as local (EXT-3139).
+	if (local && LLViewerParcelMgr::getInstance()->inAgentParcel(new_pos))
+	{
+		// Local teleport. We already have the agent parcel data.
+		// Emit the signal immediately.
+		getInstance()->mTeleportFinishedSignal(new_pos);
+	}
+	else
+	{
+		// Non-local teleport (inter-region or between different parcels of the same region).
+		// The agent parcel data has not been updated yet.
+		// Let's wait for the update and then emit the signal.
+		mTeleportInProgress = TRUE;
+	}
+}
+
+void LLViewerParcelMgr::onTeleportFailed()
+{
+	mTeleportFailedSignal();
 }

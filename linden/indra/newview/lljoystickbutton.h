@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,7 @@
 
 #include "llbutton.h"
 #include "llcoord.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 typedef enum e_joystick_quadrant
 {
@@ -46,11 +46,27 @@ typedef enum e_joystick_quadrant
 	JQ_RIGHT
 } EJoystickQuadrant;
 
+struct QuadrantNames : public LLInitParam::TypeValuesHelper<EJoystickQuadrant, QuadrantNames>
+{
+	static void declareValues();
+};
+
 class LLJoystick
 :	public LLButton
 {
 public:
-	LLJoystick(const std::string& name, LLRect rect,	const std::string &default_image,	const std::string &selected_image, EJoystickQuadrant initial);
+	struct Params 
+	:	public LLInitParam::Block<Params, LLButton::Params>
+	{
+		Optional<EJoystickQuadrant, QuadrantNames> quadrant;
+
+		Params()
+		:	quadrant("quadrant", JQ_ORIGIN)
+		{
+			label = "";
+		}
+	};
+	LLJoystick(const Params&);
 
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
@@ -60,10 +76,17 @@ public:
 	virtual void	onHeldDown() = 0;
 	F32				getElapsedHeldDownTime();
 
-	static void		onHeldDown(void *userdata);		// called by llbutton callback handler
+	static void		onBtnHeldDown(void *userdata);		// called by llbutton callback handler
 	void            setInitialQuadrant(EJoystickQuadrant initial) { mInitialQuadrant = initial; };
+
+	/**
+	 * Checks if click location is inside joystick circle.
+	 *
+	 * Image containing circle is square and this square has adherent points with joystick
+	 * circle. Make sure to change method according to shape other than square. 
+	 */
+	bool			pointInCircle(S32 x, S32 y) const;
 	
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
 	static std::string nameFromQuadrant(const EJoystickQuadrant quadrant);
 	static EJoystickQuadrant quadrantFromName(const std::string& name);
 	static EJoystickQuadrant selectQuadrant(LLXMLNodePtr node);
@@ -91,15 +114,9 @@ class LLJoystickAgentTurn
 :	public LLJoystick
 {
 public:
-	LLJoystickAgentTurn(const std::string& name, LLRect rect, const std::string &default_image, const std::string &selected_image, EJoystickQuadrant initial)
-		: LLJoystick(name, rect, default_image, selected_image, initial)
-	{ }
-
+	struct Params : public LLJoystick::Params {};
+	LLJoystickAgentTurn(const Params& p) : LLJoystick(p) {}
 	virtual void	onHeldDown();
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-
 };
 
 
@@ -108,15 +125,11 @@ class LLJoystickAgentSlide
 :	public LLJoystick
 {
 public:
-	LLJoystickAgentSlide(const std::string& name, LLRect rect, const std::string &default_image, const std::string &selected_image, EJoystickQuadrant initial)
-		: LLJoystick(name, rect, default_image, selected_image, initial)
-	{ }
-	
+	struct Params : public LLJoystick::Params {};
+	LLJoystickAgentSlide(const Params& p) : LLJoystick(p) {}
+
 	virtual void	onHeldDown();
 	virtual void	onMouseUp();
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
 };
 
 
@@ -125,7 +138,16 @@ class LLJoystickCameraRotate
 :	public LLJoystick
 {
 public:
-	LLJoystickCameraRotate(const std::string& name, LLRect rect, const std::string &out_img, const std::string &in_img);
+	struct Params 
+	:	public LLInitParam::Block<Params, LLJoystick::Params>
+	{
+		Params()
+		{
+			held_down_delay.seconds(0.0);
+		}
+	};
+
+	LLJoystickCameraRotate(const LLJoystickCameraRotate::Params&);
 
 	virtual void	setToggleState( BOOL left, BOOL top, BOOL right, BOOL bottom );
 
@@ -136,7 +158,7 @@ public:
 protected:
 	F32				getOrbitRate();
 	virtual void	updateSlop();
-	void			drawRotatedImage( LLImageGL* image, S32 rotations );
+	void			drawRotatedImage( LLPointer<LLUIImage> image, S32 rotations );
 
 protected:
 	BOOL			mInLeft;
@@ -151,10 +173,13 @@ class LLJoystickCameraTrack
 :	public LLJoystickCameraRotate
 {
 public:
-	LLJoystickCameraTrack(const std::string& name, LLRect rect, const std::string &out_img, const std::string &in_img)
-		: LLJoystickCameraRotate(name, rect, out_img, in_img)
-	{ }
+	struct Params 
+	:	public LLInitParam::Block<Params, LLJoystickCameraRotate::Params>
+	{
+		Params();
+	};
 
+	LLJoystickCameraTrack(const LLJoystickCameraTrack::Params&);
 	virtual void	onHeldDown();
 };
 
@@ -164,7 +189,20 @@ class LLJoystickCameraZoom
 :	public LLJoystick
 {
 public:
-	LLJoystickCameraZoom(const std::string& name, LLRect rect, const std::string &out_img, const std::string &plus_in_img, const std::string &minus_in_img);
+	struct Params 
+	:	public LLInitParam::Block<Params, LLJoystick::Params>
+	{
+		Optional<LLUIImage*>	plus_image;
+		Optional<LLUIImage*>	minus_image;
+
+		Params()
+		: plus_image ("plus_image", NULL),
+		  minus_image ("minus_image", NULL)
+		{
+			held_down_delay.seconds(0.0);
+		}
+	};
+	LLJoystickCameraZoom(const Params&);
 
 	virtual void	setToggleState( BOOL top, BOOL bottom );
 

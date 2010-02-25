@@ -2,9 +2,10 @@
  * @file llpluginprocesschild.cpp
  * @brief LLPluginProcessChild handles the child side of the external-process plugin API. 
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #include "linden_common.h"
@@ -38,12 +40,15 @@
 #include "llpluginmessageclasses.h"
 
 static const F32 HEARTBEAT_SECONDS = 1.0f;
+static const F32 PLUGIN_IDLE_SECONDS = 1.0f / 100.0f;  // Each call to idle will give the plugin this much time.
 
 LLPluginProcessChild::LLPluginProcessChild()
 {
+	mState = STATE_UNINITIALIZED;
 	mInstance = NULL;
 	mSocket = LLSocket::create(gAPRPoolp, LLSocket::STREAM_TCP);
-	mSleepTime = 1.0f / 100.0f;	// default: send idle messages at 100Hz
+	mSleepTime = PLUGIN_IDLE_SECONDS;	// default: send idle messages at 100Hz
+	mCPUElapsed = 0.0f;
 }
 
 LLPluginProcessChild::~LLPluginProcessChild()
@@ -51,8 +56,14 @@ LLPluginProcessChild::~LLPluginProcessChild()
 	if(mInstance != NULL)
 	{
 		sendMessageToPlugin(LLPluginMessage("base", "cleanup"));
-		delete mInstance;
-		mInstance = NULL;
+
+		// IMPORTANT: under some (unknown) circumstances the apr_dso_unload() triggered when mInstance is deleted 
+		// appears to fail and lock up which means that a given instance of the slplugin process never exits. 
+		// This is bad, especially when users try to update their version of SL - it fails because the slplugin 
+		// process as well as a bunch of plugin specific files are locked and cannot be overwritten.
+		exit( 0 );
+		//delete mInstance;
+		//mInstance = NULL;
 	}
 }
 
@@ -131,6 +142,7 @@ void LLPluginProcessChild::idle(void)
 					{
 						mHeartbeat.start();
 						mHeartbeat.setTimerExpirySec(HEARTBEAT_SECONDS);
+						mCPUElapsed = 0.0f;
 						setState(STATE_PLUGIN_LOADED);
 					}
 					else
@@ -141,8 +153,12 @@ void LLPluginProcessChild::idle(void)
 			break;
 			
 			case STATE_PLUGIN_LOADED:
-				setState(STATE_PLUGIN_INITIALIZING);
-				sendMessageToPlugin(LLPluginMessage("base", "init"));
+				{
+					setState(STATE_PLUGIN_INITIALIZING);
+					LLPluginMessage message("base", "init");
+					message.setValue("user_data_path", mUserDataPath);
+					sendMessageToPlugin(message);
+				}
 			break;
 			
 			case STATE_PLUGIN_INITIALIZING:
@@ -154,15 +170,27 @@ void LLPluginProcessChild::idle(void)
 				{
 					// Provide some time to the plugin
 					LLPluginMessage message("base", "idle");
-					message.setValueReal("time", mSleepTime);
+					message.setValueReal("time", PLUGIN_IDLE_SECONDS);
 					sendMessageToPlugin(message);
 					
 					mInstance->idle();
 					
-					if(mHeartbeat.checkExpirationAndReset(HEARTBEAT_SECONDS))
+					if(mHeartbeat.hasExpired())
 					{
+						
 						// This just proves that we're not stuck down inside the plugin code.
-						sendMessageToParent(LLPluginMessage(LLPLUGIN_MESSAGE_CLASS_INTERNAL, "heartbeat"));
+						LLPluginMessage heartbeat(LLPLUGIN_MESSAGE_CLASS_INTERNAL, "heartbeat");
+						
+						// Calculate the approximage CPU usage fraction (floating point value between 0 and 1) used by the plugin this heartbeat cycle.
+						// Note that this will not take into account any threads or additional processes the plugin spawns, but it's a first approximation.
+						// If we could write OS-specific functions to query the actual CPU usage of this process, that would be a better approximation.
+						heartbeat.setValueReal("cpu_usage", mCPUElapsed / mHeartbeat.getElapsedTimeF64());
+						
+						sendMessageToParent(heartbeat);
+
+						mHeartbeat.reset();
+						mHeartbeat.setTimerExpirySec(HEARTBEAT_SECONDS);
+						mCPUElapsed = 0.0f;
 					}
 				}
 				// receivePluginMessage will transition to STATE_UNLOADING
@@ -251,11 +279,21 @@ bool LLPluginProcessChild::isDone(void)
 
 void LLPluginProcessChild::sendMessageToPlugin(const LLPluginMessage &message)
 {
-	std::string buffer = message.generate();
-
-	LL_DEBUGS("Plugin") << "Sending to plugin: " << buffer << LL_ENDL;
-
-	mInstance->sendMessage(buffer);
+	if (mInstance)
+	{
+		std::string buffer = message.generate();
+		
+		LL_DEBUGS("Plugin") << "Sending to plugin: " << buffer << LL_ENDL;
+		LLTimer elapsed;
+		
+		mInstance->sendMessage(buffer);
+		
+		mCPUElapsed += elapsed.getElapsedTimeF64();
+	}
+	else
+	{
+		LL_WARNS("Plugin") << "mInstance == NULL" << LL_ENDL;
+	}
 }
 
 void LLPluginProcessChild::sendMessageToParent(const LLPluginMessage &message)
@@ -291,6 +329,7 @@ void LLPluginProcessChild::receiveMessageRaw(const std::string &message)
 			if(message_name == "load_plugin")
 			{
 				mPluginFile = parsed.getValue("file");
+				mUserDataPath = parsed.getValue("user_data_path");
 			}
 			else if(message_name == "shm_add")
 			{
@@ -318,12 +357,7 @@ void LLPluginProcessChild::receiveMessageRaw(const std::string &message)
 						LLPluginMessage message("base", "shm_added");
 						message.setValue("name", name);
 						message.setValueS32("size", (S32)size);
-						// shm address is split into 2x32bit values because LLSD doesn't serialize 64bit values and we need to support 64-bit addressing.
-						void * address = region->getMappedAddress();
-						U32 address_lo = (U32)(U64(address) & 0xFFFFFFFF);			// Extract the lower 32 bits
-						U32 address_hi = (U32)((U64(address)>>32) & 0xFFFFFFFF);	// Extract the higher 32 bits 
-						message.setValueU32("address", address_lo);
-						message.setValueU32("address_1", address_hi);
+						message.setValuePointer("address", region->getMappedAddress());
 						sendMessageToPlugin(message);
 						
 						// and send the response to the parent
@@ -334,6 +368,7 @@ void LLPluginProcessChild::receiveMessageRaw(const std::string &message)
 					else
 					{
 						LL_WARNS("Plugin") << "Couldn't create a shared memory segment!" << LL_ENDL;
+						delete region;
 					}
 				}
 				
@@ -381,7 +416,11 @@ void LLPluginProcessChild::receiveMessageRaw(const std::string &message)
 	
 	if(passMessage && mInstance != NULL)
 	{
+		LLTimer elapsed;
+
 		mInstance->sendMessage(message);
+
+		mCPUElapsed += elapsed.getElapsedTimeF64();
 	}
 }
 
@@ -455,6 +494,7 @@ void LLPluginProcessChild::receivePluginMessage(const std::string &message)
 	
 	if(passMessage)
 	{
+		LL_DEBUGS("Plugin") << "Passing through to parent: " << message << LL_ENDL;
 		writeMessageRaw(message);
 	}
 }

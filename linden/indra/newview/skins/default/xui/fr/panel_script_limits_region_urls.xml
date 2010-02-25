@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="URL DES RÉGIONS" name="script_limits_region_urls_panel">
+	<text name="Parcel Script URLs">
+		URL des scripts de parcelles
+	</text>
+	<text name="parcels_listed">
+		Parcelles répertoriées :
+	</text>
+	<text name="urls_used">
+		URL utilisées :
+	</text>
+	<text name="loading_text">
+		Chargement...
+	</text>
+	<scroll_list name="scripts_list">
+		<scroll_list.columns label="URL" name="urls"/>
+		<scroll_list.columns label="Nom de l&apos;objet" width="100" name="name"/>
+		<scroll_list.columns label="Propriétaire d&apos;objet" width="130" name="owner"/>
+		<scroll_list.columns label="Parcelle/emplacement" name="location"/>
+	</scroll_list>
+	<button label="Rafraîchir la liste" name="refresh_list_btn"/>
+	<button label="Surbrillance" name="highlight_btn"/>
+	<button label="Retour" name="return_btn"/>
+</panel>

@@ -7,9 +7,18 @@ include(Variables)
 
 # Portable compilation flags.
 
+if (EXISTS ${CMAKE_SOURCE_DIR}/llphysics)
+  # The release build should only offer to send crash reports if we're
+  # building from a Linden internal source tree.
+  set(release_crash_reports 1)
+else (EXISTS ${CMAKE_SOURCE_DIR}/llphysics)
+  set(release_crash_reports 0) 
+endif (EXISTS ${CMAKE_SOURCE_DIR}/llphysics)
+
 set(CMAKE_CXX_FLAGS_DEBUG "-D_DEBUG -DLL_DEBUG=1")
 set(CMAKE_CXX_FLAGS_RELEASE
-    "-DLL_RELEASE=1 -DLL_RELEASE_FOR_DOWNLOAD=1 -D_SECURE_SCL=0 -DLL_SEND_CRASH_REPORTS=1 -DNDEBUG")
+    "-DLL_RELEASE=1 -DLL_RELEASE_FOR_DOWNLOAD=1 -D_SECURE_SCL=0 -DLL_SEND_CRASH_REPORTS=${release_crash_reports} -DNDEBUG") 
+
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
     "-DLL_RELEASE=1 -D_SECURE_SCL=0 -DLL_SEND_CRASH_REPORTS=0 -DNDEBUG -DLL_RELEASE_WITH_DEBUG_INFO=1")
 
@@ -26,13 +35,13 @@ if (WINDOWS)
   # Don't build DLLs.
   set(BUILD_SHARED_LIBS OFF)
 
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi /MDd"
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi /MDd /MP"
       CACHE STRING "C++ compiler debug options" FORCE)
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
-      "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Od /Zi /MD"
+      "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Od /Zi /MD /MP"
       CACHE STRING "C++ compiler release-with-debug options" FORCE)
   set(CMAKE_CXX_FLAGS_RELEASE
-      "${CMAKE_CXX_FLAGS_RELEASE} ${LL_CXX_FLAGS} /O2 /Zi /MD"
+      "${CMAKE_CXX_FLAGS_RELEASE} ${LL_CXX_FLAGS} /O2 /Zi /MD /MP"
       CACHE STRING "C++ compiler release options" FORCE)
 
   set(CMAKE_CXX_STANDARD_LIBRARIES "")
@@ -108,14 +117,16 @@ if (LINUX)
       add_definitions(-D_FORTIFY_SOURCE=2)
     endif (NOT ${GXX_VERSION} MATCHES " 4.1.*Red Hat")
   endif (${GXX_VERSION} STREQUAL ${CXX_VERSION})
- 
-  #Lets actualy get a numerical version of gxx's version
-  STRING(REGEX REPLACE ".* ([0-9])\\.([0-9])\\.([0-9]).*" "\\1\\2\\3" CXX_VERSION ${CXX_VERSION})
-  
-  #gcc 4.3 and above don't like the LL boost
-  if(${CXX_VERSION} GREATER 429)
+
+  # Let's actually get a numerical version of gxx's version
+  STRING(REGEX REPLACE ".* ([0-9])\\.([0-9])\\.([0-9]).*" "\\1\\2\\3" CXX_VERSION_NUMBER ${CXX_VERSION})
+
+  # gcc 4.3 and above don't like the LL boost and also
+  # cause warnings due to our use of deprecated headers
+  if(${CXX_VERSION_NUMBER} GREATER 429)
     add_definitions(-Wno-parentheses)
-  endif (${CXX_VERSION} GREATER 429)
+    set(CMAKE_CXX_FLAGS "-Wno-deprecated ${CMAKE_CXX_FLAGS}")
+  endif (${CXX_VERSION_NUMBER} GREATER 429)
 
   # End of hacks.
 
@@ -160,6 +171,8 @@ if (LINUX)
     if (NOT STANDALONE)
       # this stops us requiring a really recent glibc at runtime
       add_definitions(-fno-stack-protector)
+      # linking can be very memory-hungry, especially the final viewer link
+      set(CMAKE_CXX_LINK_FLAGS "-Wl,--no-keep-memory")
     endif (NOT STANDALONE)
   endif (VIEWER)
 
@@ -169,11 +182,17 @@ endif (LINUX)
 
 
 if (DARWIN)
-  add_definitions(-DLL_DARWIN=1)
+  # NOTE (per http://lists.apple.com/archives/darwin-dev/2008/Jan/msg00232.html):
+  # > Why the bus error? What am I doing wrong? 
+  # This is a known issue where getcontext(3) is writing past the end of the
+  # ucontext_t struct when _XOPEN_SOURCE is not defined (rdar://problem/5578699 ).
+  # As a workaround, define _XOPEN_SOURCE before including ucontext.h.
+  add_definitions(-DLL_DARWIN=1 -D_XOPEN_SOURCE)
   set(CMAKE_CXX_LINK_FLAGS "-Wl,-headerpad_max_install_names,-search_paths_first")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_CXX_LINK_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlong-branch")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mlong-branch")
+  set(DARWIN_extra_cstar_flags "-mlong-branch")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DARWIN_extra_cstar_flags}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${DARWIN_extra_cstar_flags}")
   # NOTE: it's critical that the optimization flag is put in front.
   # NOTE: it's critical to have both CXX_FLAGS and C_FLAGS covered.
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O0 ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
@@ -182,13 +201,13 @@ endif (DARWIN)
 
 
 if (LINUX OR DARWIN)
-  set(GCC_WARNINGS "-Wall -Wno-sign-compare -Wno-trigraphs -Wno-non-virtual-dtor")
+  set(GCC_WARNINGS "-Wall -Wno-sign-compare -Wno-trigraphs")
 
   if (NOT GCC_DISABLE_FATAL_WARNINGS)
     set(GCC_WARNINGS "${GCC_WARNINGS} -Werror")
   endif (NOT GCC_DISABLE_FATAL_WARNINGS)
 
-  set(GCC_CXX_WARNINGS "${GCC_WARNINGS} -Wno-reorder")
+  set(GCC_CXX_WARNINGS "${GCC_WARNINGS} -Wno-reorder -Wno-non-virtual-dtor -Woverloaded-virtual")
 
   set(CMAKE_C_FLAGS "${GCC_WARNINGS} ${CMAKE_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${GCC_CXX_WARNINGS} ${CMAKE_CXX_FLAGS}")
@@ -217,7 +236,6 @@ else (STANDALONE)
       glib-2.0
       gstreamer-0.10
       gtk-2.0
-      llfreetype2
       pango-1.0
       )
 endif (STANDALONE)

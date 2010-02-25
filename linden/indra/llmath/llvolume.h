@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,7 +52,7 @@ class LLVolume;
 #include "llquaternion.h"
 #include "llstrider.h"
 #include "v4coloru.h"
-#include "llmemory.h"
+#include "llrefcount.h"
 #include "llfile.h"
 
 //============================================================================
@@ -907,7 +907,8 @@ public:
 									std::vector<S32> &segments, 
 									const LLVector3& view_vec,
 									const LLMatrix4& mat,
-									const LLMatrix3& norm_mat);
+									const LLMatrix3& norm_mat,
+									S32 face_index);
 
 	//get the face index of the face that intersects with the given line segment at the point 
 	//closest to start.  Moves end to the point of intersection.  Returns -1 if no intersection.

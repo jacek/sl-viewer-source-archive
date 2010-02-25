@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,15 +47,18 @@ class LLTextBox;
 class LLTextureCtrl;
 class LLUICtrl;
 class LLViewerObject;
+class LLFloater;
 
 class LLPanelFace : public LLPanel
 {
 public:
 	virtual BOOL	postBuild();
-	LLPanelFace(const std::string& name);
+	LLPanelFace();
 	virtual ~LLPanelFace();
 
 	void			refresh();
+	void			setMediaURL(const std::string& url);
+	void			setMediaType(const std::string& mime_type);
 
 protected:
 	void			getState();
@@ -69,27 +72,30 @@ protected:
 	void			sendShiny();			// applies and sends shininess
 	void			sendFullbright();		// applies and sends full bright
 	void            sendGlow();
+	void			sendMedia();
 
-	// this function is to return TRUE if the dra should succeed.
-	static BOOL onDragTexture(LLUICtrl* ctrl, LLInventoryItem* item, void* ud);
+	// this function is to return TRUE if the drag should succeed.
+	static BOOL onDragTexture(LLUICtrl* ctrl, LLInventoryItem* item);
 
-	static void 	onCommitTexture(		LLUICtrl* ctrl, void* userdata);
-	static void 	onCancelTexture(		LLUICtrl* ctrl, void* userdata);
-	static void 	onSelectTexture(		LLUICtrl* ctrl, void* userdata);
-	static void 	onCommitTextureInfo(	LLUICtrl* ctrl, void* userdata);
-	static void 	onCommitColor(			LLUICtrl* ctrl, void* userdata);
-	static void 	onCommitAlpha(			LLUICtrl* ctrl, void* userdata);
-	static void 	onCancelColor(			LLUICtrl* ctrl, void* userdata);
-	static void 	onSelectColor(			LLUICtrl* ctrl, void* userdata);
+	void 	onCommitTexture(const LLSD& data);
+	void 	onCancelTexture(const LLSD& data);
+	void 	onSelectTexture(const LLSD& data);
+	void 	onCommitColor(const LLSD& data);
+	void 	onCommitAlpha(const LLSD& data);
+	void 	onCancelColor(const LLSD& data);
+	void 	onSelectColor(const LLSD& data);
+	
+	static 	void onCommitTextureInfo( 		LLUICtrl* ctrl, void* userdata);
 	static void		onCommitBump(			LLUICtrl* ctrl, void* userdata);
 	static void		onCommitTexGen(			LLUICtrl* ctrl, void* userdata);
 	static void		onCommitShiny(			LLUICtrl* ctrl, void* userdata);
 	static void		onCommitFullbright(		LLUICtrl* ctrl, void* userdata);
 	static void     onCommitGlow(           LLUICtrl* ctrl, void *userdata);
-
+	
 	static void		onClickApply(void*);
 	static void		onClickAutoFix(void*);
 	static F32      valueGlow(LLViewerObject* object, S32 face);
+
 };
 
 #endif

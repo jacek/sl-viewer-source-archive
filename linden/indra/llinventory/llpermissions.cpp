@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -81,6 +81,17 @@ void LLPermissions::initMasks(PermissionMask base, PermissionMask owner,
 	mMaskNextOwner = next;
 	fixFairUse();
 	fix();
+}
+
+// ! BACKWARDS COMPATIBILITY ! Override masks for inventory types that
+// no longer can have restricted permissions.  This takes care of previous
+// version landmarks that could have had no copy/mod/transfer bits set.
+void LLPermissions::initMasks(LLInventoryType::EType type)
+{
+	if (LLInventoryType::cannotRestrictPermissions(type))
+	{
+		initMasks(PERM_ALL, PERM_ALL, PERM_ALL, PERM_ALL, PERM_ALL);
+	}
 }
 
 BOOL LLPermissions::getOwnership(LLUUID& owner_id, BOOL& is_group_owned) const
@@ -277,6 +288,17 @@ BOOL LLPermissions::setOwnerAndGroup(
 	return allowed;
 }
 
+//Fix for DEV-33917, last owner isn't used much and has little impact on
+//permissions so it's reasonably safe to do this, however, for now, 
+//limiting the functionality of this routine to objects which are 
+//group owned.
+void LLPermissions::setLastOwner(const LLUUID& last_owner)
+{
+	if (isGroupOwned())
+		mLastOwner = last_owner;
+}
+
+ 
 // only call this if you know what you're doing
 // there are usually perm-bit consequences when the 
 // ownerhsip changes
@@ -831,67 +853,8 @@ BOOL LLPermissions::exportLegacyStream(std::ostream& output_stream) const
 	return TRUE;
 }
 
-
-LLXMLNode *LLPermissions::exportFileXML() const
-{
-	LLXMLNode *ret = new LLXMLNode("permissions", FALSE);
-
-	ret->createChild("group_owned", TRUE)->setBoolValue(mIsGroupOwned);
-
-	ret->createChild("base_mask", FALSE)->setByteValue(4, (U8*)&mMaskBase, LLXMLNode::ENCODING_HEX);
-	ret->createChild("owner_mask", FALSE)->setByteValue(4, (U8*)&mMaskOwner, LLXMLNode::ENCODING_HEX);
-	ret->createChild("group_mask", FALSE)->setByteValue(4, (U8*)&mMaskGroup, LLXMLNode::ENCODING_HEX);
-	ret->createChild("everyone_mask", FALSE)->setByteValue(4, (U8*)&mMaskEveryone, LLXMLNode::ENCODING_HEX);
-	ret->createChild("next_owner_mask", FALSE)->setByteValue(4, (U8*)&mMaskNextOwner, LLXMLNode::ENCODING_HEX);
-
-	ret->createChild("creator_id", FALSE)->setUUIDValue(1, &mCreator);
-	ret->createChild("owner_id", FALSE)->setUUIDValue(1, &mOwner);
-	ret->createChild("last_owner_id", FALSE)->setUUIDValue(1, &mLastOwner);
-	ret->createChild("group_id", FALSE)->setUUIDValue(1, &mGroup);
-
-	return ret;
-}
-
-bool LLPermissions::importXML(LLXMLNode* node)
-{
-	bool success = false;
-	if (node)
-	{
-		success = true;
-		LLXMLNodePtr sub_node;
-		if (node->getChild("base_mask", sub_node))
-			success = success && (4 == sub_node->getByteValue(4, (U8*)&mMaskBase));
-		if (node->getChild("owner_mask", sub_node))
-			success = success && (4 == sub_node->getByteValue(4, (U8*)&mMaskOwner));
-		if (node->getChild("group_mask", sub_node))
-			success = success && (4 == sub_node->getByteValue(4, (U8*)&mMaskGroup));
-		if (node->getChild("everyone_mask", sub_node))
-			success = success && (4 == sub_node->getByteValue(4, (U8*)&mMaskEveryone));
-		if (node->getChild("next_owner_mask", sub_node))
-			success = success && (4 == sub_node->getByteValue(4, (U8*)&mMaskNextOwner));
-
-		if (node->getChild("creator_id", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mCreator));
-		if (node->getChild("owner_id", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mOwner));
-		if (node->getChild("last_owner_id", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mLastOwner));
-		if (node->getChild("group_id", sub_node))
-			success = success && (1 == sub_node->getUUIDValue(1, &mGroup));
-		if (node->getChild("group_owned", sub_node))
-		{
-			BOOL tmpbool = FALSE;
-			success = success && (1 == sub_node->getBoolValue(1, &tmpbool));
-			mIsGroupOwned = (bool)tmpbool;
-		}
-		if (!success)
-		{
-			lldebugs << "LLPermissions::importXML() failed for node named '" 
-				<< node->getName() << "'" << llendl;
-		}
-	}
-	return success;
-}
+// Deleted LLPermissions::exportFileXML() and LLPermissions::importXML()
+// because I can't find any non-test code references to it. 2009-05-04 JC
 
 bool LLPermissions::operator==(const LLPermissions &rhs) const
 {   
@@ -943,6 +906,8 @@ void LLMetaClassT<LLPermissions>::reflectProperties(LLMetaClass& meta_class)
 {
 	reflectProperty(meta_class, "mCreator", &LLPermissions::mCreator);
 	reflectProperty(meta_class, "mOwner", &LLPermissions::mOwner);
+	reflectProperty(meta_class, "mGroup", &LLPermissions::mGroup);
+	reflectProperty(meta_class, "mIsGroupOwned", &LLPermissions::mIsGroupOwned);
 }
 
 // virtual

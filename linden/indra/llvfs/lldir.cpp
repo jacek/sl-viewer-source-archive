@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,7 +41,9 @@
 #endif
 
 #include "lldir.h"
+
 #include "llerror.h"
+#include "lltimer.h"	// ms_sleep()
 #include "lluuid.h"
 
 #if LL_WINDOWS
@@ -125,16 +127,20 @@ S32 LLDir::deleteFilesInDir(const std::string &dirname, const std::string &mask)
 }
 
 const std::string LLDir::findFile(const std::string &filename, 
-						   const std::string searchPath1, 
-						   const std::string searchPath2, 
-						   const std::string searchPath3) const
+						   const std::string& searchPath1, 
+						   const std::string& searchPath2, 
+						   const std::string& searchPath3) const
 {
 	std::vector<std::string> search_paths;
 	search_paths.push_back(searchPath1);
 	search_paths.push_back(searchPath2);
 	search_paths.push_back(searchPath3);
+	return findFile(filename, search_paths);
+}
 
-	std::vector<std::string>::iterator search_path_iter;
+const std::string LLDir::findFile(const std::string& filename, const std::vector<std::string> search_paths) const
+{
+	std::vector<std::string>::const_iterator search_path_iter;
 	for (search_path_iter = search_paths.begin();
 		search_path_iter != search_paths.end();
 		++search_path_iter)
@@ -194,6 +200,11 @@ const std::string &LLDir::getOSUserAppDir() const
 
 const std::string &LLDir::getLindenUserDir() const
 {
+	if (mLindenUserDir.empty())
+	{
+		lldebugs << "getLindenUserDir() called early, we don't have the user name yet - returning empty string to caller" << llendl;
+	}
+
 	return mLindenUserDir;
 }
 
@@ -287,11 +298,7 @@ const std::string& LLDir::getDefaultSkinDir() const
 
 const std::string LLDir::getSkinBaseDir() const
 {
-	std::string dir = getAppRODataDir();
-	dir += mDirDelimiter;
-	dir += "skins";
-
-	return dir;
+	return mSkinBaseDir;
 }
 
 const std::string &LLDir::getLLPluginDir() const
@@ -323,17 +330,11 @@ std::string LLDir::getExpandedFilename(ELLPath location, const std::string& subd
 		prefix += mDirDelimiter;
 		prefix += "app_settings";
 		break;
-		
+	
 	case LL_PATH_CHARACTER:
 		prefix = getAppRODataDir();
 		prefix += mDirDelimiter;
 		prefix += "character";
-		break;
-		
-	case LL_PATH_MOTIONS:
-		prefix = getAppRODataDir();
-		prefix += mDirDelimiter;
-		prefix += "motions";
 		break;
 		
 	case LL_PATH_HELP:
@@ -341,7 +342,7 @@ std::string LLDir::getExpandedFilename(ELLPath location, const std::string& subd
 		break;
 		
 	case LL_PATH_CACHE:
-	    prefix = getCacheDir();
+		prefix = getCacheDir();
 		break;
 		
 	case LL_PATH_USER_SETTINGS:
@@ -352,6 +353,11 @@ std::string LLDir::getExpandedFilename(ELLPath location, const std::string& subd
 
 	case LL_PATH_PER_SL_ACCOUNT:
 		prefix = getLindenUserDir();
+		if (prefix.empty())
+		{
+			// if we're asking for the per-SL-account directory but we haven't logged in yet (or otherwise don't know the account name from which to build this string), then intentionally return a blank string to the caller and skip the below warning about a blank prefix.
+			return std::string();
+		}
 		break;
 		
 	case LL_PATH_CHAT_LOGS:
@@ -376,26 +382,36 @@ std::string LLDir::getExpandedFilename(ELLPath location, const std::string& subd
 		prefix = getSkinDir();
 		break;
 
-	case LL_PATH_SKINS:
-		prefix = getAppRODataDir();
+	case LL_PATH_DEFAULT_SKIN:
+		prefix = getDefaultSkinDir();
+		break;
+
+	case LL_PATH_USER_SKIN:
+		prefix = getOSUserAppDir();
+		prefix += mDirDelimiter;
+		prefix += "user_settings";
 		prefix += mDirDelimiter;
 		prefix += "skins";
 		break;
 
-	//case LL_PATH_HTML:
-	//	prefix = getSkinDir();
-	//	prefix += mDirDelimiter;
-	//	prefix += "html";
-	//	break;
+	case LL_PATH_SKINS:
+		prefix = getSkinBaseDir();
+		break;
 
-	case LL_PATH_MOZILLA_PROFILE:
-		prefix = getOSUserAppDir();
+	case LL_PATH_LOCAL_ASSETS:
+		prefix = getAppRODataDir();
 		prefix += mDirDelimiter;
-		prefix += "browser_profile";
+		prefix += "local_assets";
 		break;
 
 	case LL_PATH_EXECUTABLE:
 		prefix = getExecutableDir();
+		break;
+		
+	case LL_PATH_FONTS:
+		prefix = getAppRODataDir();
+		prefix += mDirDelimiter;
+		prefix += "fonts";
 		break;
 		
 	default:
@@ -413,6 +429,11 @@ std::string LLDir::getExpandedFilename(ELLPath location, const std::string& subd
 		filename = subdir1 + mDirDelimiter + filename;
 	}
 
+	if (prefix.empty())
+	{
+		llwarns << "prefix is empty, possible bad filename" << llendl;
+	}
+	
 	std::string expanded_filename;
 	if (!filename.empty())
 	{
@@ -494,11 +515,14 @@ std::string LLDir::findSkinnedFilename(const std::string &subdir1, const std::st
 	std::string subdirs = ((subdir1.empty() ? "" : mDirDelimiter) + subdir1)
 						 + ((subdir2.empty() ? "" : mDirDelimiter) + subdir2);
 
-	std::string found_file = findFile(filename,
-		getUserSkinDir() + subdirs,		// first look in user skin override
-		getSkinDir() + subdirs,			// then in current skin
-		getDefaultSkinDir() + subdirs); // and last in default skin
+	std::vector<std::string> search_paths;
+	
+	search_paths.push_back(getUserSkinDir() + subdirs);		// first look in user skin override
+	search_paths.push_back(getSkinDir() + subdirs);			// then in current skin
+	search_paths.push_back(getDefaultSkinDir() + subdirs);  // then default skin
+	search_paths.push_back(getCacheDir() + subdirs);		// and last in preload directory
 
+	std::string found_file = findFile(filename, search_paths);
 	return found_file;
 }
 
@@ -543,7 +567,7 @@ std::string LLDir::getForbiddenFileChars()
 
 void LLDir::setLindenUserDir(const std::string &first, const std::string &last)
 {
-	// if both first and last aren't set, assume we're grabbing the cached dir
+	// if both first and last aren't set, that's bad.
 	if (!first.empty() && !last.empty())
 	{
 		// some platforms have case-sensitive filesystems, so be
@@ -557,10 +581,11 @@ void LLDir::setLindenUserDir(const std::string &first, const std::string &last)
 		mLindenUserDir += firstlower;
 		mLindenUserDir += "_";
 		mLindenUserDir += lastlower;
+		llinfos << "Got name for LLDir::setLindenUserDir(first='" << first << "', last='" << last << "')" << llendl;
 	}
 	else
 	{
-		llerrs << "Invalid name for LLDir::setLindenUserDir" << llendl;
+		llerrs << "Invalid name for LLDir::setLindenUserDir(first='" << first << "', last='" << last << "')" << llendl;
 	}
 
 	dumpCurrentDirectories();	
@@ -603,9 +628,7 @@ void LLDir::setPerAccountChatLogsDir(const std::string &first, const std::string
 
 void LLDir::setSkinFolder(const std::string &skin_folder)
 {
-	mSkinDir = getAppRODataDir();
-	mSkinDir += mDirDelimiter;
-	mSkinDir += "skins";
+	mSkinDir = getSkinBaseDir();
 	mSkinDir += mDirDelimiter;
 	mSkinDir += skin_folder;
 
@@ -619,9 +642,7 @@ void LLDir::setSkinFolder(const std::string &skin_folder)
 
 	// base skin which is used as fallback for all skinned files
 	// e.g. c:\program files\secondlife\skins\default
-	mDefaultSkinDir = getAppRODataDir();
-	mDefaultSkinDir += mDirDelimiter;
-	mDefaultSkinDir += "skins";
+	mDefaultSkinDir = getSkinBaseDir();
 	mDefaultSkinDir += mDirDelimiter;	
 	mDefaultSkinDir += "default";
 }
@@ -666,12 +687,8 @@ void LLDir::dumpCurrentDirectories()
 	LL_DEBUGS2("AppInit","Directories") << "  LindenUserDir:         " << getLindenUserDir() << LL_ENDL;
 	LL_DEBUGS2("AppInit","Directories") << "  TempDir:               " << getTempDir() << LL_ENDL;
 	LL_DEBUGS2("AppInit","Directories") << "  CAFile:				 " << getCAFile() << LL_ENDL;
+	LL_DEBUGS2("AppInit","Directories") << "  SkinBaseDir:           " << getSkinBaseDir() << LL_ENDL;
 	LL_DEBUGS2("AppInit","Directories") << "  SkinDir:               " << getSkinDir() << LL_ENDL;
-
-#if LL_LIBXUL_ENABLED
- 	LL_DEBUGS2("AppInit","Directories") << "  HTML Path:             " << getExpandedFilename( LL_PATH_HTML, "" ) << llendl;
- 	LL_DEBUGS2("AppInit","Directories") << "  Mozilla Profile Path:  " << getExpandedFilename( LL_PATH_MOZILLA_PROFILE, "" ) << llendl;
-#endif
 }
 
 

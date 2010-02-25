@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,6 +40,7 @@
 #include "lldir.h"
 #include "llframetimer.h"
 #include "lltrans.h"
+#include "llwindow.h"	// beforeDialog()
 
 #if LL_LINUX || LL_SOLARIS
 # include "llfilepicker.h"
@@ -60,7 +61,9 @@ LLDirPicker LLDirPicker::sInstance;
 //
 #if LL_WINDOWS
 
-LLDirPicker::LLDirPicker() 
+LLDirPicker::LLDirPicker() :
+	mFileName(NULL),
+	mLocked(false)
 {
 }
 
@@ -124,7 +127,9 @@ std::string LLDirPicker::getDirName()
 /////////////////////////////////////////////DARWIN
 #elif LL_DARWIN
 
-LLDirPicker::LLDirPicker() 
+LLDirPicker::LLDirPicker() :
+	mFileName(NULL),
+	mLocked(false)
 {
 	reset();
 
@@ -261,13 +266,15 @@ std::string LLDirPicker::getDirName()
 
 void LLDirPicker::reset()
 {
-	mLocked = FALSE;
+	mLocked = false;
 	mDir.clear();
 }
 
 #elif LL_LINUX || LL_SOLARIS
 
-LLDirPicker::LLDirPicker() 
+LLDirPicker::LLDirPicker() :
+	mFileName(NULL),
+	mLocked(false)
 {
 	mFilePicker = new LLFilePicker();
 	reset();

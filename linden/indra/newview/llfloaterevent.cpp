@@ -1,11 +1,10 @@
 /** 
  * @file llfloaterevent.cpp
- * @brief Event information as shown in a floating window from 
- * secondlife:// command handler.
+ * @brief Display for events in the finder
  *
- * $LicenseInfo:firstyear=2007&license=viewergpl$
+ * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,97 +34,291 @@
 
 #include "llfloaterevent.h"
 
-// viewer project includes
-#include "llcommandhandler.h"
-#include "llpanelevent.h"
+#include "message.h"
+#include "llnotificationsutil.h"
+#include "llui.h"
 
-// linden library includes
-#include "lluuid.h"
+#include "llagent.h"
+#include "llviewerwindow.h"
+#include "llbutton.h"
+#include "llcachename.h"
+#include "llcommandhandler.h"	// secondlife:///app/chat/ support
+#include "lleventflags.h"
+#include "lleventnotifier.h"
+#include "llexpandabletextbox.h"
+#include "llfloater.h"
+#include "llfloaterreg.h"
+#include "llfloaterworldmap.h"
+#include "llinventorymodel.h"
+#include "llsecondlifeurls.h"
+#include "llslurl.h"
+#include "lltextbox.h"
+#include "lltexteditor.h"
+#include "lluiconstants.h"
+#include "llviewercontrol.h"
+#include "llweb.h"
+#include "llworldmap.h"
 #include "lluictrlfactory.h"
+#include "lltrans.h"
 
-////////////////////////////////////////////////////////////////////////////
-// LLFloaterEventInfo
-
-//-----------------------------------------------------------------------------
-// Globals
-//-----------------------------------------------------------------------------
-
-LLMap< U32, LLFloaterEventInfo* > gEventInfoInstances;
 
 class LLEventHandler : public LLCommandHandler
 {
 public:
 	// requires trusted browser to trigger
-	LLEventHandler() : LLCommandHandler("event", true) { }
-	bool handle(const LLSD& tokens, const LLSD& query_map,
+	LLEventHandler() : LLCommandHandler("event", UNTRUSTED_THROTTLE) { }
+	bool handle(const LLSD& params, const LLSD& query_map,
 				LLMediaCtrl* web)
 	{
-		if (tokens.size() < 2)
+		if (params.size() < 1)
 		{
 			return false;
 		}
-		U32 event_id = tokens[0].asInteger();
-		if (tokens[1].asString() == "about")
+		
+		LLFloaterEvent* floater = LLFloaterReg::getTypedInstance<LLFloaterEvent>("event");
+		if (floater)
 		{
-			LLFloaterEventInfo::show(event_id);
+			floater->setEventID(params[0].asInteger());
+			LLFloaterReg::showTypedInstance<LLFloaterEvent>("event");
 			return true;
 		}
+
 		return false;
 	}
 };
 LLEventHandler gEventHandler;
 
-LLFloaterEventInfo::LLFloaterEventInfo(const std::string& name, const U32 event_id)
-:	LLFloater(name),
-	mEventID( event_id )
-{
+LLFloaterEvent::LLFloaterEvent(const LLSD& key)
+	: LLFloater(key),
 
-	mFactoryMap["event_details_panel"] = LLCallbackMap(LLFloaterEventInfo::createEventDetail, this);
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_preview_event.xml", &getFactoryMap());
-	gEventInfoInstances.addData(event_id, this);
+	  mEventID(0)
+{
 }
 
-LLFloaterEventInfo::~LLFloaterEventInfo()
+
+LLFloaterEvent::~LLFloaterEvent()
 {
-	// child views automatically deleted
-	gEventInfoInstances.removeData(mEventID);
 }
 
-void LLFloaterEventInfo::displayEventInfo(const U32 event_id)
+
+BOOL LLFloaterEvent::postBuild()
 {
-	mPanelEventp->setEventID(event_id);
-	this->setFrontmost(true);
+	mTBName = getChild<LLTextBox>("event_name");
+
+	mTBCategory = getChild<LLTextBox>("event_category");
+	
+	mTBDate = getChild<LLTextBox>("event_date");
+
+	mTBDuration = getChild<LLTextBox>("event_duration");
+
+	mTBDesc = getChild<LLExpandableTextBox>("event_desc");
+	mTBDesc->setEnabled(FALSE);
+
+	mTBRunBy = getChild<LLTextBox>("event_runby");
+	mTBLocation = getChild<LLTextBox>("event_location");
+	mTBCover = getChild<LLTextBox>("event_cover");
+
+	mTeleportBtn = getChild<LLButton>( "teleport_btn");
+	mTeleportBtn->setClickedCallback(onClickTeleport, this);
+
+	mMapBtn = getChild<LLButton>( "map_btn");
+	mMapBtn->setClickedCallback(onClickMap, this);
+
+	mNotifyBtn = getChild<LLButton>( "notify_btn");
+	mNotifyBtn->setClickedCallback(onClickNotify, this);
+
+	mCreateEventBtn = getChild<LLButton>( "create_event_btn");
+	mCreateEventBtn->setClickedCallback(onClickCreateEvent, this);
+
+	mGodDeleteEventBtn = getChild<LLButton>( "god_delete_event_btn");
+	mGodDeleteEventBtn->setClickedCallback(boost::bind(&LLFloaterEvent::onClickDeleteEvent, this));
+
+	return TRUE;
 }
 
-// static
-void* LLFloaterEventInfo::createEventDetail(void* userdata)
+void LLFloaterEvent::setEventID(const U32 event_id)
 {
-	LLFloaterEventInfo *self = (LLFloaterEventInfo*)userdata;
-	self->mPanelEventp = new LLPanelEvent();
-	LLUICtrlFactory::getInstance()->buildPanel(self->mPanelEventp, "panel_event.xml");
+	mEventID = event_id;
+	// Should reset all of the panel state here
+	resetInfo();
 
-	return self->mPanelEventp;
-}
-
-// static
-LLFloaterEventInfo* LLFloaterEventInfo::show(const U32 event_id)
-{
-	LLFloaterEventInfo *floater;
-	if (gEventInfoInstances.checkData(event_id))
+	if (event_id != 0)
 	{
-		// ...bring that window to front
-		floater = gEventInfoInstances.getData(event_id);
-		floater->open();	/*Flawfinder: ignore*/
-		floater->setFrontmost(true);
+		sendEventInfoRequest();
+	}
+}
+
+void LLFloaterEvent::onClickDeleteEvent()
+{
+	LLMessageSystem* msg = gMessageSystem;
+
+	msg->newMessageFast(_PREHASH_EventGodDelete);
+	msg->nextBlockFast(_PREHASH_AgentData);
+	msg->addUUIDFast(_PREHASH_AgentID, gAgent.getID());
+	msg->addUUIDFast(_PREHASH_SessionID, gAgent.getSessionID());
+
+	msg->nextBlockFast(_PREHASH_EventData);
+	msg->addU32Fast(_PREHASH_EventID, mEventID);
+
+	gAgent.sendReliableMessage();
+}
+
+void LLFloaterEvent::sendEventInfoRequest()
+{
+	LLMessageSystem *msg = gMessageSystem;
+
+	msg->newMessageFast(_PREHASH_EventInfoRequest);
+	msg->nextBlockFast(_PREHASH_AgentData);
+	msg->addUUIDFast(_PREHASH_AgentID, gAgent.getID() );
+	msg->addUUIDFast(_PREHASH_SessionID, gAgent.getSessionID() );
+	msg->nextBlockFast(_PREHASH_EventData);
+	msg->addU32Fast(_PREHASH_EventID, mEventID);
+	gAgent.sendReliableMessage();
+}
+
+//static 
+void LLFloaterEvent::processEventInfoReply(LLMessageSystem *msg, void **)
+{
+	// extract the agent id
+	LLUUID agent_id;
+	msg->getUUIDFast(_PREHASH_AgentData, _PREHASH_AgentID, agent_id );
+
+	LLFloaterEvent* floater = LLFloaterReg::getTypedInstance<LLFloaterEvent>("event");
+	
+	if(floater)
+	{
+		floater->mEventInfo.unpack(msg);
+		floater->mTBName->setText(floater->mEventInfo.mName);
+		floater->mTBCategory->setText(floater->mEventInfo.mCategoryStr);
+		floater->mTBDate->setText(floater->mEventInfo.mTimeStr);
+		floater->mTBDesc->setText(floater->mEventInfo.mDesc);
+		floater->mTBRunBy->setText(LLSLURL::buildCommand("agent", floater->mEventInfo.mRunByID, "inspect"));
+
+		floater->mTBDuration->setText(llformat("%d:%.2d", floater->mEventInfo.mDuration / 60, floater->mEventInfo.mDuration % 60));
+
+		if (!floater->mEventInfo.mHasCover)
+		{
+			floater->mTBCover->setText(floater->getString("none"));
+		}
+		else
+		{
+			floater->mTBCover->setText(llformat("%d", floater->mEventInfo.mCover));
+		}
+
+		F32 global_x = (F32)floater->mEventInfo.mPosGlobal.mdV[VX];
+		F32 global_y = (F32)floater->mEventInfo.mPosGlobal.mdV[VY];
+
+		S32 region_x = llround(global_x) % REGION_WIDTH_UNITS;
+		S32 region_y = llround(global_y) % REGION_WIDTH_UNITS;
+		S32 region_z = llround((F32)floater->mEventInfo.mPosGlobal.mdV[VZ]);
+
+		std::string desc = floater->mEventInfo.mSimName + llformat(" (%d, %d, %d)", region_x, region_y, region_z);
+		floater->mTBLocation->setText(desc);
+
+		if (floater->mEventInfo.mEventFlags & EVENT_FLAG_MATURE)
+		{
+			floater->childSetVisible("event_mature_yes", TRUE);
+			floater->childSetVisible("event_mature_no", FALSE);
+		}
+		else
+		{
+			floater->childSetVisible("event_mature_yes", FALSE);
+			floater->childSetVisible("event_mature_no", TRUE);
+		}
+
+		if (floater->mEventInfo.mUnixTime < time_corrected())
+		{
+			floater->mNotifyBtn->setEnabled(FALSE);
+		}
+		else
+		{
+			floater->mNotifyBtn->setEnabled(TRUE);
+		}
+
+		if (gEventNotifier.hasNotification(floater->mEventInfo.mID))
+		{
+			floater->mNotifyBtn->setLabel(floater->getString("dont_notify"));
+		}
+		else
+		{
+			floater->mNotifyBtn->setLabel(floater->getString("notify"));
+		}
+	
+		floater->mMapBtn->setEnabled(TRUE);
+		floater->mTeleportBtn->setEnabled(TRUE);
+	}
+}
+
+
+void LLFloaterEvent::draw()
+{
+	mGodDeleteEventBtn->setVisible(gAgent.isGodlike());
+
+	LLPanel::draw();
+}
+
+void LLFloaterEvent::resetInfo()
+{
+	mTBName->setText(LLStringUtil::null);
+	mTBCategory->setText(LLStringUtil::null);
+	mTBDate->setText(LLStringUtil::null);
+	mTBDesc->setText(LLStringUtil::null);
+	mTBDuration->setText(LLStringUtil::null);
+	mTBCover->setText(LLStringUtil::null);
+	mTBLocation->setText(LLStringUtil::null);
+	mTBRunBy->setText(LLStringUtil::null);
+	mNotifyBtn->setEnabled(FALSE);
+	mMapBtn->setEnabled(FALSE);
+	mTeleportBtn->setEnabled(FALSE);
+}
+
+// static
+void LLFloaterEvent::onClickTeleport(void* data)
+{
+	LLFloaterEvent* self = (LLFloaterEvent*)data;
+	LLFloaterWorldMap* worldmap_instance = LLFloaterWorldMap::getInstance();
+	if (!self->mEventInfo.mPosGlobal.isExactlyZero()&&worldmap_instance)
+	{
+		gAgent.teleportViaLocation(self->mEventInfo.mPosGlobal);
+		worldmap_instance->trackLocation(self->mEventInfo.mPosGlobal);
+	}
+}
+
+
+// static
+void LLFloaterEvent::onClickMap(void* data)
+{
+	LLFloaterEvent* self = (LLFloaterEvent*)data;
+	LLFloaterWorldMap* worldmap_instance = LLFloaterWorldMap::getInstance();
+
+	if (!self->mEventInfo.mPosGlobal.isExactlyZero()&&worldmap_instance)
+	{
+		worldmap_instance->trackLocation(self->mEventInfo.mPosGlobal);
+		LLFloaterReg::showInstance("world_map", "center");
+	}
+}
+
+
+// static
+void LLFloaterEvent::onClickCreateEvent(void* data)
+{
+	LLNotificationsUtil::add("PromptGoToEventsPage");//, LLSD(), LLSD(), callbackCreateEventWebPage); 
+}
+
+
+// static
+void LLFloaterEvent::onClickNotify(void *data)
+{
+	LLFloaterEvent* self = (LLFloaterEvent*)data;
+
+	if (!gEventNotifier.hasNotification(self->mEventID))
+	{
+		gEventNotifier.add(self->mEventInfo);
+		self->mNotifyBtn->setLabel(self->getString("dont_notify"));
 	}
 	else
 	{
-		floater =  new LLFloaterEventInfo("eventinfo", event_id );
-		floater->center();
-		floater->open();	/*Flawfinder: ignore*/
-		floater->displayEventInfo(event_id);
-		floater->setFrontmost(true);
+		gEventNotifier.remove(self->mEventInfo.mID);
+		self->mNotifyBtn->setLabel(self->getString("notify"));
 	}
-
-	return floater;
 }

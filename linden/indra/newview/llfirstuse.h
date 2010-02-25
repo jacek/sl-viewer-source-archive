@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -79,6 +79,7 @@ object or from inventory.
 class LLFirstUse
 {
 public:
+/*	
 	// Add a config variable to be reset on resetFirstUse()
 	static void addConfigVariable(const std::string& var);
 	
@@ -95,13 +96,18 @@ public:
 	static void useMap();
 	static void useGoTo();
 	static void useBuild();
-	static void useLeftClickNoHit();
+//	static void useLeftClickNoHit();
 	static void useTeleport();
+*/ 
 	static void useOverrideKeys();
+/*	
 	static void useAttach();
 	static void useAppearance();
 	static void useInventory();
+ */
 	static void useSandbox();
+	
+/*
 	static void useFlexible();
 	static void useDebugMenus();
 	static void useSculptedPrim();
@@ -109,6 +115,7 @@ public:
 	
 protected:
 	static std::set<std::string> sConfigVariables;
+*/
 };
 
 #endif

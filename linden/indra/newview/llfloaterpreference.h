@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,94 +40,154 @@
 #define LL_LLFLOATERPREFERENCE_H
 
 #include "llfloater.h"
-#include "lltabcontainervertical.h"
 
-class LLPanelGeneral;
-class LLPanelInput;
+class LLPanelPreference;
 class LLPanelLCD;
-class LLPanelDisplay;
-class LLPanelAudioPrefs;
 class LLPanelDebug;
-class LLPanelNetwork;
-class LLPanelWeb;
 class LLMessageSystem;
-class LLPrefsChat;
-class LLPrefsVoice;
-class LLPrefsIM;
-class LLPanelMsgs;
-class LLPanelSkins;
 class LLScrollListCtrl;
+class LLSliderCtrl;
+class LLSD;
+class LLTextBox;
 
-class LLPreferenceCore
-{
+typedef enum
+	{
+		GS_LOW_GRAPHICS,
+		GS_MID_GRAPHICS,
+		GS_HIGH_GRAPHICS,
+		GS_ULTRA_GRAPHICS
+		
+	} EGraphicsSettings;
 
-public:
-	LLPreferenceCore(LLTabContainer* tab_container, LLButton * default_btn);
-	~LLPreferenceCore();
-
-	void apply();
-	void cancel();
-
-	LLTabContainer* getTabContainer() { return mTabContainer; }
-
-	void setPersonalInfo(const std::string& visibility, bool im_via_email, const std::string&  email);
-
-	static void onTabChanged(void* user_data, bool from_click);
-	
-	// refresh all the graphics preferences menus
-	void refreshEnabledGraphics();
-
-private:
-	LLTabContainer	*mTabContainer;
-	LLPanelGeneral	        *mGeneralPanel;
-	LLPanelSkins			*mSkinsPanel;
-	LLPanelInput			*mInputPanel;
-	LLPanelNetwork	        *mNetworkPanel;
-	LLPanelDisplay	        *mDisplayPanel;
-	LLPanelAudioPrefs		*mAudioPanel;
-//	LLPanelDebug			*mDebugPanel;
-	LLPrefsChat				*mPrefsChat;
-	LLPrefsVoice			*mPrefsVoice;
-	LLPrefsIM				*mPrefsIM;
-	LLPanelWeb				*mWebPanel;
-	LLPanelMsgs				*mMsgPanel;
-	LLPanelLCD				*mLCDPanel;
-};
 
 // Floater to control preferences (display, audio, bandwidth, general.
 class LLFloaterPreference : public LLFloater
 {
 public: 
-	LLFloaterPreference();
+	LLFloaterPreference(const LLSD& key);
 	~LLFloaterPreference();
 
 	void apply();
 	void cancel();
-	virtual BOOL postBuild();
-	static void show(void*);
+	/*virtual*/ void draw();
+	/*virtual*/ BOOL postBuild();
+	/*virtual*/ void onOpen(const LLSD& key);
+	/*virtual*/	void onClose(bool app_quitting);
 
 	// static data update, called from message handler
 	static void updateUserInfo(const std::string& visibility, bool im_via_email, const std::string& email);
 
 	// refresh all the graphics preferences menus
 	static void refreshEnabledGraphics();
+	
+protected:	
+	void		onBtnOK();
+	void		onBtnCancel();
+	void		onBtnApply();
 
+	void		onClickBrowserClearCache();
+
+	// if the custom settings box is clicked
+	void onChangeCustom();
+	void updateMeterText(LLUICtrl* ctrl);
+	void onOpenHardwareSettings();
+	/// callback for defaults
+	void setHardwareDefaults();
+	// callback for when client turns on shaders
+	void onVertexShaderEnable();
+	
+	// This function squirrels away the current values of the controls so that
+	// cancel() can restore them.	
+	void saveSettings();
+		
+
+public:
+
+	void onClickSetCache();
+	void onClickResetCache();
+	void onClickSkin(LLUICtrl* ctrl,const LLSD& userdata);
+	void onSelectSkin();
+	void onClickSetKey();
+	void setKey(KEY key);
+	void onClickSetMiddleMouse();
+//	void onClickSkipDialogs();
+//	void onClickResetDialogs();
+	void onClickEnablePopup();
+	void onClickDisablePopup();	
+	void resetAllIgnored();
+	void setAllIgnored();
+	void onClickLogPath();	
+	void enableHistory();
+	void setPersonalInfo(const std::string& visibility, bool im_via_email, const std::string& email);
+	void refreshEnabledState();
+	void disableUnavailableSettings();
+	void onCommitWindowedMode();
+	void refresh();	// Refresh enable/disable
+	// if the quality radio buttons are changed
+	void onChangeQuality(const LLSD& data);
+	
+	void updateSliderText(LLSliderCtrl* ctrl, LLTextBox* text_box);
+	void onUpdateSliderText(LLUICtrl* ctrl, const LLSD& name);
+//	void fractionFromDecimal(F32 decimal_val, S32& numerator, S32& denominator);
+
+	void onCommitParcelMediaAutoPlayEnable();
+	void onCommitMediaEnabled();
+	void onCommitMusicEnabled();
+	void applyResolution();
+	void applyUIColor(LLUICtrl* ctrl, const LLSD& param);
+	void getUIColor(LLUICtrl* ctrl, const LLSD& param);	
+	
+	void buildPopupLists();
+	static void refreshSkin(void* data);
+	static void cleanupBadSetting();
+private:
+	static std::string sSkin;
+	bool mGotPersonalInfo;
+	bool mOriginalIMViaEmail;
+	
+	bool mOriginalHideOnlineStatus;
+	std::string mDirectoryVisibility;
+};
+
+class LLPanelPreference : public LLPanel
+{
+public:
+	LLPanelPreference();
+	/*virtual*/ BOOL postBuild();
+	
+	virtual void apply();
+	virtual void cancel();
+	void setControlFalse(const LLSD& user_data);
+	virtual void setHardwareDefaults(){};
+
+	// This function squirrels away the current values of the controls so that
+	// cancel() can restore them.
+	virtual void saveSettings();
+	
+private:
+	//for "Only friends and groups can call or IM me"
+	static void showFriendsOnlyWarning(LLUICtrl*, const LLSD&);
+
+	typedef std::map<LLControlVariable*, LLSD> control_values_map_t;
+	control_values_map_t mSavedValues;
+
+	typedef std::map<std::string, LLColor4> string_color_map_t;
+	string_color_map_t mSavedColors;
+};
+
+class LLPanelPreferenceGraphics : public LLPanelPreference
+{
+public:
+	BOOL postBuild();
+	void draw();
+	void apply();
+	void cancel();
+	void saveSettings();
+	void setHardwareDefaults();
 protected:
-	LLPreferenceCore		*mPreferenceCore;
-
-	/*virtual*/ void		onClose(bool app_quitting);
-
-	LLButton*	mAboutBtn;
-	LLButton	*mOKBtn;
-	LLButton	*mCancelBtn;
-	LLButton	*mApplyBtn;
-
-	static void		onClickAbout(void*);
-	static void		onBtnOK(void*);
-	static void		onBtnCancel(void*);
-	static void		onBtnApply(void*);
-
-	static LLFloaterPreference* sInstance;
+	bool hasDirtyChilds();
+	void resetDirtyChilds();
+	
 };
 
 #endif  // LL_LLPREFERENCEFLOATER_H

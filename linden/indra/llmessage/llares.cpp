@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,6 +33,7 @@
  */
 
 #include "linden_common.h"
+#include "llares.h"
 
 #include <ares_dns.h>
 #include <ares_version.h>
@@ -42,9 +43,10 @@
 #include "apr_poll.h"
 
 #include "llapr.h"
-#include "llares.h"
+#include "llareslistener.h"
 
 #if defined(LL_WINDOWS)
+#pragma warning (disable : 4355) // 'this' used in initializer list: yes, intentionally
 # define ns_c_in 1
 # define NS_HFIXEDSZ     12      /* #/bytes of fixed data in header */
 # define NS_QFIXEDSZ     4       /* #/bytes of fixed data in query */
@@ -102,7 +104,9 @@ void LLAres::QueryResponder::queryError(int code)
 }
 
 LLAres::LLAres() :
-chan_(NULL), mInitSuccess(false)
+    chan_(NULL),
+    mInitSuccess(false),
+    mListener(new LLAresListener(this))
 {
 	if (ares_init(&chan_) != ARES_SUCCESS)
 	{
@@ -171,7 +175,8 @@ void LLAres::rewriteURI(const std::string &uri, UriRewriteResponder *resp)
 
 LLQueryResponder::LLQueryResponder()
 	: LLAres::QueryResponder(),
-	  mResult(ARES_ENODATA)
+	  mResult(ARES_ENODATA),
+	  mType(RES_INVALID)
 {
 }
 
@@ -637,8 +642,10 @@ LLPtrRecord::LLPtrRecord(const std::string &name, unsigned ttl)
 }
 
 LLAddrRecord::LLAddrRecord(LLResType type, const std::string &name,
-						   unsigned ttl)
-	: LLDnsRecord(type, name, ttl)
+			   unsigned ttl)
+	: LLDnsRecord(type, name, ttl),
+
+	  mSize(0)
 {
 }
 
@@ -697,7 +704,11 @@ bail:
 }
 
 LLSrvRecord::LLSrvRecord(const std::string &name, unsigned ttl)
-	: LLHostRecord(RES_SRV, name, ttl)
+	: LLHostRecord(RES_SRV, name, ttl),
+
+	  mPriority(0),
+	  mWeight(0),
+	  mPort(0)
 {
 }
 

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,16 +38,18 @@
 #include "llcubemap.h"
 #include "llimagegl.h"
 #include "llrendertarget.h"
+#include "lltexture.h"
 
 LLRender gGL;
 
 // Handy copies of last good GL matrices
 F64	gGLModelView[16];
 F64	gGLLastModelView[16];
+F64 gGLLastProjection[16];
 F64 gGLProjection[16];
 S32	gGLViewport[4];
 
-static const U32 LL_NUM_TEXTURE_LAYERS = 8; 
+static const U32 LL_NUM_TEXTURE_LAYERS = 16; 
 
 static GLenum sGLTextureType[] =
 {
@@ -99,7 +101,7 @@ mCurrAlphaSrc1(TBS_TEX_ALPHA), mCurrAlphaSrc2(TBS_PREV_ALPHA),
 mCurrColorScale(1), mCurrAlphaScale(1), mCurrTexture(0),
 mHasMipMaps(false)
 {
-	llassert_always(index < LL_NUM_TEXTURE_LAYERS);
+	llassert_always(index < (S32)LL_NUM_TEXTURE_LAYERS);
 	mIndex = index;
 }
 
@@ -141,7 +143,7 @@ void LLTexUnit::activate(void)
 {
 	if (mIndex < 0) return;
 
-	if (gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
+	if ((S32)gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
 	{
 		glActiveTextureARB(GL_TEXTURE0_ARB + mIndex);
 		gGL.mCurrTextureUnitIndex = mIndex;
@@ -160,6 +162,8 @@ void LLTexUnit::enable(eTextureType type)
 			disable(); // Force a disable of a previous texture type if it's enabled.
 		}
 		mCurrTexType = type;
+
+		gGL.flush();
 		glEnable(sGLTextureType[type]);
 	}
 }
@@ -177,39 +181,81 @@ void LLTexUnit::disable(void)
 	}
 }
 
-bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
+bool LLTexUnit::bind(LLTexture* texture, bool for_rendering, bool forceBind)
 {
 	stop_glerror();
 	if (mIndex < 0) return false;
 
 	gGL.flush();
 
-	if (texture == NULL)
+	LLImageGL* gl_tex = NULL ;
+	if (texture == NULL || !(gl_tex = texture->getGLTexture()))
 	{
 		llwarns << "NULL LLTexUnit::bind texture" << llendl;
 		return false;
 	}
-	
-	if (!texture->getTexName()) //if texture does not exist
-	{
-		if (texture->isDeleted())
-		{
-			// This will re-generate the texture immediately.
-			texture->forceImmediateUpdate() ;
-		}
 
-		texture->forceUpdateBindStats() ;
+	if (!gl_tex->getTexName()) //if texture does not exist
+	{
+		//if deleted, will re-generate it immediately
+		texture->forceImmediateUpdate() ;
+
+		gl_tex->forceUpdateBindStats() ;
 		return texture->bindDefaultImage(mIndex);
 	}
 
+	//in audit, replace the selected texture by the default one.
 	if(gAuditTexture && for_rendering && LLImageGL::sCurTexPickSize > 0)
 	{
 		if(texture->getWidth() * texture->getHeight() == LLImageGL::sCurTexPickSize)
 		{
-			texture->updateBindStats();
-			return bind(LLImageGL::sDefaultTexturep.get());
+			gl_tex->updateBindStats(gl_tex->mTextureMemory);
+			return bind(LLImageGL::sHighlightTexturep.get());
 		}
 	}
+	if ((mCurrTexture != gl_tex->getTexName()) || forceBind)
+	{
+		activate();
+		enable(gl_tex->getTarget());
+		mCurrTexture = gl_tex->getTexName();
+		glBindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+		if(gl_tex->updateBindStats(gl_tex->mTextureMemory))
+		{
+			texture->setActive() ;
+			texture->updateBindStatsForTester() ;
+		}
+		mHasMipMaps = gl_tex->mHasMipMaps;
+		if (gl_tex->mTexOptionsDirty)
+		{
+			gl_tex->mTexOptionsDirty = false;
+			setTextureAddressMode(gl_tex->mAddressMode);
+			setTextureFilteringOption(gl_tex->mFilterOption);
+		}
+	}
+	return true;
+}
+
+bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
+{
+	stop_glerror();
+	if (mIndex < 0) return false;
+
+	if(!texture)
+	{
+		llwarns << "NULL LLTexUnit::bind texture" << llendl;
+		return false;
+	}
+
+	if(!texture->getTexName())
+	{
+		if(LLImageGL::sDefaultGLTexture && LLImageGL::sDefaultGLTexture->getTexName())
+		{
+			return bind(LLImageGL::sDefaultGLTexture) ;
+		}
+		return false ;
+	}
+
+	gGL.flush();
 
 	if ((mCurrTexture != texture->getTexName()) || forceBind)
 	{
@@ -217,8 +263,7 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 		enable(texture->getTarget());
 		mCurrTexture = texture->getTexName();
 		glBindTexture(sGLTextureType[texture->getTarget()], mCurrTexture);
-		texture->updateBindStats();
-		texture->setActive() ;
+		texture->updateBindStats(texture->mTextureMemory);		
 		mHasMipMaps = texture->mHasMipMaps;
 		if (texture->mTexOptionsDirty)
 		{
@@ -252,7 +297,7 @@ bool LLTexUnit::bind(LLCubeMap* cubeMap)
 			mCurrTexture = cubeMap->mImages[0]->getTexName();
 			glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, mCurrTexture);
 			mHasMipMaps = cubeMap->mImages[0]->mHasMipMaps;
-			cubeMap->mImages[0]->updateBindStats();
+			cubeMap->mImages[0]->updateBindStats(cubeMap->mImages[0]->mTextureMemory);
 			if (cubeMap->mImages[0]->mTexOptionsDirty)
 			{
 				cubeMap->mImages[0]->mTexOptionsDirty = false;
@@ -280,6 +325,11 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
 
 	if (bindDepth)
 	{
+		if (renderTarget->hasStencil())
+		{
+			llerrs << "Cannot bind a render buffer for sampling.  Allocate render target without a stencil buffer if sampling of depth buffer is required." << llendl;
+		}
+
 		bindManual(renderTarget->getUsage(), renderTarget->getDepth());
 	}
 	else
@@ -293,15 +343,21 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
 
 bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)
 {
-	if (mIndex < 0 || mCurrTexture == texture) return false;
-
-	gGL.flush();
+	if (mIndex < 0)  
+	{
+		return false;
+	}
 	
-	activate();
-	enable(type);
-	mCurrTexture = texture;
-	glBindTexture(sGLTextureType[type], texture);
-	mHasMipMaps = hasMips;
+	if(mCurrTexture != texture)
+	{
+		gGL.flush();
+		
+		activate();
+		enable(type);
+		mCurrTexture = texture;
+		glBindTexture(sGLTextureType[type], texture);
+		mHasMipMaps = hasMips;
+	}
 	return true;
 }
 
@@ -677,8 +733,11 @@ void LLTexUnit::debugTextureUnit(void)
 
 
 LLRender::LLRender()
-: mDirty(false), mCount(0), mMode(LLRender::TRIANGLES),
-	mMaxAnisotropy(0.f) 
+  : mDirty(false),
+    mCount(0),
+    mMode(LLRender::TRIANGLES),
+    mCurrTextureUnitIndex(0),
+    mMaxAnisotropy(0.f) 
 {
 	mBuffer = new LLVertexBuffer(immediate_mask, 0);
 	mBuffer->allocateBuffer(4096, 0, TRUE);
@@ -799,6 +858,9 @@ void LLRender::setSceneBlendType(eBlendType type)
 		case BT_MULT:
 			glBlendFunc(GL_DST_COLOR, GL_ZERO);
 			break;
+		case BT_MULT_ALPHA:
+			glBlendFunc(GL_DST_ALPHA, GL_ZERO);
+			break;
 		case BT_MULT_X2:
 			glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
 			break;
@@ -835,7 +897,7 @@ void LLRender::blendFunc(eBlendFactor sfactor, eBlendFactor dfactor)
 
 LLTexUnit* LLRender::getTexUnit(U32 index)
 {
-	if ((index >= 0) && (index < mTexUnits.size()))
+	if (index < mTexUnits.size())
 	{
 		return mTexUnits[index];
 	}

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater label="(nieznany)" name="im_floater" title="(nieznany)">
+<floater label="(nieznany)" name="im_floater" title="(NIEZNANY)">
 	<string name="ringing">
 		Łączenie Rozmowy...
 	</string>

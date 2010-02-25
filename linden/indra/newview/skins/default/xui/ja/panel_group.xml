@@ -1,13 +1,22 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<panel name="GroupInfo" title="グループ情報">
-	<text name="default_needs_apply_text">
-		現在のタブに、未適用の変更があります。
-	</text>
-	<text name="want_apply_text">
-		これらの変更を適用しますか？
-	</text>
-	<button label="適用" label_selected="適用" name="btn_apply" />
-	<button label="取消し" label_selected="取消し" name="btn_cancel" />
-	<button label="OK" label_selected="OK" name="btn_ok" />
-	<button label="更新" label_selected="リフレッシュ" name="btn_refresh" />
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="グループ情報" name="GroupInfo" title="グループ情報">
+	<panel.string name="default_needs_apply_text">
+		現在のタブには、保存されていない変更があります。
+	</panel.string>
+	<panel.string name="want_apply_text">
+		変更を保存しますか？
+	</panel.string>
+	<line_editor label="新しいグループの名前を入力してください" name="group_name_editor"/>
+	<texture_picker name="insignia" tool_tip="クリックして写真を選択"/>
+	<accordion name="groups_accordion">
+		<accordion_tab name="tab_general" title="一般"/>
+		<accordion_tab name="tab_roles" title="役割"/>
+		<accordion_tab name="tab_notices" title="通知"/>
+		<accordion_tab name="tab_land" title="土地・資産"/>
+	</accordion>
+	<button label="取消し" label_selected="取消し" name="btn_cancel"/>
+	<button label="保存" label_selected="保存" name="btn_ok"/>
+	<button label="更新" label_selected="リフレッシュ" name="btn_refresh"/>
+	<button label="参加 （L$0）" label_selected="参加 （L$0）" name="join_button"/>
+	<button label="詳細" label_selected="詳細画面" name="info_button"/>
 </panel>

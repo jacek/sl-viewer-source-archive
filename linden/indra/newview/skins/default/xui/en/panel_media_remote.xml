@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ follows="right|bottom"
+ height="26"
+ layout="topleft"
+ left="0"
+ name="media_remote"
+ top="26"
+ use_bounding_rect="true"
+ width="220">
+    <panel
+     filename="panel_bg_tab.xml"
+     height="26"
+     layout="topleft"
+     left="0"
+     top="-1"
+     width="220" />
+    <panel
+     filename="panel_media_controls.xml"
+     height="20"
+     layout="topleft"
+     left="0"
+     top="3"
+     width="220" />
+</panel>

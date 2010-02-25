@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,7 @@
 #include "llsdutil.h"
 #include "lltransactiontypes.h"
 #include "lltransactionflags.h"
-#include "llsdutil.h"
+#include "llsdutil_math.h"
 #include "message.h"
 #include "u64.h"
 
@@ -85,13 +85,13 @@ static const std::string PARCEL_CATEGORY_UI_STRING[LLParcel::C_COUNT + 1] =
     "None",
     "Linden Location",
     "Adult",
-    "Arts & Culture",
+    "Arts and Culture",
     "Business",
     "Educational",
     "Gaming",
     "Hangout",
     "Newcomer Friendly",
-    "Parks & Nature",
+    "Parks and Nature",
     "Residential",
     "Shopping",
     "Stage",
@@ -175,7 +175,7 @@ void LLParcel::init(const LLUUID &owner_id,
 	mSaleTimerExpires.stop();
 	mGraceExtension = 0;
 	//mExpireAction = STEA_REVERT;
-	mRecordTransaction = FALSE;
+	//mRecordTransaction = FALSE;
 
 	mAuctionID = 0;
 	mInEscrow = false;
@@ -677,6 +677,7 @@ void LLParcel::packMessage(LLMessageSystem* msg)
 // Assumes we are in a block "ParcelData"
 void LLParcel::packMessage(LLSD& msg)
 {
+	// used in the viewer, the sim uses it's own packer
 	msg["local_id"] = getLocalID();
 	msg["parcel_flags"] = ll_sd_from_U32(getParcelFlags());
 	msg["sale_price"] = getSalePrice();
@@ -704,7 +705,6 @@ void LLParcel::packMessage(LLSD& msg)
 	msg["pass_hours"] = mPassHours;
 	msg["category"] = (U8)mCategory;
 	msg["auth_buyer_id"] = mAuthBuyerID;
-	msg["snapshot_id"] = mSnapshotID;
 	msg["snapshot_id"] = mSnapshotID;
 	msg["user_location"] = ll_sd_from_vector3(mUserLocation);
 	msg["user_look_at"] = ll_sd_from_vector3(mUserLookAt);

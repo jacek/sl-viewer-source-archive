@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<panel
+ bevel_style="in"
+ border="true"
+ follows="left|bottom|right"
+ height="120"
+ layout="topleft"
+ left="0"
+ name="active_speakers_panel"
+ top="120"
+ width="140">
+    <panel.string
+     name="moderator_label">
+        (Moderator)
+    </panel.string>
+    <layout_stack
+     follows="left|top|right|bottom"
+     height="123"
+     layout="topleft"
+     left="0"
+     name="panels"
+     tab_group="1"
+     top="-3"
+     width="140">
+        <layout_panel
+         auto_resize="false"
+         height="25"
+         layout="topleft"
+         left="0"
+         min_height="25"
+         name="moderation_mode_panel"
+         top="98"
+         user_resize="false"
+         visible="false"
+         width="140">
+            <combo_box
+             follows="left|top|right|bottom"
+             height="20"
+             layout="topleft"
+             left="5"
+             name="moderation_mode"
+             top="5"
+             width="130">
+                <combo_box.item
+                 label="Voices on by default"
+                 name="OpenVoice"
+                 value="unmoderated" />
+                <combo_box.item
+                 label="Voices off by default"
+                 name="ModeratedVoice"
+                 value="moderated" />
+            </combo_box>
+        </layout_panel>
+        <layout_panel
+         height="120"
+         layout="topleft"
+         left_delta="0"
+         min_height="100"
+         name="moderate_chat_panel"
+         top_delta="-95"
+         user_resize="false"
+         width="140">
+            <scroll_list
+             bottom="42"
+             column_padding="0"
+             draw_heading="true"
+             draw_stripes="false"
+             follows="left|top|bottom|right"
+             layout="topleft"
+             left="0"
+             name="speakers_list"
+             right="140"
+             search_column="1"
+             sort_column="2"
+             top="0">
+                <scroll_list.columns
+                 name="icon_speaking_status"
+                 sort_column="speaking_status"
+                 width="20" />
+                <scroll_list.columns
+                 dynamic_width="true"
+                 label="Name"
+                 name="speaker_name" />
+                <scroll_list.columns
+                 label=""
+                 name="speaking_status"
+                 width="0" />
+            </scroll_list>
+            <panel
+             follows="left|bottom|right"
+             height="77"
+             layout="topleft"
+             left_delta="0"
+             name="speaker_controls"
+             top_pad="1"
+             width="140">
+                <button
+                 bottom="28"
+                 enabled="false"
+                 follows="left|top"
+                 height="20"
+                 image_overlay="icon_avatar_offline.tga"
+                 layout="topleft"
+                 left="4"
+                 name="profile_btn"
+                 right="34" />
+                <text
+                 type="string"
+                 length="1"
+                 bottom_delta="-9"
+                 follows="left|top|right"
+                 font="SansSerif"
+                 layout="topleft"
+                 left_delta="34"
+                 name="resident_name"
+                 valign="center"
+                 width="140">
+                    Rumplstiltskin Califragilistic
+                </text>
+                <slider_bar
+                 follows="left|top"
+                 height="15"
+                 increment="0.05"
+                 initial_value="0.5"
+                 layout="topleft"
+                 left="0"
+                 name="speaker_volume"
+                 top="33"
+                 width="110" />
+                <button
+                 height="20"
+                 image_selected="icn_speaker-muted_dark.tga"
+                 image_unselected="icn_speaker_dark.tga"
+                 layout="topleft"
+                 left_delta="110"
+                 name="mute_btn"
+                 tool_tip="Mute voice for this Resident"
+                 top="28"
+                 width="25" />
+                <check_box
+                 enabled="false"
+                 height="25"
+                 label="Mute Text"
+                 layout="topleft"
+                 left="3"
+                 name="mute_text_btn"
+                 top="48"
+                 width="50" />
+            </panel>
+        </layout_panel>
+        <layout_panel
+         auto_resize="false"
+         height="60"
+         layout="topleft"
+         left_delta="0"
+         name="moderator_controls"
+         top_delta="60"
+         user_resize="false"
+         visible="false"
+         width="140">
+            <text
+             type="string"
+             length="1"
+             bottom="20"
+             follows="left|right|top|bottom"
+             height="20"
+             layout="topleft"
+             left="5"
+             name="moderator_controls_label"
+             right="-5">
+                Moderator Controls:
+            </text>
+            <check_box
+             bottom_delta="16"
+             follows="left|right|top|bottom"
+             height="20"
+             label="Allow voice chat"
+             layout="topleft"
+             left_delta="0"
+             name="moderator_allow_voice"
+             right="-5" />
+            <check_box
+             bottom_delta="20"
+             follows="left|right|top|bottom"
+             height="20"
+             label="Allow text chat"
+             layout="topleft"
+             left_delta="0"
+             name="moderator_allow_text"
+             right="-5" />
+        </layout_panel>
+    </layout_stack>
+</panel>

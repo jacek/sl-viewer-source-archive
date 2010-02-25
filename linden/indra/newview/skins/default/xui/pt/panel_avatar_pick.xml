@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Pick" title="Pick">
-	<button label="Ajustar Localização" name="set_location_btn" width="130" left="240"/>
+<panel label="Destaque" name="Pick" title="Pick">
+	<button label="Ajustar Localização" left="240" name="set_location_btn" width="130"/>
 	<button label="Teletransporte" name="pick_teleport_btn" width="105"/>
-	<button label="Mostrar no Mapa" name="pick_map_btn" width="125" left="115"/>
+	<button label="Mapa" left="115" name="pick_map_btn" width="125"/>
 	<text name="sort_order_text">
 		Sorte
 	</text>

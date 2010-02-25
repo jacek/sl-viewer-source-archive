@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -126,8 +126,9 @@ LLHTTPAssetRequest::LLHTTPAssetRequest(LLHTTPAssetStorage *asp,
 						const std::string& url, 
 						CURLM *curl_multi)
 	: LLAssetRequest(uuid, type),
-	mZInitialized(false)
+	  mZInitialized(false)
 {
+	memset(&mZStream, 0, sizeof(mZStream)); // we'll initialize this later, but for now zero the whole C-style struct to avoid debug/coverity noise
 	mAssetStoragep = asp;
 	mCurlHandle = NULL;
 	mCurlMultiHandle = curl_multi;
@@ -626,7 +627,7 @@ LLSD LLHTTPAssetStorage::getPendingRequest(LLAssetStorage::ERequestType rt,
 	const request_list_t* running = getRunningList(rt);
 	if (running)
 	{
-		LLSD sd = LLAssetStorage::getPendingRequest(running, asset_type, asset_id);
+		LLSD sd = LLAssetStorage::getPendingRequestImpl(running, asset_type, asset_id);
 		if (sd)
 		{
 			sd["is_running"] = true;

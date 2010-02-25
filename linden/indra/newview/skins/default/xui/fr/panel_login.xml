@@ -1,52 +1,45 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="panel_login">
-	<string name="forgot_password_url">
-		http://secondlife.com/account/request.php
-	</string>
-	<text name="first_name_text">
-		Prénom :
-	</text>
-	<text name="last_name_text">
-		Nom :
-	</text>
-	<text name="password_text">
-		Mot de passe :
-	</text>
-	<text name="start_location_text">
-		Lieu de départ :
-	</text>
-	<combo_box name="start_location_combo">
-		<combo_item name="MyHome">
-			Domicile
-		</combo_item>
-		<combo_item name="MyLastLocation">
-			Dernier emplacement
-		</combo_item>
-		<combo_item name="&lt;Typeregionname&gt;">
-			&lt;Choisir région&gt;
-		</combo_item>
-		<combo_item name="Typeregionname">
-			&lt;Nom de la région&gt;
-		</combo_item>
-	</combo_box>
-	<check_box label="Mémoriser" name="remember_check"/>
-	<text name="full_screen_text">
-		Le plein écran sera activé après identification.
-	</text>
-	<button label="Nouveau Compte..." label_selected="Nouveau Compte..." name="new_account_btn"/>
-	<button label="Me connecter" label_selected="Me connecter" name="connect_btn"/>
-	<button label="Préférences..." label_selected="Préférences..." name="preferences_btn"/>
-	<button label="Quitter" label_selected="Quitter" name="quit_btn"/>
-	<text name="version_text">
-		1.23.4 (5)
-	</text>
-	<text name="create_new_account_text">
-		Créer un compte
-	</text>
-	<text name="forgot_password_text">
-		Nom ou mot de passe oublié ?
-	</text>
-	<text name="channel_text">
-		[VERSION]
-	</text>
+	<panel.string name="create_account_url">
+		http://fr.secondlife.com/registration/
+	</panel.string>
+	<panel.string name="forgot_password_url">
+		http://secondlife.com/account/request.php?lang=fr
+	</panel.string>
+	<layout_stack name="login_widgets">
+		<layout_panel name="login">
+			<text name="first_name_text">
+				Prénom :
+			</text>
+			<line_editor label="Prénom" name="first_name_edit" tool_tip="Prénom [SECOND_LIFE]"/>
+			<text name="last_name_text">
+				Nom :
+			</text>
+			<line_editor label="Nom :" name="last_name_edit" tool_tip="Nom [SECOND_LIFE]"/>
+			<text name="password_text">
+				Mot de passe :
+			</text>
+			<check_box label="Enregistrer" name="remember_check"/>
+			<text name="start_location_text">
+				Commencer à :
+			</text>
+			<combo_box name="start_location_combo" width="152">
+				<combo_box.item label="Dernier emplacement" name="MyLastLocation"/>
+				<combo_box.item label="Domicile" name="MyHome"/>
+				<combo_box.item label="&lt;Saisissez le nom de la région&gt;" name="Typeregionname"/>
+			</combo_box>
+			<button label="Connexion" name="connect_btn"/>
+		</layout_panel>
+		<layout_panel name="links">
+			<text name="create_new_account_text">
+				S&apos;inscrire
+			</text>
+			<text name="forgot_password_text">
+				Nom ou mot de passe oublié ?
+			</text>
+			<text name="login_help">
+				Besoin d&apos;aide ?
+			</text>
+		</layout_panel>
+	</layout_stack>
 </panel>

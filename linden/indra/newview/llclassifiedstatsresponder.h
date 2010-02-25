@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,6 +44,7 @@ public:
 	//If we get back a normal response, handle it here
 	virtual void result(const LLSD& content);
 	//If we get back an error (not found, etc...), handle it here
+	
 	virtual void error(U32 status, const std::string& reason);
 
 protected:

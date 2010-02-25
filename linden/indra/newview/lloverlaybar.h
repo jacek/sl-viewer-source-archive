@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -67,7 +67,6 @@ public:
 	// helpers for returning desired state
 	BOOL musicPlaying() { return mMusicState == PLAYING; }
 	
-	static void onClickIMReceived(void* data);
 	static void onClickSetNotBusy(void* data);
 	static void onClickMouselook(void* data);
 	static void onClickStandUp(void* data);
@@ -86,7 +85,6 @@ public:
 protected:	
 	static void* createMediaRemote(void* userdata);
 	static void* createVoiceRemote(void* userdata);
-	static void* createChatBar(void* userdata);
 
 	void enableMediaButtons();
 

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MEDIEN IN DER NÄHE">
+	<string name="media_item_count_format">
+		(%ld Medien)
+	</string>
+	<string name="empty_item_text">
+		&lt;leer&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;Keine Medien verfügbar&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Medien auf Parzelle ein-/ausschalten
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? Medien)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Alle Medien in der Nähe ein-/ausschalten"/>
+		</panel>
+		<panel>
+			<button label="Keine Medien auf Parzelle" name="parcel_media_enable_btn" tool_tip="Medien auf Parzelle ein-/ausschalten"/>
+			<text name="parcel_media_name">
+				&lt;Keine Medien verfügbar&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Medien auf Parzelle wiedergeben"/>
+			<button name="parcel_media_pause_btn" tool_tip="Medien auf Parzelle pausieren"/>
+			<button name="parcel_media_stop_btn" tool_tip="Medien auf Parzelle anhalten"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Audio auf Parzelle wiedergeben"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Audio auf Parzelle pausieren"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Medien auf Parzelle stoppen"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="Ein/Aus" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Name" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Medien aktiviert" name="media_enabled_btn" tool_tip="Medien aktivieren" value="wahr"/>
+			<check_box label="Automatische Wiedergabe zulassen" name="media_auto_play_btn" tool_tip="Automatische Wiedergabe zulassen" value="wahr"/>
+		</panel>
+	</panel>
+</floater>

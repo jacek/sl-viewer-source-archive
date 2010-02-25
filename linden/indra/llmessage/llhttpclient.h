@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -142,6 +142,14 @@ public:
 	 */
 	static LLSD blockingGet(const std::string& url);
 
+	/**
+	 * @brief Blocking HTTP POST that returns an LLSD map of status and body.
+	 *
+	 * @param url the complete serialized (and escaped) url to get
+	 * @param body the LLSD post body
+	 * @return An LLSD of { 'status':status (an int), 'body':payload (an LLSD) }
+	 */
+	static LLSD blockingPost(const std::string& url, const LLSD& body);
 
 	
 	static void setPump(LLPumpIO& pump);

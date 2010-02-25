@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="camera_floater">
+	<floater.string name="rotate_tooltip">
+		Pivotar câmera ao redor do foco
+	</floater.string>
+	<floater.string name="zoom_tooltip">
+		Aumentar o zoom no objeto a enfocar
+	</floater.string>
+	<floater.string name="move_tooltip">
+		Move a câmera para cima e para baixo, direita e esquerda
+	</floater.string>
+</floater>

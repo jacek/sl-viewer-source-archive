@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,6 +47,7 @@ LLInventoryClipboard LLInventoryClipboard::sInstance;
 ///----------------------------------------------------------------------------
 
 LLInventoryClipboard::LLInventoryClipboard()
+: mCutMode(false)
 {
 }
 
@@ -77,6 +78,16 @@ void LLInventoryClipboard::store(const LLDynamicArray<LLUUID>& inv_objects)
 	}
 }
 
+void LLInventoryClipboard::cut(const LLUUID& object)
+{
+	if(!mCutMode && !mObjects.empty())
+	{
+		//looks like there are some stored items, reset clipboard state
+		reset();
+	}
+	mCutMode = true;
+	add(object);
+}
 void LLInventoryClipboard::retrieve(LLDynamicArray<LLUUID>& inv_objects) const
 {
 	inv_objects.reset();
@@ -90,6 +101,7 @@ void LLInventoryClipboard::retrieve(LLDynamicArray<LLUUID>& inv_objects) const
 void LLInventoryClipboard::reset()
 {
 	mObjects.reset();
+	mCutMode = false;
 }
 
 // returns true if the clipboard has something pasteable in it.

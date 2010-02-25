@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,14 +36,12 @@
 #include "lltoolface.h" 
 
 // Library includes
+#include "llfloaterreg.h"
 #include "v3math.h"
 
 // Viewer includes
-#include "llagent.h"
-//#include "llbuildview.h"
 #include "llviewercontrol.h"
 #include "llselectmgr.h"
-#include "lltoolview.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
 #include "llfloatertools.h"
@@ -67,9 +65,7 @@ BOOL LLToolFace::handleDoubleClick(S32 x, S32 y, MASK mask)
 	{
 		// You should already have an object selected from the mousedown.
 		// If so, show its properties
-		//gBuildView->showFacePanel();
-		gFloaterTools->showPanel( LLFloaterTools::PANEL_FACE );
-		//gBuildView->showMore(LLBuildView::PANEL_FACE);
+		LLFloaterReg::showInstance("build", "Texture");
 		return TRUE;
 	}
 	else

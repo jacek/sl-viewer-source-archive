@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,8 @@
 #define LL_LLIMAGEWORKER_H
 
 #include "llimage.h"
-#include "llqueuedthread.h"
+#include "llpointer.h"
+#include "llworkerthread.h"
 
 class LLImageDecodeThread : public LLQueuedThread
 {
@@ -90,7 +91,7 @@ private:
 	struct creation_info
 	{
 		handle_t handle;
-		LLImageFormatted* image;
+		LLPointer<LLImageFormatted> image;
 		U32 priority;
 		S32 discard;
 		BOOL needs_aux;

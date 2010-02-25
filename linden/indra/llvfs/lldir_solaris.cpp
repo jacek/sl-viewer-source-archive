@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -100,7 +100,7 @@ LLDir_Solaris::LLDir_Solaris()
 	mAppRODataDir = strdup(tmp_str);
 	mOSUserDir = getCurrentUserHome(tmp_str);
 	mOSUserAppDir = "";
-	mLindenUserDir = tmp_str;
+	mLindenUserDir = "";
 
 	char path [LL_MAX_PATH];	/* Flawfinder: ignore */ 
 
@@ -174,8 +174,14 @@ LLDir_Solaris::~LLDir_Solaris()
 // Implementation
 
 
-void LLDir_Solaris::initAppDirs(const std::string &app_name)
+void LLDir_Solaris::initAppDirs(const std::string &app_name,
+								const std::string& app_read_only_data_dir)
 {
+	// Allow override so test apps can read newview directory
+	if (!app_read_only_data_dir.empty())
+	{
+		mAppRODataDir = app_read_only_data_dir;
+	}
 	mAppName = app_name;
 
 	std::string upper_app_name(app_name);
@@ -238,15 +244,6 @@ void LLDir_Solaris::initAppDirs(const std::string &app_name)
 		}
 	}
 	
-	res = LLFile::mkdir(getExpandedFilename(LL_PATH_MOZILLA_PROFILE,""));
-	if (res == -1)
-	{
-		if (errno != EEXIST)
-		{
-			llwarns << "Couldn't create LL_PATH_MOZILLA_PROFILE dir " << getExpandedFilename(LL_PATH_MOZILLA_PROFILE,"") << llendl;
-		}
-	}
-
 	mCAFile = getExpandedFilename(LL_PATH_APP_SETTINGS, "CA.pem");
 }
 

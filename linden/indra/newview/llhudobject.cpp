@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -254,10 +254,12 @@ LLHUDEffect *LLHUDObject::addHUDEffect(const U8 type)
 	return hud_objectp;
 }
 
+static LLFastTimer::DeclareTimer FTM_HUD_UPDATE("Update Hud");
+
 // static
 void LLHUDObject::updateAll()
 {
-	LLFastTimer ftm(LLFastTimer::FTM_HUD_UPDATE);
+	LLFastTimer ftm(FTM_HUD_UPDATE);
 	LLHUDText::updateAll();
 	LLHUDIcon::updateAll();
 	sortObjects();
@@ -303,26 +305,6 @@ void LLHUDObject::renderAllForSelect()
 		else if (hud_objp->isVisible())
 		{
 			hud_objp->renderForSelect();
-		}
-	}
-}
-// static
-void LLHUDObject::renderAllForTimer()
-{
-	LLHUDObject *hud_objp;
-	
-	hud_object_list_t::iterator object_it;
-	for (object_it = sHUDObjects.begin(); object_it != sHUDObjects.end(); )
-	{
-		hud_object_list_t::iterator cur_it = object_it++;
-		hud_objp = (*cur_it);
-		if (hud_objp->getNumRefs() == 1)
-		{
-			sHUDObjects.erase(cur_it);
-		}
-		else if (hud_objp->isVisible())
-		{
-			hud_objp->renderForTimer();
 		}
 	}
 }

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,9 +33,12 @@
 #ifndef LL_LLAPPVIEWERLINUX_H
 #define LL_LLAPPVIEWERLINUX_H
 
-#if LL_DBUS_ENABLED
 extern "C" {
 # include <glib.h>
+}
+
+#if LL_DBUS_ENABLED
+extern "C" {
 # include <glib-object.h>
 # include <dbus/dbus-glib.h>
 }

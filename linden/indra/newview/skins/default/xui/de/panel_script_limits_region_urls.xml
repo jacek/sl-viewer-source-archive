@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="REGION-URLS" name="script_limits_region_urls_panel">
+	<text name="Parcel Script URLs">
+		Parzelleskript-URLs
+	</text>
+	<text name="parcels_listed">
+		Aufgeführte Parzellen:
+	</text>
+	<text name="urls_used">
+		Verwendete URLs:
+	</text>
+	<text name="loading_text">
+		Wird geladen...
+	</text>
+	<scroll_list name="scripts_list">
+		<scroll_list.columns label="URLs" name="urls"/>
+		<scroll_list.columns label="Objektname" name="name"/>
+		<scroll_list.columns label="Objekteigentümer" name="owner" width="130"/>
+		<scroll_list.columns label="Parzelle / Standort" name="location"/>
+	</scroll_list>
+	<button label="Liste aktualisieren" name="refresh_list_btn" width="120"/>
+	<button label="Markieren" name="highlight_btn"/>
+	<button label="Zurückgeben" name="return_btn"/>
+</panel>

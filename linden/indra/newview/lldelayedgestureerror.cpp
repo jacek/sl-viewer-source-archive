@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,8 +33,9 @@
 
 #include "llviewerprecompiledheaders.h"
 #include "lldelayedgestureerror.h"
+
 #include <list>
-#include "llnotify.h"
+#include "llnotificationsutil.h"
 #include "llcallbacklist.h"
 #include "llinventory.h"
 #include "llviewerinventory.h"
@@ -119,7 +120,7 @@ bool LLDelayedGestureError::doDialog(const LLErrorEntry &ent, bool uuid_ok)
 	}
 	 
 
-	LLNotifications::instance().add(ent.mNotifyName, args);
+	LLNotificationsUtil::add(ent.mNotifyName, args);
 
 	return true;
 }

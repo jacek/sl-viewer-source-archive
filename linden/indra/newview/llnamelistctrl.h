@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,35 +39,68 @@
 
 
 class LLNameListCtrl
-:	public LLScrollListCtrl
+:	public LLScrollListCtrl, protected LLInstanceTracker<LLNameListCtrl>
 {
 public:
-	LLNameListCtrl(const std::string& name,
-				   const LLRect& rect,
-				   LLUICtrlCallback callback,
-				   void* userdata,
-				   BOOL allow_multiple_selection,
-				   BOOL draw_border = TRUE,
-				   S32 name_column_index = 0,
-				   const std::string& tooltip = LLStringUtil::null);
-	virtual ~LLNameListCtrl();
+	typedef enum e_name_type
+	{
+		INDIVIDUAL,
+		GROUP,
+		SPECIAL
+	} ENameType;
 
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
+	// provide names for enums
+	struct NameTypeNames : public LLInitParam::TypeValuesHelper<LLNameListCtrl::ENameType, NameTypeNames>
+	{
+		static void declareValues();
+	};
 
+	struct NameItem : public LLInitParam::Block<NameItem, LLScrollListItem::Params>
+	{
+		Optional<std::string>				name;
+		Optional<ENameType, NameTypeNames>	target;
+
+		NameItem()
+		:	name("name"),
+			target("target", INDIVIDUAL)
+		{}		
+	};
+
+	struct NameColumn : public LLInitParam::Choice<NameColumn>
+	{
+		Alternative<S32>				column_index;
+		Alternative<std::string>		column_name;
+		NameColumn()
+		:	column_name("name_column"),
+			column_index("name_column_index", 0)
+		{}
+	};
+
+	struct Params : public LLInitParam::Block<Params, LLScrollListCtrl::Params>
+	{
+		Optional<NameColumn>	name_column;
+		Optional<bool>	allow_calling_card_drop;
+		Params();
+	};
+
+protected:
+	LLNameListCtrl(const Params&);
+	friend class LLUICtrlFactory;
+public:
 	// Add a user to the list by name.  It will be added, the name 
 	// requested from the cache, and updated as necessary.
-	BOOL addNameItem(const LLUUID& agent_id, EAddPosition pos = ADD_BOTTOM,
+	void addNameItem(const LLUUID& agent_id, EAddPosition pos = ADD_BOTTOM,
 					 BOOL enabled = TRUE, std::string& suffix = LLStringUtil::null);
-	BOOL addNameItem(LLScrollListItem* item, EAddPosition pos = ADD_BOTTOM);
+	void addNameItem(NameItem& item, EAddPosition pos = ADD_BOTTOM);
 
-	virtual LLScrollListItem* addElement(const LLSD& value, EAddPosition pos = ADD_BOTTOM, void* userdata = NULL);
+	/*virtual*/ LLScrollListItem* addElement(const LLSD& element, EAddPosition pos = ADD_BOTTOM, void* userdata = NULL);
+	LLScrollListItem* addNameItemRow(const NameItem& value, EAddPosition pos = ADD_BOTTOM, std::string& suffix = LLStringUtil::null);
 
 	// Add a user to the list by name.  It will be added, the name 
 	// requested from the cache, and updated as necessary.
 	void addGroupNameItem(const LLUUID& group_id, EAddPosition pos = ADD_BOTTOM,
 						  BOOL enabled = TRUE);
-	void addGroupNameItem(LLScrollListItem* item, EAddPosition pos = ADD_BOTTOM);
+	void addGroupNameItem(NameItem& item, EAddPosition pos = ADD_BOTTOM);
 
 
 	void removeNameItem(const LLUUID& agent_id);
@@ -77,17 +110,43 @@ public:
 	static void refreshAll(const LLUUID& id, const std::string& firstname,
 						   const std::string& lastname, BOOL is_group);
 
-	virtual BOOL	handleDragAndDrop(S32 x, S32 y, MASK mask,
+	// LLView interface
+	/*virtual*/ BOOL	handleDragAndDrop(S32 x, S32 y, MASK mask,
 									  BOOL drop, EDragAndDropType cargo_type, void *cargo_data,
 									  EAcceptance *accept,
 									  std::string& tooltip_msg);
+	/*virtual*/ BOOL handleToolTip(S32 x, S32 y, MASK mask);
 
 	void setAllowCallingCardDrop(BOOL b) { mAllowCallingCardDrop = b; }
 
+	/*virtual*/ void updateColumns();
 private:
-	static std::set<LLNameListCtrl*> sInstances;
-	S32    	 mNameColumnIndex;
-	BOOL	 mAllowCallingCardDrop;
+	void showInspector(const LLUUID& avatar_id, bool is_group);
+
+private:
+	S32    			mNameColumnIndex;
+	std::string		mNameColumn;
+	BOOL			mAllowCallingCardDrop;
+};
+
+/**
+ * LLNameListCtrl item
+ * 
+ * We don't use LLScrollListItem to be able to override getUUID(), which is needed
+ * because the name list item value is not simply an UUID but a map (uuid, is_group).
+ */
+class LLNameListItem : public LLScrollListItem
+{
+public:
+	LLUUID	getUUID() const		{ return getValue()["uuid"].asUUID(); }
+
+protected:
+	friend class LLNameListCtrl;
+
+	LLNameListItem( const LLScrollListItem::Params& p )
+	:	LLScrollListItem(p)
+	{
+	}
 };
 
 #endif

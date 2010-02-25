@@ -10,7 +10,7 @@
 		（位置情報が利用できません）
 	</text>
 	<text name="LabelOwnerNameTitle">
-		オーナー：
+		所有者：
 	</text>
-	<button label="オーナーを無視" label_selected="オーナーを無視" name="Mute"/>
+	<button label="所有者をミュート" label_selected="所有者をミュート" name="Mute"/>
 </floater>

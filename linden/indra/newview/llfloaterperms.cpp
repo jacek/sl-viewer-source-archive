@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,7 +32,6 @@
  */
 
 #include "llviewerprecompiledheaders.h"
-#include "llalertdialog.h"
 #include "llcheckboxctrl.h"
 #include "llfloaterperms.h"
 #include "llviewercontrol.h"
@@ -42,50 +41,45 @@
 
 
 LLFloaterPerms::LLFloaterPerms(const LLSD& seed)
+: LLFloater(seed)
 {
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_perm_prefs.xml");
+	//LLUICtrlFactory::getInstance()->buildFloater(this, "floater_perm_prefs.xml");
+	mCommitCallbackRegistrar.add("Perms.Copy",	boost::bind(&LLFloaterPerms::onCommitCopy, this));
+	mCommitCallbackRegistrar.add("Perms.OK",	boost::bind(&LLFloaterPerms::onClickOK, this));
+	mCommitCallbackRegistrar.add("Perms.Cancel",	boost::bind(&LLFloaterPerms::onClickCancel, this));
+
 }
 
 BOOL LLFloaterPerms::postBuild()
 {
-	childSetEnabled("next_owner_transfer", gSavedSettings.getBOOL("NextOwnerCopy"));
-	childSetAction("help",   onClickHelp,   this);
-	childSetAction("ok",     onClickOK,     this);
-	childSetAction("cancel", onClickCancel, this);
-	childSetCommitCallback("next_owner_copy", &onCommitCopy, this);
-
+	mCloseSignal.connect(boost::bind(&LLFloaterPerms::cancel, this));
+	
 	refresh();
 	
 	return TRUE;
 }
 
-//static 
-void LLFloaterPerms::onClickOK(void* data)
+void LLFloaterPerms::onClickOK()
 {
-	LLFloaterPerms* self = static_cast<LLFloaterPerms*>(data);
-	self->ok();
-	self->close();
+	ok();
+	closeFloater();
 }
 
-//static 
-void LLFloaterPerms::onClickCancel(void* data)
+void LLFloaterPerms::onClickCancel()
 {
-	LLFloaterPerms* self = static_cast<LLFloaterPerms*>(data);
-	self->cancel();
-	self->close();
+	cancel();
+	closeFloater();
 }
 
-//static 
-void LLFloaterPerms::onCommitCopy(LLUICtrl* ctrl, void* data)
+void LLFloaterPerms::onCommitCopy()
 {
-	LLFloaterPerms* self = static_cast<LLFloaterPerms*>(data);
 	// Implements fair use
 	BOOL copyable = gSavedSettings.getBOOL("NextOwnerCopy");
 	if(!copyable)
 	{
 		gSavedSettings.setBOOL("NextOwnerTransfer", TRUE);
 	}
-	LLCheckBoxCtrl* xfer = self->getChild<LLCheckBoxCtrl>("next_owner_transfer");
+	LLCheckBoxCtrl* xfer = getChild<LLCheckBoxCtrl>("next_owner_transfer");
 	xfer->setEnabled(copyable);
 }
 
@@ -112,14 +106,6 @@ void LLFloaterPerms::refresh()
 	mNextOwnerTransfer = gSavedSettings.getBOOL("NextOwnerTransfer");
 }
 
-void LLFloaterPerms::onClose(bool app_quitting)
-{
-	// Cancel any unsaved changes before closing. 
-	// Note: when closed due to the OK button this amounts to a no-op.
-	cancel();
-	LLFloater::onClose(app_quitting);
-}
-
 //static 
 U32 LLFloaterPerms::getGroupPerms(std::string prefix)
 {	
@@ -135,7 +121,7 @@ U32 LLFloaterPerms::getEveryonePerms(std::string prefix)
 //static 
 U32 LLFloaterPerms::getNextOwnerPerms(std::string prefix)
 {
-	U32 flags = PERM_MOVE;
+	U32 flags = 0;
 	if ( gSavedSettings.getBOOL(prefix+"NextOwnerCopy") )
 	{
 		flags |= PERM_COPY;
@@ -151,9 +137,3 @@ U32 LLFloaterPerms::getNextOwnerPerms(std::string prefix)
 	return flags;
 }
 
-
-//static
-void LLFloaterPerms::onClickHelp(void* data)
-{
-	LLNotifications::instance().add("ClickUploadHelpPermissions");
-}

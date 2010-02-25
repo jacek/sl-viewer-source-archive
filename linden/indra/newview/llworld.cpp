@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,8 +46,8 @@
 #include "llregionhandle.h"
 #include "llsurface.h"
 #include "llviewercamera.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llviewernetwork.h"
 #include "llviewerobjectlist.h"
 #include "llviewerparceloverlay.h"
@@ -109,8 +109,8 @@ LLWorld::LLWorld() :
 	*(default_texture++) = MAX_WATER_COLOR.mV[2];
 	*(default_texture++) = MAX_WATER_COLOR.mV[3];
 	
-	mDefaultWaterTexturep = new LLViewerImage(raw, FALSE);
-	gGL.getTexUnit(0)->bind(mDefaultWaterTexturep.get());
+	mDefaultWaterTexturep = LLViewerTextureManager::getLocalTexture(raw.get(), FALSE);
+	gGL.getTexUnit(0)->bind(mDefaultWaterTexturep);
 	mDefaultWaterTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
 
 }
@@ -118,6 +118,7 @@ LLWorld::LLWorld() :
 
 void LLWorld::destroyClass()
 {
+	mHoleWaterObjects.clear();
 	gObjectList.destroy();
 	for(region_list_t::iterator region_it = mRegionList.begin(); region_it != mRegionList.end(); )
 	{
@@ -367,9 +368,14 @@ LLVector3d	LLWorld::clipToVisibleRegions(const LLVector3d &start_pos, const LLVe
 		clip_factor = (region_coord.mV[VY] - region_width) / delta_pos_abs.mdV[VY];
 	}
 
-	// clamp to < 256 to stay in sim
+	// clamp to within region dimensions
 	LLVector3d final_region_pos = LLVector3d(region_coord) - (delta_pos * clip_factor);
-	final_region_pos.clamp(0.0, 255.999);
+	final_region_pos.mdV[VX] = llclamp(final_region_pos.mdV[VX], 0.0,
+									   (F64)(region_width - F_ALMOST_ZERO));
+	final_region_pos.mdV[VY] = llclamp(final_region_pos.mdV[VY], 0.0,
+									   (F64)(region_width - F_ALMOST_ZERO));
+	final_region_pos.mdV[VZ] = llclamp(final_region_pos.mdV[VZ], 0.0,
+									   (F64)(LLWorld::getInstance()->getRegionMaxHeight() - F_ALMOST_ZERO));
 	return regionp->getPosGlobalFromRegion(LLVector3(final_region_pos));
 }
 
@@ -627,6 +633,7 @@ void LLWorld::updateVisibilities()
 
 void LLWorld::updateRegions(F32 max_update_time)
 {
+	LLMemType mt_ur(LLMemType::MTYPE_IDLE_UPDATE_REGIONS);
 	LLTimer update_timer;
 	BOOL did_one = FALSE;
 	
@@ -956,7 +963,7 @@ void LLWorld::shiftRegions(const LLVector3& offset)
 	LLViewerPartSim::getInstance()->shift(offset);
 }
 
-LLViewerImage* LLWorld::getDefaultWaterTexture()
+LLViewerTexture* LLWorld::getDefaultWaterTexture()
 {
 	return mDefaultWaterTexturep;
 }

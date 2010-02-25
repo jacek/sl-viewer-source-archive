@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,7 @@
 #include <deque>
 
 #include "apr_base64.h"
+#include <boost/regex.hpp>
 
 extern "C"
 {
@@ -138,12 +139,8 @@ S32 LLSDXMLFormatter::format_impl(const LLSD& data, std::ostream& ostr, U32 opti
 	case LLSD::TypeBoolean:
 		ostr << pre << "<boolean>";
 		if(mBoolAlpha ||
-#if( LL_WINDOWS || __GNUC__ > 2)
 		   (ostr.flags() & std::ios::boolalpha)
-#else
-		   (ostr.flags() & 0x0100)
-#endif
-			)
+		   )
 		{
 			ostr << (data.asBoolean() ? "true" : "false");
 		}
@@ -510,12 +507,7 @@ void LLSDXMLParser::Impl::reset()
 	
 	mSkipping = false;
 	
-#if( LL_WINDOWS || __GNUC__ > 2)
 	mCurrentKey.clear();
-#else
-	mCurrentKey = std::string();
-#endif
-
 	
 	XML_ParserReset(mParser, "utf-8");
 	XML_SetUserData(mParser, this);
@@ -643,11 +635,7 @@ void LLSDXMLParser::Impl::startElementHandler(const XML_Char* name, const XML_Ch
 		LLSD& newElement = map[mCurrentKey];
 		mStack.push_back(&newElement);		
 
-#if( LL_WINDOWS || __GNUC__ > 2)
 		mCurrentKey.clear();
-#else
-		mCurrentKey = std::string();
-#endif
 	}
 	else if (mStack.back()->isArray())
 	{
@@ -777,10 +765,17 @@ void LLSDXMLParser::Impl::endElementHandler(const XML_Char* name)
 		
 		case ELEMENT_BINARY:
 		{
-			S32 len = apr_base64_decode_len(mCurrentContent.c_str());
+			// Regex is expensive, but only fix for whitespace in base64,
+			// created by python and other non-linden systems - DEV-39358
+			// Fortunately we have very little binary passing now,
+			// so performance impact shold be negligible. + poppy 2009-09-04
+			boost::regex r;
+			r.assign("\\s");
+			std::string stripped = boost::regex_replace(mCurrentContent, r, "");
+			S32 len = apr_base64_decode_len(stripped.c_str());
 			std::vector<U8> data;
 			data.resize(len);
-			len = apr_base64_decode_binary(&data[0], mCurrentContent.c_str());
+			len = apr_base64_decode_binary(&data[0], stripped.c_str());
 			data.resize(len);
 			value = data;
 			break;

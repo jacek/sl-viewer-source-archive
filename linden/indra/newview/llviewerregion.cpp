@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,7 @@
 #include "llviewerregion.h"
 
 #include "indra_constants.h"
+#include "llfloaterreg.h"
 #include "llmath.h"
 #include "llhttpclient.h"
 #include "llregionflags.h"
@@ -65,6 +66,11 @@
 #include "llvoclouds.h"
 #include "llworld.h"
 #include "llspatialpartition.h"
+#include "stringize.h"
+
+#ifdef LL_WINDOWS
+	#pragma warning(disable:4355)
+#endif
 
 // Viewer object cache version, change if object update
 // format changes. JC
@@ -172,7 +178,18 @@ LLViewerRegion::LLViewerRegion(const U64 &handle,
 	mCacheEntriesCount(0),
 	mCacheID(),
 	mEventPoll(NULL),
-	mReleaseNotesRequested(FALSE)
+	mReleaseNotesRequested(FALSE),
+    // I'd prefer to set the LLCapabilityListener name to match the region
+    // name -- it's disappointing that's not available at construction time.
+    // We could instead store an LLCapabilityListener*, making
+    // setRegionNameAndZone() replace the instance. Would that pose
+    // consistency problems? Can we even request a capability before calling
+    // setRegionNameAndZone()?
+    // For testability -- the new Michael Feathers paradigm --
+    // LLCapabilityListener binds all the globals it expects to need at
+    // construction time.
+    mCapabilityListener(host.getString(), gMessageSystem, *this,
+                        gAgent.getID(), gAgent.getSessionID())
 {
 	mWidth = region_width_meters;
 	mOriginGlobal = from_region_handle(handle); 
@@ -223,7 +240,6 @@ LLViewerRegion::LLViewerRegion(const U64 &handle,
 	mObjectPartition.push_back(new LLBridgePartition());	//PARTITION_BRIDGE
 	mObjectPartition.push_back(new LLHUDParticlePartition());//PARTITION_HUD_PARTICLE
 	mObjectPartition.push_back(NULL);						//PARTITION_NONE
-	
 }
 
 
@@ -623,6 +639,7 @@ void LLViewerRegion::dirtyHeights()
 
 BOOL LLViewerRegion::idleUpdate(F32 max_update_time)
 {
+	LLMemType mt_ivr(LLMemType::MTYPE_IDLE_UPDATE_VIEWER_REGION);
 	// did_update returns TRUE if we did at least one significant update
 	BOOL did_update = mLandp->idleUpdate(max_update_time);
 	
@@ -764,16 +781,20 @@ void LLViewerRegion::calculateCameraDistance()
 	mCameraDistanceSquared = (F32)(gAgent.getCameraPositionGlobal() - getCenterGlobal()).magVecSquared();
 }
 
-U32 LLViewerRegion::getNetDetailsForLCD()
-{
-	return mPingDelay;
-}
-
 std::ostream& operator<<(std::ostream &s, const LLViewerRegion &region)
 {
 	s << "{ ";
 	s << region.mHost;
 	s << " mOriginGlobal = " << region.getOriginGlobal()<< "\n";
+    std::string name(region.getName()), zone(region.getZoning());
+    if (! name.empty())
+    {
+        s << " mName         = " << name << '\n';
+    }
+    if (! zone.empty())
+    {
+        s << " mZoning       = " << zone << '\n';
+    }
 	s << "}";
 	return s;
 }
@@ -1387,11 +1408,12 @@ void LLViewerRegion::unpackRegionHandshake()
 
 void LLViewerRegion::setSeedCapability(const std::string& url)
 {
-  if (getCapability("Seed") == url)
+	if (getCapability("Seed") == url)
     {
-      llwarns << "Ignoring duplicate seed capability" << llendl;
-      return;
+		// llwarns << "Ignoring duplicate seed capability" << llendl;
+		return;
     }
+	
 	delete mEventPoll;
 	mEventPoll = NULL;
 	
@@ -1399,17 +1421,22 @@ void LLViewerRegion::setSeedCapability(const std::string& url)
 	setCapability("Seed", url);
 
 	LLSD capabilityNames = LLSD::emptyArray();
+	
+	capabilityNames.append("AttachmentResources");
 	capabilityNames.append("ChatSessionRequest");
 	capabilityNames.append("CopyInventoryFromNotecard");
 	capabilityNames.append("DispatchRegionInfo");
 	capabilityNames.append("EstateChangeInfo");
 	capabilityNames.append("EventQueueGet");
 	capabilityNames.append("FetchInventory");
+	capabilityNames.append("ObjectMedia");
+	capabilityNames.append("ObjectMediaNavigate");
 	capabilityNames.append("FetchLib");
 	capabilityNames.append("FetchLibDescendents");
 	capabilityNames.append("GetTexture");
 	capabilityNames.append("GroupProposalBallot");
 	capabilityNames.append("HomeLocation");
+	capabilityNames.append("LandResources");
 	capabilityNames.append("MapLayer");
 	capabilityNames.append("MapLayerGod");
 	capabilityNames.append("NewFileAgentInventory");
@@ -1441,10 +1468,7 @@ void LLViewerRegion::setSeedCapability(const std::string& url)
 	capabilityNames.append("UploadBakedTexture");
 	capabilityNames.append("ViewerStartAuction");
 	capabilityNames.append("ViewerStats");
-	capabilityNames.append("WebFetchInventoryDescendents"); // OGPX : since this is asking the region
-															// leave the old naming in place, on agent domain
-															// it is now called agent/inventory. Both
-															// caps have the same LLSD returned.
+	capabilityNames.append("WebFetchInventoryDescendents");
 	// Please add new capabilities alphabetically to reduce
 	// merge conflicts.
 
@@ -1523,4 +1547,9 @@ void LLViewerRegion::showReleaseNotes()
 
 	LLWeb::loadURL(url);
 	mReleaseNotesRequested = FALSE;
+}
+
+std::string LLViewerRegion::getDescription() const
+{
+    return stringize(*this);
 }

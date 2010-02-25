@@ -23,7 +23,7 @@ do wszystkich Regionów w tym Majątku.
 	<slider label="Pora Doby" name="sun_hour_slider"/>
 	<check_box label="Dostęp Publiczny" name="externally_visible_check"/>
 	<button label="?" name="externally_visible_help"/>
-	<text length="1" name="Only Allow" type="string">
+	<text name="Only Allow">
 		Dostęp Ograniczony do:
 	</text>
 	<check_box label="Rezydenci z danymi o koncie" name="limit_payment" tool_tip="Zablokuj niepożądanych Rezydentów."/>

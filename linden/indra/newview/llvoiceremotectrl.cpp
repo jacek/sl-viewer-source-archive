@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,17 +38,33 @@
 #include "llbutton.h"
 #include "lluictrlfactory.h"
 #include "llviewercontrol.h"
+#include "llvoicechannel.h"
 #include "llvoiceclient.h"
-#include "llimpanel.h"
-#include "llfloateractivespeakers.h"
 #include "llfloaterchatterbox.h"
+#include "llfloaterreg.h"
 #include "lliconctrl.h"
 #include "lloverlaybar.h"
 #include "lltextbox.h"
 
-LLVoiceRemoteCtrl::LLVoiceRemoteCtrl (const std::string& name) : LLPanel(name)
+LLVoiceRemoteCtrl::LLVoiceRemoteCtrl ()
+  : LLPanel()
 {
+	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_voice_remote.xml");
+
 	setIsChrome(TRUE);
+	setFocusRoot(TRUE);
+	mCommitCallbackRegistrar.add("VoiceRemote.Lock",     boost::bind(&LLVoiceRemoteCtrl::onBtnLock, this));	
+	mCommitCallbackRegistrar.add("VoiceRemote.Popup",    boost::bind(&LLVoiceRemoteCtrl::onClickPopupBtn, this));	
+	
+}
+
+LLVoiceRemoteCtrl::~LLVoiceRemoteCtrl()
+{
+}
+
+void LLVoiceRemoteCtrl::expandOrCollapse()
+{
+	deleteAllChildren();
 
 	if (gSavedSettings.getBOOL("ShowVoiceChannelPopup"))
 	{
@@ -58,40 +74,20 @@ LLVoiceRemoteCtrl::LLVoiceRemoteCtrl (const std::string& name) : LLPanel(name)
 	{
 		LLUICtrlFactory::getInstance()->buildPanel(this, "panel_voice_remote.xml");
 	}
-
-	setFocusRoot(TRUE);
-}
-
-LLVoiceRemoteCtrl::~LLVoiceRemoteCtrl()
-{
 }
 
 BOOL LLVoiceRemoteCtrl::postBuild()
 {
 	mTalkBtn = getChild<LLButton>("push_to_talk");
-	mTalkBtn->setClickedCallback(onBtnTalkClicked);
-	mTalkBtn->setHeldDownCallback(onBtnTalkHeld);
-	mTalkBtn->setMouseUpCallback(onBtnTalkReleased);
+	mTalkBtn->setClickedCallback(onBtnTalkClicked, this);
+	mTalkBtn->setHeldDownCallback(onBtnTalkHeld, this);
+	mTalkBtn->setMouseUpCallback(onBtnTalkReleased, this);
 
 	mTalkLockBtn = getChild<LLButton>("ptt_lock");
-	mTalkLockBtn->setClickedCallback(onBtnLock);
-	mTalkLockBtn->setCallbackUserData(this);
 
 	mSpeakersBtn = getChild<LLButton>("speakers_btn");
-	mSpeakersBtn->setClickedCallback(onClickSpeakers);
-	mSpeakersBtn->setCallbackUserData(this);
-
-	childSetAction("show_channel", onClickPopupBtn, this);
-	childSetAction("end_call_btn", onClickEndCall, this);
-
-	LLTextBox* text = getChild<LLTextBox>("channel_label");
-	if (text)
-	{
-		text->setUseEllipses(TRUE);
-	}
-
-	childSetAction("voice_channel_bg", onClickVoiceChannel, this);
-
+		
+	//childSetAction("end_call_btn", onClickEndCall, this);  not in use
 
 	return TRUE;
 }
@@ -114,7 +110,7 @@ void LLVoiceRemoteCtrl::draw()
 		// not in push to talk mode, or push to talk is active means I'm talking
 		mTalkBtn->setToggleState(!gSavedSettings.getBOOL("PTTCurrentlyEnabled") || gVoiceClient->getUserPTTState());
 	}
-	mSpeakersBtn->setToggleState(LLFloaterActiveSpeakers::instanceVisible(LLSD()));
+	mSpeakersBtn->setToggleState(LLFloaterReg::instanceVisible("active_speakers",LLSD()));
 	mTalkLockBtn->setToggleState(!gSavedSettings.getBOOL("PTTCurrentlyEnabled"));
 
 	std::string talk_blip_image;
@@ -153,10 +149,10 @@ void LLVoiceRemoteCtrl::draw()
 	LLIconCtrl* icon = getChild<LLIconCtrl>("voice_volume");
 	if (icon)
 	{
-		icon->setImage(talk_blip_image);
+		icon->setValue(talk_blip_image);
 	}
 
-	LLFloater* voice_floater = LLFloaterChatterBox::getInstance()->getCurrentVoiceFloater();
+	LLFloater* voice_floater = LLFloaterChatterBox::getCurrentVoiceFloater();
 	std::string active_channel_name;
 	if (voice_floater)
 	{
@@ -164,40 +160,36 @@ void LLVoiceRemoteCtrl::draw()
 	}
 
 	LLVoiceChannel* current_channel = LLVoiceChannel::getCurrentVoiceChannel();
-	childSetEnabled("end_call_btn", LLVoiceClient::voiceEnabled() 
-								&& current_channel
-								&& current_channel->isActive()
-								&& current_channel != LLVoiceChannelProximal::getInstance());
+	//childSetEnabled("end_call_btn", LLVoiceClient::voiceEnabled() 
+	//							&& current_channel
+	//							&& current_channel->isActive()
+	//							&& current_channel != LLVoiceChannelProximal::getInstance());
 
 	childSetValue("channel_label", active_channel_name);
 	childSetToolTip("voice_channel_bg", active_channel_name);
 
 	if (current_channel)
 	{
-		LLIconCtrl* voice_channel_icon = getChild<LLIconCtrl>("voice_channel_icon");
-		if (voice_channel_icon && voice_floater)
+		if (voice_floater)
 		{
-			voice_channel_icon->setImage(voice_floater->getString("voice_icon"));
+			childSetValue("voice_channel_icon", voice_floater->getString("voice_icon"));
 		}
 
-		LLButton* voice_channel_bg = getChild<LLButton>("voice_channel_bg");
-		if (voice_channel_bg)
+		LLButton* voice_channel_bg = getChild<LLButton>("voice_channel_bg", FALSE);
+		LLColor4 bg_color;
+		if (current_channel->isActive())
 		{
-			LLColor4 bg_color;
-			if (current_channel->isActive())
-			{
-				bg_color = lerp(LLColor4::green, LLColor4::white, 0.7f);
-			}
-			else if (current_channel->getState() == LLVoiceChannel::STATE_ERROR)
-			{
-				bg_color = lerp(LLColor4::red, LLColor4::white, 0.7f);
-			}
-			else // active, but not connected
-			{
-				bg_color = lerp(LLColor4::yellow, LLColor4::white, 0.7f);
-			}
-			voice_channel_bg->setImageColor(bg_color);
+			bg_color = lerp(LLColor4::green, LLColor4::white, 0.7f);
 		}
+		else if (current_channel->getState() == LLVoiceChannel::STATE_ERROR)
+		{
+			bg_color = lerp(LLColor4::red, LLColor4::white, 0.7f);
+		}
+		else // active, but not connected
+		{
+			bg_color = lerp(LLColor4::yellow, LLColor4::white, 0.7f);
+		}
+		voice_channel_bg->setImageColor(bg_color);
 	}
 
 	LLButton* expand_button = getChild<LLButton>("show_channel");
@@ -243,27 +235,14 @@ void LLVoiceRemoteCtrl::onBtnTalkReleased(void* user_data)
 	}
 }
 
-void LLVoiceRemoteCtrl::onBtnLock(void* user_data)
+void LLVoiceRemoteCtrl::onBtnLock()
 {
-	LLVoiceRemoteCtrl* remotep = (LLVoiceRemoteCtrl*)user_data;
-
-	gSavedSettings.setBOOL("PTTCurrentlyEnabled", !remotep->mTalkLockBtn->getToggleState());
+	gSavedSettings.setBOOL("PTTCurrentlyEnabled",mTalkLockBtn->getToggleState());
 }
 
-//static
-void LLVoiceRemoteCtrl::onClickPopupBtn(void* user_data)
+void LLVoiceRemoteCtrl::onClickPopupBtn()
 {
-	LLVoiceRemoteCtrl* remotep = (LLVoiceRemoteCtrl*)user_data;
-
-	remotep->deleteAllChildren();
-	if (gSavedSettings.getBOOL("ShowVoiceChannelPopup"))
-	{
-		LLUICtrlFactory::getInstance()->buildPanel(remotep, "panel_voice_remote_expanded.xml");
-	}
-	else
-	{
-		LLUICtrlFactory::getInstance()->buildPanel(remotep, "panel_voice_remote.xml");
-	}
+    expandOrCollapse();
 	gOverlayBar->layoutButtons();
 }
 
@@ -278,14 +257,3 @@ void LLVoiceRemoteCtrl::onClickEndCall(void* user_data)
 	}
 }
 
-
-void LLVoiceRemoteCtrl::onClickSpeakers(void *user_data)
-{
-	LLFloaterActiveSpeakers::toggleInstance(LLSD());
-}
-
-//static 
-void LLVoiceRemoteCtrl::onClickVoiceChannel(void* user_data)
-{
-	LLFloaterChatterBox::showInstance();
-}

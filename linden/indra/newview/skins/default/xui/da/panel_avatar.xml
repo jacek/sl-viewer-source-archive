@@ -46,12 +46,12 @@
 			<text name="label2">
 				Konto:
 			</text>
-			<text name="partner_label" tool_tip="Second Life partner eller kæreste. For mere info om hvordan, se www.secondlife.com/partner">
+			<text name="partner_label" tool_tip="[SECOND_LIFE] partner eller kæreste. For mere info om hvordan, se www.secondlife.com/partner">
 				Partner:
 			</text>
 			<button label="i" label_selected="i" name="partner_info" tool_tip="Klik for at åbne partnerens profil"/>
 			<button label="?" label_selected="?" name="partner_help"/>
-			<line_editor name="partner_edit" tool_tip="Second Life partner eller kæreste. For mere info om hvordan, se www.secondlife.com/partner">
+			<line_editor name="partner_edit" tool_tip="[SECOND_LIFE] partner eller kæreste. For mere info om hvordan, se www.secondlife.com/partner">
 				[FIRST] [LAST]
 			</line_editor>
 			<text name="Photo:">
@@ -121,7 +121,7 @@
 		</panel>
 		<panel label="Favoritter" name="Picks">
 			<text name="Tell everyone about your favorite places in Second Life.">
-				Fortæl alle om dine favorit steder i Second Life.
+				Fortæl alle om dine favorit steder i [SECOND_LIFE].
 			</text>
 			<button label="Ny..." label_selected="Ny..." name="New..."/>
 			<button label="Slet..." label_selected="Slet..." name="Delete..."/>
@@ -131,7 +131,7 @@
 		</panel>
 		<panel label="Annoncer" name="Classified">
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				Opret en annonce i Second Life&apos;s annonce sider.
+				Opret en annonce i [SECOND_LIFE]&apos;s annonce sider.
 			</text>
 			<button label="Ny..." label_selected="Ny..." name="New..."/>
 			<button label="Slet..." label_selected="Slet..." name="Delete..."/>
@@ -139,7 +139,7 @@
 				Indlæser...
 			</text>
 		</panel>
-		<panel label="RL" name="1st Life">
+		<panel label="RL" name="Real World">
 			<text name="Photo:">
 				Foto:
 			</text>

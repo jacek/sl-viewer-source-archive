@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,7 @@
 // Responsible for managing all HUD elements.
 
 #include "llhudobject.h"
-#include "lldarray.h"
+#include "lldarrayptr.h"
 
 class LLViewerObject;
 class LLHUDEffect;

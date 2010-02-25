@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,16 +43,16 @@
 #include "llimageworker.h"
 #include "llrender.h"
 
+#include "lltooltip.h"
 #include "llappviewer.h"
-#include "llhoverview.h"
 #include "llselectmgr.h"
 #include "lltexlayer.h"
 #include "lltexturecache.h"
 #include "lltexturefetch.h"
 #include "llviewercontrol.h"
 #include "llviewerobject.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llvovolume.h"
 extern F32 texmem_lower_bound_scale;
 
@@ -61,18 +61,18 @@ LLTextureSizeView *gTextureSizeView = NULL;
 LLTextureSizeView *gTextureCategoryView = NULL;
 
 //static
-std::set<LLViewerImage*> LLTextureView::sDebugImages;
+std::set<LLViewerFetchedTexture*> LLTextureView::sDebugImages;
 
 ////////////////////////////////////////////////////////////////////////////
 
-static std::string title_string1a("Tex UUID Area  DDis(Req)  DecodePri(Fetch)     [download]        pk/max");
-static std::string title_string1b("Tex UUID Area  DDis(Req)  Fetch(DecodePri)     [download]        pk/max");
+static std::string title_string1a("Tex UUID Area  DDis(Req)  DecodePri(Fetch)     [download] pk/max");
+static std::string title_string1b("Tex UUID Area  DDis(Req)  Fetch(DecodePri)     [download] pk/max");
 static std::string title_string2("State");
 static std::string title_string3("Pkt Bnd");
 static std::string title_string4("  W x H (Dis) Mem");
 
 static S32 title_x1 = 0;
-static S32 title_x2 = 440;
+static S32 title_x2 = 460;
 static S32 title_x3 = title_x2 + 40;
 static S32 title_x4 = title_x3 + 50;
 static S32 texture_bar_height = 8;
@@ -82,16 +82,24 @@ static S32 texture_bar_height = 8;
 class LLTextureBar : public LLView
 {
 public:
-	LLPointer<LLViewerImage> mImagep;
+	LLPointer<LLViewerFetchedTexture> mImagep;
 	S32 mHilite;
 
 public:
-	LLTextureBar(const std::string& name, const LLRect& r, LLTextureView* texview)
-		: LLView(name, r, FALSE),
-		  mHilite(0),
-		  mTextureView(texview)
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
 	{
-	}
+		Mandatory<LLTextureView*> texture_view;
+		Params()
+		:	texture_view("texture_view")
+		{
+			mouse_opaque(false);
+		}
+	};
+	LLTextureBar(const Params& p)
+	:	LLView(p),
+		mHilite(0),
+		mTextureView(p.texture_view)
+	{}
 
 	virtual void draw();
 	virtual BOOL handleMouseDown(S32 x, S32 y, MASK mask);
@@ -104,8 +112,8 @@ public:
 		{
 			LLTextureBar* bar1p = (LLTextureBar*)i1;
 			LLTextureBar* bar2p = (LLTextureBar*)i2;
-			LLViewerImage *i1p = bar1p->mImagep;
-			LLViewerImage *i2p = bar2p->mImagep;
+			LLViewerFetchedTexture *i1p = bar1p->mImagep;
+			LLViewerFetchedTexture *i2p = bar2p->mImagep;
 			F32 pri1 = i1p->getDecodePriority(); // i1p->mRequestedDownloadPriority
 			F32 pri2 = i2p->getDecodePriority(); // i2p->mRequestedDownloadPriority
 			if (pri1 > pri2)
@@ -123,10 +131,10 @@ public:
 		{
 			LLTextureBar* bar1p = (LLTextureBar*)i1;
 			LLTextureBar* bar2p = (LLTextureBar*)i2;
-			LLViewerImage *i1p = bar1p->mImagep;
-			LLViewerImage *i2p = bar2p->mImagep;
-			U32 pri1 = i1p->mFetchPriority;
-			U32 pri2 = i2p->mFetchPriority;
+			LLViewerFetchedTexture *i1p = bar1p->mImagep;
+			LLViewerFetchedTexture *i2p = bar2p->mImagep;
+			U32 pri1 = i1p->getFetchPriority() ;
+			U32 pri2 = i2p->getFetchPriority() ;
 			if (pri1 > pri2)
 				return true;
 			else if (pri2 > pri1)
@@ -162,7 +170,7 @@ void LLTextureBar::draw()
 	{
 		color = LLColor4::green4;
 	}
-	else if (mImagep->getBoostLevel())
+	else if (mImagep->getBoostLevel() > LLViewerTexture::BOOST_NONE)
 	{
 		color = LLColor4::magenta;
 	}
@@ -311,10 +319,10 @@ void LLTextureBar::draw()
 	pip_x += pip_width + pip_space;
 
 	// we don't want to show bind/resident pips for textures using the default texture
-	if (mImagep->getHasGLTexture())
+	if (mImagep->hasGLTexture())
 	{
 		// Draw the bound pip
-		last_event = mImagep->sLastFrameTime - mImagep->mLastBindTime;
+		last_event = mImagep->getTimePassedSinceLastBound();
 		if (last_event < 1.f)
 		{
 			clr = mImagep->getMissed() ? LLColor4::red : LLColor4::magenta1;
@@ -338,7 +346,7 @@ void LLTextureBar::draw()
 		// draw the image size at the end
 		{
 			std::string num_str = llformat("%3dx%3d (%d) %7d", mImagep->getWidth(), mImagep->getHeight(),
-										mImagep->getDiscardLevel(), mImagep->mTextureMemory);
+				mImagep->getDiscardLevel(), mImagep->hasGLTexture() ? mImagep->getTextureMemory() : 0);
 			LLFontGL::getFontMonospace()->renderUTF8(num_str, 0, title_x4, getRect().getHeight(), color,
 											LLFontGL::LEFT, LLFontGL::TOP);
 		}
@@ -370,13 +378,21 @@ LLRect LLTextureBar::getRequiredRect()
 class LLGLTexMemBar : public LLView
 {
 public:
-	LLGLTexMemBar(const std::string& name, LLTextureView* texview)
-		: LLView(name, FALSE),
-		  mTextureView(texview)
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
 	{
-		S32 line_height = (S32)(LLFontGL::getFontMonospace()->getLineHeight() + .5f);
-		setRect(LLRect(0,0,100,line_height * 4));
-	}
+		Mandatory<LLTextureView*>	texture_view;
+		Params()
+		:	texture_view("texture_view")
+		{
+			S32 line_height = (S32)(LLFontGL::getFontMonospace()->getLineHeight() + .5f);
+			rect(LLRect(0,0,100,line_height * 4));
+		}
+	};
+
+	LLGLTexMemBar(const Params& p)
+	:	LLView(p),
+		mTextureView(p.texture_view)
+	{}
 
 	virtual void draw();	
 	virtual BOOL handleMouseDown(S32 x, S32 y, MASK mask);
@@ -388,17 +404,15 @@ private:
 
 void LLGLTexMemBar::draw()
 {
-	S32 bound_mem = BYTES_TO_MEGA_BYTES(LLViewerImage::sBoundTextureMemoryInBytes);
- 	S32 max_bound_mem = LLViewerImage::sMaxBoundTextureMemInMegaBytes;
-	S32 total_mem = BYTES_TO_MEGA_BYTES(LLViewerImage::sTotalTextureMemoryInBytes);
-	S32 max_total_mem = LLViewerImage::sMaxTotalTextureMemInMegaBytes;
-	F32 discard_bias = LLViewerImage::sDesiredDiscardBias;
+	S32 bound_mem = BYTES_TO_MEGA_BYTES(LLViewerTexture::sBoundTextureMemoryInBytes);
+ 	S32 max_bound_mem = LLViewerTexture::sMaxBoundTextureMemInMegaBytes;
+	S32 total_mem = BYTES_TO_MEGA_BYTES(LLViewerTexture::sTotalTextureMemoryInBytes);
+	S32 max_total_mem = LLViewerTexture::sMaxTotalTextureMemInMegaBytes;
+	F32 discard_bias = LLViewerTexture::sDesiredDiscardBias;
+	F32 cache_usage = (F32)BYTES_TO_MEGA_BYTES(LLAppViewer::getTextureCache()->getUsage()) ;
+	F32 cache_max_usage = (F32)BYTES_TO_MEGA_BYTES(LLAppViewer::getTextureCache()->getMaxUsage()) ;
 	S32 line_height = (S32)(LLFontGL::getFontMonospace()->getLineHeight() + .5f);
-	F32 cache_usage = ((F32)(LLAppViewer::getTextureCache()->getUsage()/1024))/1024.f;
-	F32 cache_max_usage = ((F32)(LLAppViewer::getTextureCache()->getMaxUsage()/1024))/1024.f;
-// 	U32 cache_entries = LLAppViewer::getTextureCache()->getEntries();
-// 	U32 cache_max_entries = LLAppViewer::getTextureCache()->getMaxEntries();
-	
+	S32 v_offset = (S32)((texture_bar_height + 2.5f) * mTextureView->mNumTextureBars + 2.5f);
 	//----------------------------------------------------------------------------
 	LLGLSUIDefault gls_ui;
 	LLColor4 text_color(1.f, 1.f, 1.f, 0.75f);
@@ -414,14 +428,14 @@ void LLGLTexMemBar::draw()
 					cache_usage, cache_max_usage);
 	//, cache_entries, cache_max_entries
 
-	LLFontGL::getFontMonospace()->renderUTF8(text, 0, 0, line_height*3,
+	LLFontGL::getFontMonospace()->renderUTF8(text, 0, 0, v_offset + line_height*3,
 											 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 
 	//----------------------------------------------------------------------------
 #if 0
 	S32 bar_left = 400;
 	S32 bar_width = 200;
-	S32 top = line_height*3 - 2;
+	S32 top = line_height*3 - 2 + v_offset;
 	S32 bottom = top - 6;
 	S32 left = bar_left;
 	S32 right = left + bar_width;
@@ -480,17 +494,18 @@ void LLGLTexMemBar::draw()
 #endif
 	//----------------------------------------------------------------------------
 
-	text = llformat("Textures: %d Fetch: %d(%d) Pkts:%d(%d) Cache R/W: %d/%d LFS:%d IW:%d RAW:%d HTP:%d",
-					gImageList.getNumImages(),
+	text = llformat("Textures: %d Fetch: %d(%d) Pkts:%d(%d) Cache R/W: %d/%d LFS:%d RAW:%d HTP:%d DEC:%d CRE:%d",
+					gTextureList.getNumImages(),
 					LLAppViewer::getTextureFetch()->getNumRequests(), LLAppViewer::getTextureFetch()->getNumDeletes(),
 					LLAppViewer::getTextureFetch()->mPacketCount, LLAppViewer::getTextureFetch()->mBadPacketCount, 
 					LLAppViewer::getTextureCache()->getNumReads(), LLAppViewer::getTextureCache()->getNumWrites(),
 					LLLFSThread::sLocal->getPending(),
-					LLAppViewer::getImageDecodeThread()->getPending(), 
 					LLImageRaw::sRawImageCount,
-					LLAppViewer::getTextureFetch()->getNumHTTPRequests());
+					LLAppViewer::getTextureFetch()->getNumHTTPRequests(),
+					LLAppViewer::getImageDecodeThread()->getPending(), 
+					gTextureList.mCreateTextureList.size());
 
-	LLFontGL::getFontMonospace()->renderUTF8(text, 0, 0, line_height*2,
+	LLFontGL::getFontMonospace()->renderUTF8(text, 0, 0, v_offset + line_height*2,
 									 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 
 
@@ -500,40 +515,40 @@ void LLGLTexMemBar::draw()
 	color = bandwidth > max_bandwidth ? LLColor4::red : bandwidth > max_bandwidth*.75f ? LLColor4::yellow : text_color;
 	color[VALPHA] = text_color[VALPHA];
 	text = llformat("BW:%.0f/%.0f",bandwidth, max_bandwidth);
-	LLFontGL::getFontMonospace()->renderUTF8(text, 0, left, line_height*2,
+	LLFontGL::getFontMonospace()->renderUTF8(text, 0, left, v_offset + line_height*2,
 											 color, LLFontGL::LEFT, LLFontGL::TOP);
 	
 	S32 dx1 = 0;
 	if (LLAppViewer::getTextureFetch()->mDebugPause)
 	{
-		LLFontGL::getFontMonospace()->renderUTF8(std::string("!"), 0, title_x1, line_height,
+		LLFontGL::getFontMonospace()->renderUTF8(std::string("!"), 0, title_x1, v_offset + line_height,
 										 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 		dx1 += 8;
 	}
 	if (mTextureView->mFreezeView)
 	{
-		LLFontGL::getFontMonospace()->renderUTF8(std::string("*"), 0, title_x1, line_height,
+		LLFontGL::getFontMonospace()->renderUTF8(std::string("*"), 0, title_x1, v_offset + line_height,
 										 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 		dx1 += 8;
 	}
 	if (mTextureView->mOrderFetch)
 	{
-		LLFontGL::getFontMonospace()->renderUTF8(title_string1b, 0, title_x1+dx1, line_height,
+		LLFontGL::getFontMonospace()->renderUTF8(title_string1b, 0, title_x1+dx1, v_offset + line_height,
 										 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 	}
 	else
 	{	
-		LLFontGL::getFontMonospace()->renderUTF8(title_string1a, 0, title_x1+dx1, line_height,
+		LLFontGL::getFontMonospace()->renderUTF8(title_string1a, 0, title_x1+dx1, v_offset + line_height,
 										 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 	}
 	
-	LLFontGL::getFontMonospace()->renderUTF8(title_string2, 0, title_x2, line_height,
+	LLFontGL::getFontMonospace()->renderUTF8(title_string2, 0, title_x2, v_offset + line_height,
 									 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 
-	LLFontGL::getFontMonospace()->renderUTF8(title_string3, 0, title_x3, line_height,
+	LLFontGL::getFontMonospace()->renderUTF8(title_string3, 0, title_x3, v_offset + line_height,
 									 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 
-	LLFontGL::getFontMonospace()->renderUTF8(title_string4, 0, title_x4, line_height,
+	LLFontGL::getFontMonospace()->renderUTF8(title_string4, 0, title_x4, v_offset + line_height,
 									 text_color, LLFontGL::LEFT, LLFontGL::TOP);
 }
 
@@ -614,8 +629,8 @@ void LLGLTexSizeBar::draw()
 }
 ////////////////////////////////////////////////////////////////////////////
 
-LLTextureView::LLTextureView(const std::string& name, const LLRect& rect)
-	:	LLContainerView(name, rect),
+LLTextureView::LLTextureView(const LLTextureView::Params& p)
+	:	LLContainerView(p),
 		mFreezeView(FALSE),
 		mOrderFetch(FALSE),
 		mPrintList(FALSE),
@@ -634,7 +649,7 @@ LLTextureView::~LLTextureView()
 	mGLTexMemBar = 0;
 }
 
-typedef std::pair<F32,LLViewerImage*> decode_pair_t;
+typedef std::pair<F32,LLViewerFetchedTexture*> decode_pair_t;
 struct compare_decode_pair
 {
 	bool operator()(const decode_pair_t& a, const decode_pair_t& b)
@@ -664,18 +679,19 @@ void LLTextureView::draw()
 			llinfos << "ID\tMEM\tBOOST\tPRI\tWIDTH\tHEIGHT\tDISCARD" << llendl;
 		}
 	
-		for (LLViewerImageList::image_priority_list_t::iterator iter = gImageList.mImageList.begin();
-			 iter != gImageList.mImageList.end(); )
+		for (LLViewerTextureList::image_priority_list_t::iterator iter = gTextureList.mImageList.begin();
+			 iter != gTextureList.mImageList.end(); )
 		{
-			LLPointer<LLViewerImage> imagep = *iter++;
+			LLPointer<LLViewerFetchedTexture> imagep = *iter++;
 
 			S32 cur_discard = imagep->getDiscardLevel();
 			S32 desired_discard = imagep->mDesiredDiscardLevel;
 			
 			if (mPrintList)
 			{
+				S32 tex_mem = imagep->hasGLTexture() ? imagep->getTextureMemory() : 0 ;
 				llinfos << imagep->getID()
-						<< "\t" <<  imagep->mTextureMemory
+					<< "\t" << tex_mem
 						<< "\t" << imagep->getBoostLevel()
 						<< "\t" << imagep->getDecodePriority()
 						<< "\t" << imagep->getWidth()
@@ -726,8 +742,8 @@ void LLTextureView::draw()
 			{
 				struct f : public LLSelectedTEFunctor
 				{
-					LLViewerImage* mImage;
-					f(LLViewerImage* image) : mImage(image) {}
+					LLViewerFetchedTexture* mImage;
+					f(LLViewerFetchedTexture* image) : mImage(image) {}
 					virtual bool apply(LLViewerObject* object, S32 te)
 					{
 						return (mImage == object->getTEImage(te));
@@ -744,16 +760,20 @@ void LLTextureView::draw()
 #if 1
 			if (pri < HIGH_PRIORITY && (cur_discard< 0 || desired_discard < cur_discard))
 			{
-				LLViewerObject *objectp = gHoverView->getLastHoverObject();
-				if (objectp)
+				LLSelectNode* hover_node = LLSelectMgr::instance().getHoverNode();
+				if (hover_node)
 				{
-					S32 tex_count = objectp->getNumTEs();
-					for (S32 i = 0; i < tex_count; i++)
+					LLViewerObject *objectp = hover_node->getObject();
+					if (objectp)
 					{
-						if (imagep == objectp->getTEImage(i))
+						S32 tex_count = objectp->getNumTEs();
+						for (S32 i = 0; i < tex_count; i++)
 						{
-							pri += 2*HIGH_PRIORITY;
-							break;
+							if (imagep == objectp->getTEImage(i))
+							{
+								pri += 2*HIGH_PRIORITY;
+								break;
+							}
 						}
 					}
 				}
@@ -784,10 +804,11 @@ void LLTextureView::draw()
 		
 		static S32 max_count = 50;
 		S32 count = 0;
+		mNumTextureBars = 0 ;
 		for (display_list_t::iterator iter = display_image_list.begin();
 			 iter != display_image_list.end(); iter++)
 		{
-			LLViewerImage* imagep = iter->second;
+			LLViewerFetchedTexture* imagep = iter->second;
 			S32 hilite = 0;
 			F32 pri = iter->first;
 			if (pri >= 1 * HIGH_PRIORITY)
@@ -808,13 +829,16 @@ void LLTextureView::draw()
 		else
 			sortChildren(LLTextureBar::sort());
 
-		mGLTexMemBar = new LLGLTexMemBar("gl texmem bar", this);
+		LLGLTexMemBar::Params tmbp;
+		tmbp.name("gl texmem bar");
+		tmbp.texture_view(this);
+		mGLTexMemBar = LLUICtrlFactory::create<LLGLTexMemBar>(tmbp);
 		addChild(mGLTexMemBar);
 	
 		reshape(getRect().getWidth(), getRect().getHeight(), TRUE);
 
 		/*
-		  count = gImageList.getNumImages();
+		  count = gTextureList.getNumImages();
 		  std::string info_string;
 		  info_string = llformat("Global Info:\nTexture Count: %d", count);
 		  mInfoTextp->setText(info_string);
@@ -836,7 +860,7 @@ void LLTextureView::draw()
 
 }
 
-BOOL LLTextureView::addBar(LLViewerImage *imagep, S32 hilite)
+BOOL LLTextureView::addBar(LLViewerFetchedTexture *imagep, S32 hilite)
 {
 	llassert(imagep);
 	
@@ -845,7 +869,11 @@ BOOL LLTextureView::addBar(LLViewerImage *imagep, S32 hilite)
 
 	mNumTextureBars++;
 
-	barp = new LLTextureBar("texture bar", r, this);
+	LLTextureBar::Params tbp;
+	tbp.name("texture bar");
+	tbp.rect(r);
+	tbp.texture_view(this);
+	barp = LLUICtrlFactory::create<LLTextureBar>(tbp);
 	barp->mImagep = imagep;	
 	barp->mHilite = hilite;
 
@@ -891,7 +919,7 @@ BOOL LLTextureView::handleKey(KEY key, MASK mask, BOOL called_from_parent)
 }
 
 //-----------------------------------------------------------------
-LLTextureSizeView::LLTextureSizeView(const std::string& name) : LLView(name, FALSE)
+LLTextureSizeView::LLTextureSizeView(const LLTextureSizeView::Params& p) : LLContainerView(p)
 {
 	setVisible(FALSE) ;
 
@@ -1064,7 +1092,7 @@ void LLTextureSizeView::drawTextureCategoryGraph()
 	if(mTextureSizeBar.size() == 0)
 	{
 		S32 line_height = (S32)(LLFontGL::getFontMonospace()->getLineHeight() + .5f);
-		mTextureSizeBar.resize(LLImageGL::sTextureMemByCategory.size()) ;
+		mTextureSizeBar.resize(LLViewerTexture::getTotalNumOfCategories()) ;
 		mTextureSizeBarRect.set(700, line_height * 2 + 400, 700 + mTextureSizeBar.size() * mTextureSizeBarWidth, line_height * 2) ;
 		
 		for(U32 i = 0 ; i < mTextureSizeBar.size() ; i++)
@@ -1077,7 +1105,8 @@ void LLTextureSizeView::drawTextureCategoryGraph()
 	F32 size_bar_scale = drawTextureCategoryDistributionGraph() ;		
 	for(U32 i = 0 ; i < mTextureSizeBar.size() ; i++)
 	{
-		mTextureSizeBar[i]->setTop(LLImageGL::sTextureMemByCategory[i] >> 20, LLImageGL::sTextureMemByCategoryBound[i] >> 20, size_bar_scale) ;
+		U32 k = LLViewerTexture::getIndexFromCategory(i) ;
+		mTextureSizeBar[i]->setTop(LLImageGL::sTextureMemByCategory[k] >> 20, LLImageGL::sTextureMemByCategoryBound[k] >> 20, size_bar_scale) ;
 		mTextureSizeBar[i]->draw() ;
 	}		
 	LLImageGL::resetCurTexSizebar();
@@ -1138,8 +1167,8 @@ F32 LLTextureSizeView::drawTextureCategoryDistributionGraph()
 	
 	//-------
 	//x axis: size label			
-	static char category[LLViewerImageBoostLevel::MAX_GL_IMAGE_CATEGORY][4] = 
-	{"Non", "Bak", "Av", "Cld", "Scp", "Hi", "Trn", "Slt", "Hud", "Bsf", "UI", "Pvw", "Map", "Mvs", "Slf", "Tbp", "Scr", "Fnt", "Bmp", "Dyn", "Tlc", "Mdi", "ALT", "Oth" } ;
+	static char category[LLViewerTexture::MAX_GL_IMAGE_CATEGORY][4] = 
+	{"Non", "Bak", "Av", "Cld", "Scp", "Hi", "Trn", "Slt", "Hud", "Bsf", "UI", "Pvw", "Map", "Mvs", "Slf", "Loc", "Scr", "Dyn", "Mdi", "ALT", "Oth" } ;
 
 	text = llformat("%s", category[0]) ;
 	LLFontGL::getFontMonospace()->renderUTF8(text, 0, left + 12, bottom - line_height / 2,

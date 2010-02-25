@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,12 +36,7 @@
 #include "stdtypes.h"
 #include "lluictrl.h"
 #include "v4color.h"
-
-//
-// Constants
-//
-const S32 SCROLLBAR_SIZE = 16;
-
+#include "llbutton.h"
 
 //
 // Classes
@@ -50,15 +45,46 @@ class LLScrollbar
 : public LLUICtrl
 {
 public:
+
 	enum ORIENTATION { HORIZONTAL, VERTICAL };
+	
+	typedef boost::function<void (S32, LLScrollbar*)> callback_t;
+	struct Params 
+	:	public LLInitParam::Block<Params, LLUICtrl::Params>
+	{
+		Mandatory<ORIENTATION>			orientation;
+		Mandatory<S32>					doc_size;
+		Mandatory<S32>					doc_pos;
+		Mandatory<S32>					page_size;
 
-	LLScrollbar(const std::string& name, LLRect rect,
-		ORIENTATION orientation,
-		S32 doc_size, S32 doc_pos, S32 page_size,
-		void(*change_callback)( S32 new_pos, LLScrollbar* self, void* userdata ),
-		void* callback_user_data = NULL,
-		S32 step_size = 1);
+		Optional<callback_t> 			change_callback;
+		Optional<S32>					step_size;
+		Optional<S32>					thickness;
 
+		Optional<LLUIImage*>			thumb_image_vertical,
+										thumb_image_horizontal,
+										track_image_horizontal,
+										track_image_vertical;
+
+		Optional<bool>					bg_visible;
+
+		Optional<LLUIColor>				track_color,
+										thumb_color,
+										bg_color;
+
+		Optional<LLButton::Params>		up_button;
+		Optional<LLButton::Params>		down_button;
+		Optional<LLButton::Params>		left_button;
+		Optional<LLButton::Params>		right_button;
+
+		Params();
+	};
+
+protected:
+	LLScrollbar (const Params & p);
+	friend class LLUICtrlFactory;
+
+public:
 	virtual ~LLScrollbar();
 
 	virtual void setValue(const LLSD& value);
@@ -67,6 +93,7 @@ public:
 	virtual BOOL	handleKeyHere(KEY key, MASK mask);
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
+	virtual BOOL	handleDoubleClick(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleScrollWheel(S32 x, S32 y, S32 clicks);
 	virtual BOOL	handleDragAndDrop(S32 x, S32 y, MASK mask, BOOL drop, 
@@ -82,7 +109,7 @@ public:
 
 	// How many "lines" the "document" has scrolled.
 	// 0 <= DocPos <= DocSize - DocVisibile
-	void				setDocPos( S32 pos, BOOL update_thumb = TRUE );
+	bool				setDocPos( S32 pos, BOOL update_thumb = TRUE );
 	S32					getDocPos() const		{ return mDocPos; }
 
 	BOOL				isAtBeginning();
@@ -101,22 +128,14 @@ public:
 	void				pageUp(S32 overlap);
 	void				pageDown(S32 overlap);
 
-	static void			onLineUpBtnPressed(void* userdata);
-	static void			onLineDownBtnPressed(void* userdata);
-
-	void setTrackColor( const LLColor4& color ) { mTrackColor = color; }
-	void setThumbColor( const LLColor4& color ) { mThumbColor = color; }
-	void setHighlightColor( const LLColor4& color ) { mHighlightColor = color; }
-	void setShadowColor( const LLColor4& color ) { mShadowColor = color; }
-
-	void setOnScrollEndCallback(void (*callback)(void*), void* userdata) { mOnScrollEndCallback = callback; mOnScrollEndData = userdata;}
+	void				onLineUpBtnPressed(const LLSD& data);
+	void				onLineDownBtnPressed(const LLSD& data);
 
 private:
 	void				updateThumbRect();
-	void				changeLine(S32 delta, BOOL update_thumb );
+	bool				changeLine(S32 delta, BOOL update_thumb );
 
-	void				(*mChangeCallback)( S32 new_pos, LLScrollbar* self, void* userdata );
-	void*				mCallbackUserData;
+	callback_t			mChangeCallback;
 
 	const ORIENTATION	mOrientation;	
 	S32					mDocSize;		// Size of the document that the scrollbar is modeling.  Units depend on the user.  0 <= mDocSize.
@@ -134,16 +153,19 @@ private:
 	LLRect				mOrigRect;
 	S32					mLastDelta;
 
-	LLColor4			mTrackColor;
-	LLColor4			mThumbColor;
-	LLColor4			mFocusColor;
-	LLColor4			mHighlightColor;
-	LLColor4			mShadowColor;
+	LLUIColor			mTrackColor;
+	LLUIColor			mThumbColor;
+	LLUIColor			mBGColor;
 
-	void			(*mOnScrollEndCallback)(void*);
-	void			*mOnScrollEndData;
+	bool				mBGVisible;
+
+	LLUIImagePtr		mThumbImageV;
+	LLUIImagePtr		mThumbImageH;
+	LLUIImagePtr		mTrackImageV;
+	LLUIImagePtr		mTrackImageH;
+
+	S32					mThickness;
 };
-
 
 
 #endif  // LL_SCROLLBAR_H

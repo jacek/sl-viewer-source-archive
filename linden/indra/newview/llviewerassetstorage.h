@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,6 +47,7 @@ public:
 	LLViewerAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
 				   LLVFS *vfs);
 
+	using LLAssetStorage::storeAssetData;
 	virtual void storeAssetData(
 		const LLTransactionID& tid,
 		LLAssetType::EType atype,
@@ -69,7 +70,5 @@ public:
 		bool user_waiting=FALSE,
 		F64 timeout=LL_ASSET_STORAGE_TIMEOUT);
 };
-
-
 
 #endif

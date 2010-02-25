@@ -6,7 +6,7 @@
 			Externen Browser verwenden (Firefox, Safari, Internet Explorer)
 		</radio_item>
 		<radio_item name="internal"
-		     tool_tip="Den integrierten Browser zur Suche im Internet verwenden. Der Browser wird als eigenständiges Fenster in Second Life geöffnet.">
+		     tool_tip="Den integrierten Browser zur Suche im Internet verwenden. Der Browser wird als eigenständiges Fenster in [APP_NAME] geöffnet.">
 			Integrierten Browser verwenden
 		</radio_item>
 	</radio_group>

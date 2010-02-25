@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="bug_reporter" title="Rapporter Fejl">
+<floater name="bug_reporter" title="RAPPORTER FEJL">
 	<texture_picker label="" name="screenshot" />
 	<check_box label="Inkluder Skærmbillede" name="screen_check" />
 	<text name="reporter_title">
@@ -30,60 +30,24 @@
 	</text>
 	<combo_box name="category_combo"
 	     tool_tip="Kategori -- Vælg den kategori der bedste beskriver denne rapport">
-		<combo_item name="Selectcategory">
-			Vælg Kategori
-		</combo_item>
-		<combo_item name="Building">
-			Bygge
-		</combo_item>
-		<combo_item name="Character">
-			Figur
-		</combo_item>
-		<combo_item name="Chat/IM">
-			Chat/PB
-		</combo_item>
-		<combo_item name="Documentation">
-			Dokumentation
-		</combo_item>
-		<combo_item name="Exploit">
-			Udnyttelse
-		</combo_item>
-		<combo_item name="Graphics">
-			Grafik
-		</combo_item>
-		<combo_item name="Inventory">
-			Beholdning
-		</combo_item>
-		<combo_item name="Lag">
-			Lag
-		</combo_item>
-		<combo_item name="MissingContent">
-			Mangler Indhold
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			Linden Dollars (L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			Rettigheder
-		</combo_item>
-		<combo_item name="Physics">
-			Fysik
-		</combo_item>
-		<combo_item name="Script">
-			Koder
-		</combo_item>
-		<combo_item name="Sound">
-			Lyd
-		</combo_item>
-		<combo_item name="Stipends">
-			Stipendier
-		</combo_item>
-		<combo_item name="Userinterface">
-			Brugerflade
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			Andet
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="Vælg Kategori" />
+		<combo_box.item name="Building" label="Bygge" />
+		<combo_box.item name="Character" label="Figur" />
+		<combo_box.item name="Chat/IM" label="Chat/PB" />
+		<combo_box.item name="Documentation" label="Dokumentation" />
+		<combo_box.item name="Exploit" label="Udnyttelse" />
+		<combo_box.item name="Graphics" label="Grafik" />
+		<combo_box.item name="Inventory" label="Beholdning" />
+		<combo_box.item name="Lag" label="Lag" />
+		<combo_box.item name="MissingContent" label="Mangler Indhold" />
+		<combo_box.item name="LindenDollars(L$)" label="Linden Dollars (L$)" />
+		<combo_box.item name="Permissions" label="Rettigheder" />
+		<combo_box.item name="Physics" label="Fysik" />
+		<combo_box.item name="Script" label="Koder" />
+		<combo_box.item name="Sound" label="Lyd" />
+		<combo_box.item name="Stipends" label="Stipendier" />
+		<combo_box.item name="Userinterface" label="Brugerflade" />
+		<combo_box.item name="Miscellaneous" label="Andet" />
 	</combo_box>
 	<text name="sum_title">
 		Opsummering:

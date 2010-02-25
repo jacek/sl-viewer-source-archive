@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="bug_reporter" title="Segnala un bug">
+<floater name="bug_reporter" title="SEGNALA UN BUG">
 	<check_box label="Includi una fotografia dello schermo" name="screen_check"/>
 	<text name="reporter_title">
 		Segnalato da:
@@ -27,60 +27,24 @@
 		Hendrerit Vulputate
 	</text>
 	<combo_box name="category_combo" tool_tip="Categoria -- seleziona la categoria che descrive meglio questa denuncia">
-		<combo_item name="Selectcategory">
-			Seleziona categoria
-		</combo_item>
-		<combo_item name="Building">
-			Costruzioni
-		</combo_item>
-		<combo_item name="Character">
-			Personaggio
-		</combo_item>
-		<combo_item name="Chat/IM">
-			Chat/IM
-		</combo_item>
-		<combo_item name="Documentation">
-			Documentazione
-		</combo_item>
-		<combo_item name="Exploit">
-			Exploit
-		</combo_item>
-		<combo_item name="Graphics">
-			Grafica
-		</combo_item>
-		<combo_item name="Inventory">
-			Inventario
-		</combo_item>
-		<combo_item name="Lag">
-			Lag
-		</combo_item>
-		<combo_item name="MissingContent">
-			Contenuto mancante
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			Linden Dollar (L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			Permessi
-		</combo_item>
-		<combo_item name="Physics">
-			Fisica
-		</combo_item>
-		<combo_item name="Script">
-			Script
-		</combo_item>
-		<combo_item name="Sound">
-			Audio
-		</combo_item>
-		<combo_item name="Stipends">
-			Stipendi
-		</combo_item>
-		<combo_item name="Userinterface">
-			Interfaccia utente
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			Varie
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="Seleziona categoria"/>
+		<combo_box.item name="Building" label="Costruzioni"/>
+		<combo_box.item name="Character" label="Personaggio"/>
+		<combo_box.item name="Chat/IM" label="Chat/IM"/>
+		<combo_box.item name="Documentation" label="Documentazione"/>
+		<combo_box.item name="Exploit" label="Exploit"/>
+		<combo_box.item name="Graphics" label="Grafica"/>
+		<combo_box.item name="Inventory" label="Inventario"/>
+		<combo_box.item name="Lag" label="Lag"/>
+		<combo_box.item name="MissingContent" label="Contenuto mancante"/>
+		<combo_box.item name="LindenDollars(L$)" label="Linden Dollar (L$)"/>
+		<combo_box.item name="Permissions" label="Permessi"/>
+		<combo_box.item name="Physics" label="Fisica"/>
+		<combo_box.item name="Script" label="Script"/>
+		<combo_box.item name="Sound" label="Audio"/>
+		<combo_box.item name="Stipends" label="Stipendi"/>
+		<combo_box.item name="Userinterface" label="Interfaccia utente"/>
+		<combo_box.item name="Miscellaneous" label="Varie"/>
 	</combo_box>
 	<text name="sum_title">
 		Riassunto:

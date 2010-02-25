@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -174,6 +174,7 @@ extern char * _PREHASH_UpdateInventoryItem;
 extern char * _PREHASH_UpdateCreateInventoryItem;
 extern char * _PREHASH_MoveInventoryItem;
 extern char * _PREHASH_CopyInventoryItem;
+extern char * _PREHASH_LinkInventoryItem;
 extern char * _PREHASH_RemoveInventoryItem;
 extern char * _PREHASH_CreateInventoryItem;
 extern char * _PREHASH_PathTwistBegin;
@@ -631,6 +632,8 @@ extern char * _PREHASH_OfferCallingCard;
 extern char * _PREHASH_AcceptCallingCard;
 extern char * _PREHASH_DeclineCallingCard;
 extern char * _PREHASH_AgentAccess;
+extern char * _PREHASH_AgentLegacyAccess;
+extern char * _PREHASH_AgentMaxAccess;
 extern char * _PREHASH_DataHomeLocationReply;
 extern char * _PREHASH_EventLocationReply;
 extern char * _PREHASH_TerseDateID;
@@ -1378,5 +1381,4 @@ extern char * _PREHASH_VCoord;
 extern char * _PREHASH_FaceIndex;
 extern char * _PREHASH_StatusData;
 extern char * _PREHASH_ProductSKU;
-extern char * _PREHASH_Language;
 #endif

@@ -2,9 +2,10 @@
  * @file llmediaimplgstreamervidplug.h
  * @brief Video-consuming static GStreamer plugin for gst-to-LLMediaImpl
  *
+ * @cond
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #ifndef __GST_SLVIDEO_H__
@@ -88,7 +90,7 @@ struct _GstSLVideo
 	int retained_frame_width, retained_frame_height;
 	SLVPixelFormat retained_frame_format;
 	// sticky resize info
-	bool resize_forced;
+	bool resize_forced_always;
 	int resize_try_width;
 	int resize_try_height;
 };

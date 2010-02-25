@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(inconnu)" name="im_floater" title="(inconnu)" min_width="460" >
+<floater label="(inconnu)" min_width="460" name="im_floater" title="(INCONNU)">
 	<string name="ringing">
-		En train de rejoindre le chat vocal...
+		En train de rejoindre l&apos;appel...
 	</string>
 	<string name="connected">
 		Connecté(e), cliquez sur Raccrocher pour terminer l&apos;appel
 	</string>
 	<string name="hang_up">
-		A quitté le chat vocal
+		A quitté l&apos;appel
 	</string>
 	<string name="voice_icon">
 		icn_voice-groupfocus.tga
@@ -41,7 +41,7 @@
 			<button label="Infos sur le groupe" name="group_info_btn" width="120"/>
 			<button label="Participer à l&apos;appel" left_delta="125" name="start_call_btn" width="145"/>
 			<button halign="center" label="Raccrocher" name="end_call_btn" width="145"/>
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Affichez/Masquez la liste des intervenants actifs dans cette session IM."/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Cliquez ici pour voir la liste des participants actifs dans cette session IM"/>
 			<button label="Envoyer" name="send_btn"/>
 		</layout_panel>
 	</layout_stack>

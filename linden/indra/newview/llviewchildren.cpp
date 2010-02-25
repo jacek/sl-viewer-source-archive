@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -74,17 +74,6 @@ void LLViewChildren::setText(
 	}
 }
 
-void LLViewChildren::setWrappedText(
-	const std::string& id, const std::string& text, bool visible)
-{
-	LLTextBox* child = mParent.getChild<LLTextBox>(id);
-	if (child)
-	{
-		child->setVisible(visible);
-		child->setWrappedText(text);
-	}
-}
-
 void LLViewChildren::setBadge(const std::string& id, Badge badge, bool visible)
 {
 	LLIconCtrl* child = mParent.getChild<LLIconCtrl>(id);
@@ -94,10 +83,10 @@ void LLViewChildren::setBadge(const std::string& id, Badge badge, bool visible)
 		switch (badge)
 		{
 			default:
-			case BADGE_OK:		child->setImage(std::string("badge_ok.j2c"));	break;
-			case BADGE_NOTE:	child->setImage(std::string("badge_note.j2c"));	break;
-			case BADGE_WARN:	child->setImage(std::string("badge_warn.j2c"));	break;
-			case BADGE_ERROR:	child->setImage(std::string("badge_error.j2c"));	break;
+			case BADGE_OK:		child->setValue(std::string("badge_ok.j2c"));	break;
+			case BADGE_NOTE:	child->setValue(std::string("badge_note.j2c"));	break;
+			case BADGE_WARN:	child->setValue(std::string("badge_warn.j2c"));	break;
+			case BADGE_ERROR:	child->setValue(std::string("badge_error.j2c"));	break;
 		}
 	}
 }

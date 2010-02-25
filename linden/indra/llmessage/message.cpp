@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -86,6 +86,7 @@
 #include "v3math.h"
 #include "v4math.h"
 #include "lltransfertargetvfile.h"
+#include "llmemtype.h"
 
 // Constants
 //const char* MESSAGE_LOG_FILENAME = "message.log";
@@ -252,6 +253,8 @@ LLMessageSystem::LLMessageSystem(const std::string& filename, U32 port,
 {
 	init();
 
+	mSendSize = 0;
+
 	mSystemVersionMajor = version_major;
 	mSystemVersionMinor = version_minor;
 	mSystemVersionPatch = version_patch;
@@ -322,6 +325,8 @@ LLMessageSystem::LLMessageSystem(const std::string& filename, U32 port,
 	mMaxMessageTime   = 1.f;
 
 	mTrueReceiveSize = 0;
+
+	mReceiveTime = 0.f;
 }
 
 
@@ -794,6 +799,7 @@ S32	LLMessageSystem::getReceiveBytes() const
 
 void LLMessageSystem::processAcks()
 {
+	LLMemType mt_pa(LLMemType::MTYPE_MESSAGE_PROCESS_ACKS);
 	F64 mt_sec = getMessageTimeSeconds();
 	{
 		gTransferManager.updateTransfers();
@@ -4020,6 +4026,7 @@ void LLMessageSystem::setTimeDecodesSpamThreshold( F32 seconds )
 // TODO: babbage: move gServicePump in to LLMessageSystem?
 bool LLMessageSystem::checkAllMessages(S64 frame_count, LLPumpIO* http_pump)
 {
+	LLMemType mt_cam(LLMemType::MTYPE_MESSAGE_CHECK_ALL);
 	if(checkMessages(frame_count))
 	{
 		return true;

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="private_call" title="ANRUF: UNBEKANNTER ANRUFER">
+	<floater.string name="unknown_person">
+		Unbekannte Person
+	</floater.string>
+	<floater.string name="call_prefix">
+		Anrufen:
+	</floater.string>
+	<panel name="bottom_panel">
+		<button label="Beenden" name="end_btn"/>
+	</panel>
+</floater>

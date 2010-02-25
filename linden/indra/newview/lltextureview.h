@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,7 @@
 
 #include "llcontainerview.h"
 
-class LLViewerImage;
+class LLViewerFetchedTexture;
 class LLTextureBar;
 class LLGLTexMemBar;
 
@@ -43,8 +43,10 @@ class LLTextureView : public LLContainerView
 {
 	friend class LLTextureBar;
 	friend class LLGLTexMemBar;
+protected:
+	LLTextureView(const Params&);
+	friend class LLUICtrlFactory;
 public:
-	LLTextureView(const std::string& name, const LLRect& rect);
 	~LLTextureView();
 
 	/*virtual*/ void draw();
@@ -52,12 +54,12 @@ public:
 	/*virtual*/ BOOL handleMouseUp(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL handleKey(KEY key, MASK mask, BOOL called_from_parent);
 
-	static void addDebugImage(LLViewerImage* image) { sDebugImages.insert(image); }
-	static void removeDebugImage(LLViewerImage* image) { sDebugImages.insert(image); }
+	static void addDebugImage(LLViewerFetchedTexture* image) { sDebugImages.insert(image); }
+	static void removeDebugImage(LLViewerFetchedTexture* image) { sDebugImages.insert(image); }
 	static void clearDebugImages() { sDebugImages.clear(); }
 
 private:
-	BOOL addBar(LLViewerImage *image, BOOL hilight = FALSE);
+	BOOL addBar(LLViewerFetchedTexture *image, BOOL hilight = FALSE);
 	void removeAllBars();
 
 private:
@@ -73,14 +75,16 @@ private:
 	LLGLTexMemBar* mGLTexMemBar;
 	
 public:
-	static std::set<LLViewerImage*> sDebugImages;
+	static std::set<LLViewerFetchedTexture*> sDebugImages;
 };
 
 class LLGLTexSizeBar;
-class LLTextureSizeView : public LLView
+class LLTextureSizeView : public LLContainerView
 {
-public:
-	LLTextureSizeView(const std::string& name);
+protected:
+	LLTextureSizeView(const Params&);
+	friend class LLUICtrlFactory;
+public:	
 	~LLTextureSizeView();
 
 	/*virtual*/ void draw();

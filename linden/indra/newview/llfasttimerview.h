@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,40 +34,64 @@
 #define LL_LLFASTTIMERVIEW_H
 
 #include "llfloater.h"
-#include "llframetimer.h"
+#include "llfasttimer.h"
 
 class LLFastTimerView : public LLFloater
 {
 public:
-	LLFastTimerView(const std::string& name, const LLRect& rect);
-	virtual ~LLFastTimerView();
+	LLFastTimerView(const LLRect& rect);
+	
+	static BOOL sAnalyzePerformance;
+
+	static void doAnalysis(std::string baseline, std::string target, std::string output);
+
+private:
+	static void doAnalysisDefault(std::string baseline, std::string target, std::string output) ;
+	static void doAnalysisMetrics(std::string baseline, std::string target, std::string output) ;
+	static LLSD analyzeMetricPerformanceLog(std::istream& is) ;
+	static LLSD analyzePerformanceLogDefault(std::istream& is) ;
+
+public:
 
 	virtual BOOL handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL handleMouseUp(S32 x, S32 y, MASK mask);
 	virtual BOOL handleHover(S32 x, S32 y, MASK mask);
+	virtual BOOL handleToolTip(S32 x, S32 y, MASK mask);
 	virtual BOOL handleScrollWheel(S32 x, S32 y, S32 clicks);
 	virtual void draw();
 
-	S32 getLegendIndex(S32 y);
-	F64 getTime(LLFastTimer::EFastTimerType tidx);
+	LLFastTimer::NamedTimer* getLegendID(S32 y);
+	F64 getTime(const std::string& name);
 	
 private:	
-	S32* mBarStart;
-	S32* mBarEnd;
+	typedef std::vector<std::vector<S32> > bar_positions_t;
+	bar_positions_t mBarStart;
+	bar_positions_t mBarEnd;
 	S32 mDisplayMode;
-	S32 mDisplayCenter;
+
+	typedef enum child_alignment
+	{
+		ALIGN_LEFT,
+		ALIGN_CENTER,
+		ALIGN_RIGHT,
+		ALIGN_COUNT
+	} ChildAlignment;
+
+	ChildAlignment mDisplayCenter;
 	S32 mDisplayCalls;
 	S32 mDisplayHz;
 	U64 mAvgCountTotal;
 	U64 mMaxCountTotal;
 	LLRect mBarRect;
 	S32	mScrollIndex;
-	S32 mHoverIndex;
+	LLFastTimer::NamedTimer* mHoverID;
+	LLFastTimer::NamedTimer* mHoverTimer;
+	LLRect					mToolTipRect;
 	S32 mHoverBarIndex;
 	LLFrameTimer mHighlightTimer;
-	S32 mSubtractHidden;
 	S32 mPrintStats;
+	S32 mAverageCyclesPerTimer;
 };
 
 #endif

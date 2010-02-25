@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Infos sur le look" name="look_info">
+	<panel.string name="not_available">
+		(s/o)
+	</panel.string>
+	<panel.string name="unknown">
+		(inconnu)
+	</panel.string>
+	<panel label="Tenue" name="look_management_panel">
+		<accordion name="look_management_accordion">
+			<accordion_tab name="look_group" title="Habiller le groupe">
+				<panel name="look_info_group_bar">
+					<text name="curr_look_name">
+						Look : [LOOK]
+					</text>
+					<button label="Porter" name="wear_look_btn"/>
+					<scroll_list name="look_items_list">
+						<scroll_list.columns label="Article de la tenue" name="look_item"/>
+						<scroll_list.columns label="Tri des articles de la tenue" name="look_item_sort"/>
+					</scroll_list>
+					<button label="-" name="remove_from_look_btn"/>
+				</panel>
+			</accordion_tab>
+			<accordion_tab name="inventory_group" title="Mon inventaire">
+				<panel name="lower_look_accordion">
+					<panel name="inventory_bar">
+						<text name="inventory_info_text">
+							Mon inventaire
+						</text>
+						<combo_box name="inventory_filter" tool_tip="Afficher les types d&apos;inventaires sélectionnés uniquement"/>
+					</panel>
+					<panel name="look_item_filter_bar">
+						<filter_editor label="Filtre d&apos;articles de la tenue" name="look_item_filter"/>
+					</panel>
+				</panel>
+			</accordion_tab>
+		</accordion>
+	</panel>
+	<panel name="button_bar">
+		<button label="Ajouter" name="add_item_btn"/>
+		<button label="Supprimer" name="remove_item_btn"/>
+		<button label="HAUT" name="up_btn"/>
+		<button label="BAS" name="down_btn"/>
+	</panel>
+</panel>

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -278,12 +278,8 @@ namespace tut
 		ensure("LLSimInfo::getPGEvent() empty at init test failed", list.empty());
 		list = mSim->getMatureEvent();
 		ensure("LLSimInfo::getMatureEvent() empty at init test failed", list.empty());
-		list = mSim->getAdultEvent();
-		ensure("LLSimInfo::getAdultEvent() empty at init test failed", list.empty());
 		list = mSim->getLandForSale();
 		ensure("LLSimInfo::getLandForSale() empty at init test failed", list.empty());
-		list = mSim->getLandForSaleAdult();
-		ensure("LLSimInfo::getLandForSaleAdult() empty at init test failed", list.empty());
 		list = mSim->getAgentLocation();
 		ensure("LLSimInfo::getAgentLocation() empty at init test failed", list.empty());
 
@@ -296,9 +292,7 @@ namespace tut
 		mSim->insertInfoHub(item);
 		mSim->insertPGEvent(item);
 		mSim->insertMatureEvent(item);
-		mSim->insertAdultEvent(item);
 		mSim->insertLandForSale(item);
-		mSim->insertLandForSaleAdult(item);
 		mSim->insertAgentLocation(item);
 
 		// Test 16 : Verify that the lists contain 1 item each
@@ -310,12 +304,8 @@ namespace tut
 		ensure("LLSimInfo::insertPGEvent() test failed", list.size() == 1);
 		list = mSim->getMatureEvent();
 		ensure("LLSimInfo::insertMatureEvent() test failed", list.size() == 1);
-		list = mSim->getAdultEvent();
-		ensure("LLSimInfo::insertAdultEvent() test failed", list.size() == 1);
 		list = mSim->getLandForSale();
 		ensure("LLSimInfo::insertLandForSale() test failed", list.size() == 1);
-		list = mSim->getLandForSaleAdult();
-		ensure("LLSimInfo::insertLandForSaleAdult() test failed", list.size() == 1);
 		list = mSim->getAgentLocation();
 		ensure("LLSimInfo::insertAgentLocation() test failed", list.size() == 1);
 
@@ -335,12 +325,8 @@ namespace tut
 		ensure("LLSimInfo::getPGEvent() empty after clear test failed", list.empty());
 		list = mSim->getMatureEvent();
 		ensure("LLSimInfo::getMatureEvent() empty after clear test failed", list.empty());
-		list = mSim->getAdultEvent();
-		ensure("LLSimInfo::getAdultEvent() empty after clear test failed", list.empty());
 		list = mSim->getLandForSale();
 		ensure("LLSimInfo::getLandForSale() empty after clear test failed", list.empty());
-		list = mSim->getLandForSaleAdult();
-		ensure("LLSimInfo::getLandForSaleAdult() empty after clear test failed", list.empty());
 		list = mSim->getAgentLocation();
 		ensure("LLSimInfo::getAgentLocation() empty after clear test failed", list.size() == 1);
 	}

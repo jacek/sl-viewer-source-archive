@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,13 +34,11 @@
 
 #include "llpanellogin.h"
 
-#include "llpanelgeneral.h"
-
 #include "indra_constants.h"		// for key and mask constants
+#include "llfloaterreg.h"
 #include "llfontgl.h"
 #include "llmd5.h"
 #include "llsecondlifeurls.h"
-#include "llversionviewer.h"
 #include "v4color.h"
 
 #include "llbutton.h"
@@ -49,33 +47,35 @@
 #include "llcombobox.h"
 #include "llcurl.h"
 #include "llviewercontrol.h"
-#include "llfloaterabout.h"
-#include "llfloatertest.h"
 #include "llfloaterpreference.h"
 #include "llfocusmgr.h"
 #include "lllineeditor.h"
+#include "llnotificationsutil.h"
 #include "llstartup.h"
 #include "lltextbox.h"
 #include "llui.h"
 #include "lluiconstants.h"
-#include "llurlhistory.h" // OGPX : regionuri text box has a history of region uris (if FN/LN are loaded at startup)
 #include "llurlsimstring.h"
-#include "llviewerbuild.h"
-#include "llviewerimagelist.h"
+#include "llversioninfo.h"
+#include "llviewerhelp.h"
+#include "llviewertexturelist.h"
 #include "llviewermenu.h"			// for handle_preferences()
 #include "llviewernetwork.h"
 #include "llviewerwindow.h"			// to link into child list
-#include "llnotify.h"
-#include "llurlsimstring.h"
 #include "lluictrlfactory.h"
 #include "llhttpclient.h"
 #include "llweb.h"
 #include "llmediactrl.h"
+#include "llrootview.h"
 
-#include "llfloatermediabrowser.h"
 #include "llfloatertos.h"
-
+#include "lltrans.h"
 #include "llglheaders.h"
+#include "llpanelloginlistener.h"
+
+#if LL_WINDOWS
+#pragma warning(disable: 4355)      // 'this' used in initializer list
+#endif  // LL_WINDOWS
 
 #define USE_VIEWER_AUTH 0
 
@@ -90,7 +90,7 @@ class LLLoginRefreshHandler : public LLCommandHandler
 {
 public:
 	// don't allow from external browsers
-	LLLoginRefreshHandler() : LLCommandHandler("login_refresh", true) { }
+	LLLoginRefreshHandler() : LLCommandHandler("login_refresh", UNTRUSTED_BLOCK) { }
 	bool handle(const LLSD& tokens, const LLSD& query_map, LLMediaCtrl* web)
 	{	
 		if (LLStartUp::getStartupState() < STATE_LOGIN_CLEANUP)
@@ -165,11 +165,12 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 						 BOOL show_server,
 						 void (*callback)(S32 option, void* user_data),
 						 void *cb_data)
-:	LLPanel(std::string("panel_login"), LLRect(0,600,800,0), FALSE),		// not bordered
+:	LLPanel(),
 	mLogoImage(),
 	mCallback(callback),
 	mCallbackData(cb_data),
-	mHtmlAvailable( TRUE )
+	mHtmlAvailable( TRUE ),
+	mListener(new LLPanelLoginListener(this))
 {
 	setFocusRoot(TRUE);
 
@@ -180,19 +181,19 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	if (LLPanelLogin::sInstance)
 	{
 		llwarns << "Duplicate instance of login view deleted" << llendl;
-		delete LLPanelLogin::sInstance;
-
 		// Don't leave bad pointer in gFocusMgr
 		gFocusMgr.setDefaultKeyboardFocus(NULL);
+
+		delete LLPanelLogin::sInstance;
 	}
 
 	LLPanelLogin::sInstance = this;
 
 	// add to front so we are the bottom-most child
-	gViewerWindow->getRootView()->addChildAtEnd(this);
+	gViewerWindow->getRootView()->addChildInBack(this);
 
 	// Logo
-	mLogoImage = LLUI::getUIImage("startup_logo.j2c");
+	mLogoImage = LLUI::getUIImage("startup_logo");
 
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_login.xml");
 	
@@ -200,15 +201,23 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	//leave room for the login menu bar
 	setRect(LLRect(0, rect.getHeight()-18, rect.getWidth(), 0)); 
 #endif
-	reshape(rect.getWidth(), rect.getHeight());
+	// Legacy login web page is hidden under the menu bar.
+	// Adjust reg-in-client web browser widget to not be hidden.
+	if (gSavedSettings.getBOOL("RegInClient"))
+	{
+		reshape(rect.getWidth(), rect.getHeight() - MENU_BAR_HEIGHT);
+	}
+	else
+	{
+		reshape(rect.getWidth(), rect.getHeight());
+	}
 
 #if !USE_VIEWER_AUTH
-	childSetPrevalidate("first_name_edit", LLLineEditor::prevalidatePrintableNoSpace);
-	childSetPrevalidate("last_name_edit", LLLineEditor::prevalidatePrintableNoSpace);
+	childSetPrevalidate("first_name_edit", LLTextValidate::validateASCIIPrintableNoSpace);
+	childSetPrevalidate("last_name_edit", LLTextValidate::validateASCIIPrintableNoSpace);
 
-	childSetCommitCallback("password_edit", mungePassword);
-	childSetKeystrokeCallback("password_edit", onPassKey, this);
-	childSetUserData("password_edit", this);
+	childSetCommitCallback("password_edit", mungePassword, this);
+	getChild<LLLineEditor>("password_edit")->setKeystrokeCallback(onPassKey, this);
 
 	// change z sort of clickable text to be behind buttons
 	sendChildToBack(getChildView("channel_text"));
@@ -217,46 +226,14 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	LLLineEditor* edit = getChild<LLLineEditor>("password_edit");
 	if (edit) edit->setDrawAsterixes(TRUE);
 
-	//OGPX : This keeps the uris in a history file 
-	//OGPX TODO: should this be inside an OGP only check?
-	LLComboBox* regioncombo = getChild<LLComboBox>("regionuri_edit"); 
-	regioncombo->setAllowTextEntry(TRUE, 256, FALSE);
-	std::string  current_regionuri = gSavedSettings.getString("CmdLineRegionURI");
-
-	// iterate on uri list adding to combobox (couldn't figure out how to add them all in one call)
-	// ... and also append the command line value we might have gotten to the URLHistory
-	LLSD regionuri_history = LLURLHistory::getURLHistory("regionuri");
-	LLSD::array_iterator iter_history = regionuri_history.beginArray();
-	LLSD::array_iterator iter_end = regionuri_history.endArray();
-	for (; iter_history != iter_end; ++iter_history)
-	{
-		regioncombo->addSimpleElement((*iter_history).asString());
-	}
-
-	if ( LLURLHistory::appendToURLCollection("regionuri",current_regionuri)) 
-	{
-		// since we are in login, another read of urlhistory file is going to happen 
-		// so we need to persist the new value we just added (or maybe we should do it in startup.cpp?)
-
-		// since URL history only populated on create of sInstance, add to combo list directly
-		regioncombo->addSimpleElement(current_regionuri);
-	}
-	
-	// select which is displayed if we have a current URL.
-	regioncombo->setSelectedByValue(LLSD(current_regionuri),TRUE);
-
-	//llinfos << " url history: " << LLSDOStreamer<LLSDXMLFormatter>(LLURLHistory::getURLHistory("regionuri")) << llendl;
-
 	LLComboBox* combo = getChild<LLComboBox>("start_location_combo");
-	combo->setAllowTextEntry(TRUE, 128, FALSE);
 
-	// The XML file loads the combo with the following labels:
-	// 0 - "My Home"
-	// 1 - "My Last Location"
-	// 2 - "<Type region name>"
-
-	BOOL login_last = gSavedSettings.getBOOL("LoginLastLocation");
 	std::string sim_string = LLURLSimString::sInstance.mSimString;
+	if(sim_string.empty())
+	{
+		LLURLSimString::setString(gSavedSettings.getString("LoginLocation"));
+	}
+
 	if (!sim_string.empty())
 	{
 		// Replace "<Type region name>" with this region name
@@ -265,49 +242,42 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 		combo->setTextEntry(sim_string);
 		combo->setCurrentByIndex( 2 );
 	}
-	else if (login_last)
-	{
-		combo->setCurrentByIndex( 1 );
-	}
-	else
-	{
-		combo->setCurrentByIndex( 0 );
-	}
 
-	combo->setCommitCallback( &set_start_location );
+	combo->setCommitCallback( &set_start_location, NULL );
 
 	LLComboBox* server_choice_combo = sInstance->getChild<LLComboBox>("server_combo");
-	server_choice_combo->setCommitCallback(onSelectServer);
-	server_choice_combo->setFocusLostCallback(onServerComboLostFocus);
+	server_choice_combo->setCommitCallback(onSelectServer, NULL);
+	server_choice_combo->setFocusLostCallback(boost::bind(onServerComboLostFocus, _1));
 
 	childSetAction("connect_btn", onClickConnect, this);
 
-	setDefaultBtn("connect_btn");
-
-	// childSetAction("quit_btn", onClickQuit, this);
+	getChild<LLPanel>("login")->setDefaultBtn("connect_btn");
 
 	std::string channel = gSavedSettings.getString("VersionChannelName");
-	std::string version = llformat("%d.%d.%d (%d)",
-		LL_VERSION_MAJOR,
-		LL_VERSION_MINOR,
-		LL_VERSION_PATCH,
-		LL_VIEWER_BUILD );
+	std::string version = llformat("%s (%d)",
+								   LLVersionInfo::getShortVersion().c_str(),
+								   LLVersionInfo::getBuild());
 	LLTextBox* channel_text = getChild<LLTextBox>("channel_text");
 	channel_text->setTextArg("[CHANNEL]", channel); // though not displayed
 	channel_text->setTextArg("[VERSION]", version);
-	channel_text->setClickedCallback(onClickVersion);
-	channel_text->setCallbackUserData(this);
+	channel_text->setClickedCallback(onClickVersion, this);
 	
 	LLTextBox* forgot_password_text = getChild<LLTextBox>("forgot_password_text");
-	forgot_password_text->setClickedCallback(onClickForgotPassword);
+	forgot_password_text->setClickedCallback(onClickForgotPassword, NULL);
 
 	LLTextBox* create_new_account_text = getChild<LLTextBox>("create_new_account_text");
-	create_new_account_text->setClickedCallback(onClickNewAccount);
+	create_new_account_text->setClickedCallback(onClickNewAccount, NULL);
+
+	LLTextBox* need_help_text = getChild<LLTextBox>("login_help");
+	need_help_text->setClickedCallback(onClickHelp, NULL);
 #endif    
 	
 	// get the web browser control
 	LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("login_html");
 	web_browser->addObserver(this);
+	
+	// Clear the browser's cache to avoid any potential for the cache messing up the login screen.
+	web_browser->clearCache();
 
 	// Need to handle login secondlife:///app/ URLs
 	web_browser->setTrusted( true );
@@ -316,19 +286,20 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	web_browser->setTabStop(FALSE);
 	// web_browser->navigateToLocalPage( "loading", "loading.html" );
 
-	// make links open in external browser
-	web_browser->setOpenInExternalBrowser( true );
+	if (gSavedSettings.getBOOL("RegInClient"))
+	{
+		// need to follow links in the internal browser
+		web_browser->setOpenInExternalBrowser( false );
 
-	// force the size to be correct (XML doesn't seem to be sufficient to do this) (with some padding so the other login screen doesn't show through)
-	LLRect htmlRect = getRect();
-#if USE_VIEWER_AUTH
-	htmlRect.setCenterAndSize( getRect().getCenterX() - 2, getRect().getCenterY(), getRect().getWidth() + 6, getRect().getHeight());
-#else
-	htmlRect.setCenterAndSize( getRect().getCenterX() - 2, getRect().getCenterY() + 40, getRect().getWidth() + 6, getRect().getHeight() - 78 );
-#endif
-	web_browser->setRect( htmlRect );
-	web_browser->reshape( htmlRect.getWidth(), htmlRect.getHeight(), TRUE );
-	reshape( getRect().getWidth(), getRect().getHeight(), 1 );
+		getChild<LLView>("login_widgets")->setVisible(false);
+	}
+	else
+	{
+		// make links open in external browser
+		web_browser->setOpenInExternalBrowser( true );
+
+		reshapeBrowser();
+	}
 
 	// kick off a request to grab the url manually
 	gResponsePtr = LLIamHereLogin::build( this );
@@ -344,6 +315,27 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	refreshLocation( false );
 #endif
 
+}
+
+// force the size to be correct (XML doesn't seem to be sufficient to do this)
+// (with some padding so the other login screen doesn't show through)
+void LLPanelLogin::reshapeBrowser()
+{
+	LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("login_html");
+	LLRect rect = gViewerWindow->getWindowRectScaled();
+	LLRect html_rect;
+#if USE_VIEWER_AUTH
+	html_rect.setCenterAndSize( 
+		rect.getCenterX() - 2, rect.getCenterY(), 
+		rect.getWidth() + 6, rect.getHeight());
+#else
+	html_rect.setCenterAndSize(
+		rect.getCenterX() - 2, rect.getCenterY() + 40,
+		rect.getWidth() + 6, rect.getHeight() - 78 );
+#endif
+	web_browser->setRect( html_rect );
+	web_browser->reshape( html_rect.getWidth(), html_rect.getHeight(), TRUE );
+	reshape( rect.getWidth(), rect.getHeight(), 1 );
 }
 
 void LLPanelLogin::setSiteIsAlive( bool alive )
@@ -410,12 +402,11 @@ LLPanelLogin::~LLPanelLogin()
 		gResponsePtr->setParent( 0 );
 
 	//// We know we're done with the image, so be rid of it.
-	//gImageList.deleteImage( mLogoImage );
-	
-	if ( gFocusMgr.getDefaultKeyboardFocus() == this )
-	{
-		gFocusMgr.setDefaultKeyboardFocus(NULL);
-	}
+	//gTextureList.deleteImage( mLogoImage );
+
+	// Controls having keyboard focus by default
+	// must reset it on destroy. (EXT-2748)
+	gFocusMgr.setDefaultKeyboardFocus(NULL);
 }
 
 // virtual
@@ -438,10 +429,14 @@ void LLPanelLogin::draw()
 		if ( mHtmlAvailable )
 		{
 #if !USE_VIEWER_AUTH
-			// draw a background box in black
-			gl_rect_2d( 0, height - 264, width, 264, LLColor4( 0.0f, 0.0f, 0.0f, 1.f ) );
-			// draw the bottom part of the background image - just the blue background to the native client UI
-			mLogoImage->draw(0, -264, width + 8, mLogoImage->getHeight());
+			if (getChild<LLView>("login_widgets")->getVisible())
+			{
+				// draw a background box in black
+				gl_rect_2d( 0, height - 264, width, 264, LLColor4::black );
+				// draw the bottom part of the background image
+				// just the blue background to the native client UI
+				mLogoImage->draw(0, -264, width + 8, mLogoImage->getHeight());
+			}
 #endif
 		}
 		else
@@ -465,39 +460,11 @@ BOOL LLPanelLogin::handleKeyHere(KEY key, MASK mask)
 		return TRUE;
 	}
 
-	if (('P' == key) && (MASK_CONTROL == mask))
-	{
-		LLFloaterPreference::show(NULL);
-		return TRUE;
-	}
-
-	if (('T' == key) && (MASK_CONTROL == mask))
-	{
-		new LLFloaterSimple("floater_test.xml");
-		return TRUE;
-	}
-	
 	if ( KEY_F1 == key )
 	{
-		llinfos << "Spawning HTML help window" << llendl;
-		gViewerHtmlHelp.show();
+		LLViewerHelp* vhelp = LLViewerHelp::getInstance();
+		vhelp->showTopic(vhelp->f1HelpTopic());
 		return TRUE;
-	}
-
-# if !LL_RELEASE_FOR_DOWNLOAD
-	if ( KEY_F2 == key )
-	{
-		llinfos << "Spawning floater TOS window" << llendl;
-		LLFloaterTOS* tos_dialog = LLFloaterTOS::show(LLFloaterTOS::TOS_TOS,"");
-		tos_dialog->startModal();
-		return TRUE;
-	}
-#endif
-
-	if (KEY_RETURN == key && MASK_NONE == mask)
-	{
-		// let the panel handle UICtrl processing: calls onClickConnect()
-		return LLPanel::handleKeyHere(key, mask);
 	}
 
 	return LLPanel::handleKeyHere(key, mask);
@@ -559,6 +526,19 @@ void LLPanelLogin::giveFocus()
 #endif
 }
 
+// static
+void LLPanelLogin::showLoginWidgets()
+{
+	sInstance->childSetVisible("login_widgets", true);
+	LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
+	web_browser->setOpenInExternalBrowser( true );
+	sInstance->reshapeBrowser();
+	// *TODO: Append all the usual login parameters, like first_login=Y etc.
+	std::string splash_screen_url = sInstance->getString("real_url");
+	web_browser->navigateTo( splash_screen_url, "text/html" );
+	LLUICtrl* first_name_edit = sInstance->getChild<LLUICtrl>("first_name_edit");
+	first_name_edit->setFocus(TRUE);
+}
 
 // static
 void LLPanelLogin::show(const LLRect &rect,
@@ -591,16 +571,6 @@ void LLPanelLogin::setFields(const std::string& firstname,
 
 	sInstance->childSetText("first_name_edit", firstname);
 	sInstance->childSetText("last_name_edit", lastname);
-
-	
-	// OGPX : Are we guaranteed that LLAppViewer::instance exists already?
-	if (gSavedSettings.getBOOL("OpenGridProtocol"))
-	{
-		LLComboBox* regioncombo = sInstance->getChild<LLComboBox>("regionuri_edit");
-		
-		// select which is displayed if we have a current URL.
-		regioncombo->setSelectedByValue(LLSD(gSavedSettings.getString("CmdLineRegionURI")),TRUE);
-	}
 
 	// Max "actual" password length is 16 characters.
 	// Hex digests are always 32 characters.
@@ -658,21 +628,6 @@ void LLPanelLogin::getFields(std::string *firstname,
 
 	*lastname = sInstance->childGetText("last_name_edit");
 	LLStringUtil::trim(*lastname);
-    // OGPX : Nice up the uri string and save it.
-	if (gSavedSettings.getBOOL("OpenGridProtocol"))
-	{
-		std::string regionuri = sInstance->childGetValue("regionuri_edit").asString();
-		LLStringUtil::trim(regionuri);
-		if (regionuri.find("://",0) == std::string::npos)
-		{
-			// if there wasn't a URI designation, assume http
-			regionuri = "http://"+regionuri;
-			llinfos << "Region URI was prepended, now " << regionuri << llendl;
-		}
-		gSavedSettings.setString("CmdLineRegionURI",regionuri);
-		// add new uri to url history (don't need to add to combo box since it is recreated each login)
-		LLURLHistory::appendToURLCollection("regionuri", regionuri);
-	}
 
 	*password = sInstance->mMungedPassword;
 }
@@ -714,63 +669,47 @@ void LLPanelLogin::refreshLocation( bool force_visible )
 #if USE_VIEWER_AUTH
 	loadLoginPage();
 #else
-	LLComboBox* combo = sInstance->getChild<LLComboBox>("start_location_combo");
-
-	if (LLURLSimString::parse())
-	{
-		combo->setCurrentByIndex( 3 );		// BUG?  Maybe 2?
-		combo->setTextEntry(LLURLSimString::sInstance.mSimString);
-	}
-	else
-	{
-		BOOL login_last = gSavedSettings.getBOOL("LoginLastLocation");
-		combo->setCurrentByIndex( login_last ? 1 : 0 );
-	}
-
 	BOOL show_start = TRUE;
 
 	if ( ! force_visible )
+	{
+		// Don't show on first run after install
+		// Otherwise ShowStartLocation defaults to true.
 		show_start = gSavedSettings.getBOOL("ShowStartLocation");
-
-	// OGPX : if --ogp on the command line (or --set OpenGridProtocol TRUE), then
-	// the start location is hidden, and regionuri shows in its place. 
-	// "Home", and "Last" have no meaning in OGPX, so it's OK to not have the start_location combo
-	// box unavailable on the menu panel. 
-	if (gSavedSettings.getBOOL("OpenGridProtocol"))
-	{
-		sInstance->childSetVisible("start_location_combo", FALSE); // hide legacy box
-		sInstance->childSetVisible("start_location_text", TRUE);   // when OGPX always show location
-		sInstance->childSetVisible("regionuri_edit",TRUE);         // show regionuri box if OGPX
-
-	}
-	else
-	{
-		sInstance->childSetVisible("start_location_combo", show_start); // maintain ShowStartLocation if legacy
-		sInstance->childSetVisible("start_location_text", show_start);
-		sInstance->childSetVisible("regionuri_edit",FALSE); // Do Not show regionuri box if legacy
 	}
 
+	sInstance->childSetVisible("start_location_combo", show_start);
+	sInstance->childSetVisible("start_location_text", show_start);
 
-
-
-#if LL_RELEASE_FOR_DOWNLOAD
 	BOOL show_server = gSavedSettings.getBOOL("ForceShowGrid");
 	sInstance->childSetVisible("server_combo", show_server);
-#else
-	sInstance->childSetVisible("server_combo", TRUE);
-#endif
 
 #endif
 }
 
 // static
-void LLPanelLogin::close()
+void LLPanelLogin::updateLocationUI()
+{
+	if (!sInstance) return;
+	
+	std::string sim_string = LLURLSimString::sInstance.mSimString;
+	if (!sim_string.empty())
+	{
+		// Replace "<Type region name>" with this region name
+		LLComboBox* combo = sInstance->getChild<LLComboBox>("start_location_combo");
+		combo->remove(2);
+		combo->add( sim_string );
+		combo->setTextEntry(sim_string);
+		combo->setCurrentByIndex( 2 );
+	}
+}
+
+// static
+void LLPanelLogin::closePanel()
 {
 	if (sInstance)
 	{
 		gViewerWindow->getRootView()->removeChild( LLPanelLogin::sInstance );
-		
-		gFocusMgr.setDefaultKeyboardFocus(NULL);
 
 		delete sInstance;
 		sInstance = NULL;
@@ -824,8 +763,9 @@ void LLPanelLogin::loadLoginPage()
 	}
 
 	// Channel and Version
-	std::string version = llformat("%d.%d.%d (%d)",
-						LL_VERSION_MAJOR, LL_VERSION_MINOR, LL_VERSION_PATCH, LL_VIEWER_BUILD);
+	std::string version = llformat("%s (%d)",
+								   LLVersionInfo::getShortVersion().c_str(),
+								   LLVersionInfo::getBuild());
 
 	char* curl_channel = curl_escape(gSavedSettings.getString("VersionChannelName").c_str(), 0);
 	char* curl_version = curl_escape(version.c_str(), 0);
@@ -863,14 +803,7 @@ void LLPanelLogin::loadLoginPage()
 	}
 	else
 	{
-		if (gSavedSettings.getBOOL("LoginLastLocation"))
-		{
-			location = "last";
-		}
-		else
-		{
-			location = "home";
-		}
+		location = gSavedSettings.getString("LoginLocation");
 	}
 	
 	std::string firstname, lastname;
@@ -930,8 +863,17 @@ void LLPanelLogin::loadLoginPage()
 	
 	LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
 	
-	// navigate to the "real" page 
-	web_browser->navigateTo( oStr.str(), "text/html" );
+	// navigate to the "real" page
+	if (gSavedSettings.getBOOL("RegInClient"))
+	{
+		web_browser->setFocus(TRUE);
+		login_page = sInstance->getString("reg_in_client_url");
+		web_browser->navigateTo(login_page, "text/html");
+	}
+	else
+	{
+		web_browser->navigateTo( oStr.str(), "text/html" );
+	}
 }
 
 void LLPanelLogin::handleMediaEvent(LLPluginClassMedia* /*self*/, EMediaEvent event)
@@ -971,28 +913,50 @@ void LLPanelLogin::onClickConnect(void *)
 
 		std::string first = sInstance->childGetText("first_name_edit");
 		std::string last  = sInstance->childGetText("last_name_edit");
-		if (!first.empty() && !last.empty())
+		LLComboBox* combo = sInstance->getChild<LLComboBox>("start_location_combo");
+		std::string combo_text = combo->getSimple();
+		
+		bool has_first_and_last = !(first.empty() || last.empty());
+		bool has_location = false;
+
+		if(combo_text=="<Type region name>" || combo_text =="")
+		{
+			// *NOTE: Mani - Location field is not always committed by this point!
+			// This may be duplicate work, but better than not doing the work!
+			LLURLSimString::sInstance.setString("");
+		}
+		else 
+		{
+			// *NOTE: Mani - Location field is not always committed by this point!
+			LLURLSimString::sInstance.setString(combo_text);
+			has_location = true;
+		}
+
+		if(!has_first_and_last)
+		{
+			LLNotificationsUtil::add("MustHaveAccountToLogIn");
+		}
+		else if(!has_location)
+		{
+			LLNotificationsUtil::add("StartRegionEmpty");
+		}
+		else
 		{
 			// has both first and last name typed
 			sInstance->mCallback(0, sInstance->mCallbackData);
 		}
-		else
-		{
-			LLNotifications::instance().add("MustHaveAccountToLogIn", LLSD(), LLSD(),
-										LLPanelLogin::newAccountAlertCallback);
-		}
 	}
 }
 
-
+/*
 // static
 bool LLPanelLogin::newAccountAlertCallback(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if (0 == option)
 	{
 		llinfos << "Going to account creation URL" << llendl;
-		LLWeb::loadURLExternal( CREATE_ACCOUNT_URL );
+		LLWeb::loadURLExternal( LLNotifications::instance().getGlobalString("CREATE_ACCOUNT_URL")); 
 	}
 	else
 	{
@@ -1000,35 +964,19 @@ bool LLPanelLogin::newAccountAlertCallback(const LLSD& notification, const LLSD&
 	}
 	return false;
 }
-
+*/
 
 // static
 void LLPanelLogin::onClickNewAccount(void*)
 {
-	LLWeb::loadURLExternal( CREATE_ACCOUNT_URL );
-}
-
-
-// *NOTE: This function is dead as of 2008 August.  I left it here in case
-// we suddenly decide to put the Quit button back. JC
-// static
-void LLPanelLogin::onClickQuit(void*)
-{
-	if (sInstance && sInstance->mCallback)
-	{
-		// tell the responder we're not here anymore
-		if ( gResponsePtr )
-			gResponsePtr->setParent( 0 );
-
-		sInstance->mCallback(1, sInstance->mCallbackData);
-	}
+	LLWeb::loadURLExternal(sInstance->getString("create_account_url"));
 }
 
 
 // static
 void LLPanelLogin::onClickVersion(void*)
 {
-	LLFloaterAbout::show(NULL);
+	LLFloaterReg::showInstance("sl_about"); 
 }
 
 //static
@@ -1040,12 +988,22 @@ void LLPanelLogin::onClickForgotPassword(void*)
 	}
 }
 
+//static
+void LLPanelLogin::onClickHelp(void*)
+{
+	if (sInstance)
+	{
+		LLViewerHelp* vhelp = LLViewerHelp::getInstance();
+		vhelp->showTopic(vhelp->preLoginTopic());
+	}
+}
+
 // static
 void LLPanelLogin::onPassKey(LLLineEditor* caller, void* user_data)
 {
 	if (gKeyboard->getKeyDown(KEY_CAPSLOCK) && sCapslockDidNotification == FALSE)
 	{
-		LLNotifications::instance().add("CapsKeyOn");
+		LLNotificationsUtil::add("CapsKeyOn");
 		sCapslockDidNotification = TRUE;
 	}
 }
@@ -1100,13 +1058,10 @@ void LLPanelLogin::onSelectServer(LLUICtrl*, void*)
 	loadLoginPage();
 }
 
-void LLPanelLogin::onServerComboLostFocus(LLFocusableElement* fe, void*)
+void LLPanelLogin::onServerComboLostFocus(LLFocusableElement* fe)
 {
-	if( !sInstance )
-	{
-		return;
-	}
-	
+	if (!sInstance) return;
+
 	LLComboBox* combo = sInstance->getChild<LLComboBox>("server_combo");
 	if(fe == combo)
 	{

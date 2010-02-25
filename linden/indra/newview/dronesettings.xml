@@ -48,8 +48,8 @@
 	<StatsAutoRun value="TRUE"/>
 	<!--[DO NOT MODIFY] Controls local file caching behavior-->
 	<VFSSalt value="18366"/>
-	<!--Enables FirstStreamingMusic warning dialog-->
-	<WarnFirstStreamingMusic value="FALSE"/>
+	<!--Enables FirstStreamingMedia warning dialog-->
+	<WarnFirstStreamingMedia value="FALSE"/>
 	<!--SL viewer window height-->
 	<WindowHeight value="200"/>
 	<!--SL viewer window maximized on login-->

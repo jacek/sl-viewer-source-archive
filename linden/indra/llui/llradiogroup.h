@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,26 +37,6 @@
 #include "llcheckboxctrl.h"
 #include "llctrlselectioninterface.h"
 
-
-/*
- * A checkbox control with use_radio_style == true.
- */
-class LLRadioCtrl : public LLCheckBoxCtrl 
-{
-public:
-	LLRadioCtrl(const std::string& name, const LLRect& rect, const std::string& label, const LLFontGL* font = NULL,
-		void (*commit_callback)(LLUICtrl*, void*) = NULL, void* callback_userdata = NULL) :
-				LLCheckBoxCtrl(name, rect, label, font, commit_callback, callback_userdata, FALSE, RADIO_STYLE)
-	{
-		setTabStop(FALSE);
-	}
-	/*virtual*/ ~LLRadioCtrl();
-
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	/*virtual*/ void setValue(const LLSD& value);
-};
-
-
 /*
  * An invisible view containing multiple mutually exclusive toggling 
  * buttons (usually radio buttons).  Automatically handles the mutex
@@ -66,32 +46,37 @@ class LLRadioGroup
 :	public LLUICtrl, public LLCtrlSelectionInterface
 {
 public:
-	// Build a radio group.  The number (0...n-1) of the currently selected
-	// element will be stored in the named control.  After the control is
-	// changed the callback will be called.
-	LLRadioGroup(const std::string& name, const LLRect& rect, 
-		const std::string& control_name, 
-		LLUICtrlCallback callback = NULL,
-		void* userdata = NULL,
-		BOOL border = TRUE);
 
-	// Another radio group constructor, but this one doesn't rely on
-	// needing a control
-	LLRadioGroup(const std::string& name, const LLRect& rect,
-				 S32 initial_index,
-				 LLUICtrlCallback callback = NULL,
-				 void* userdata = NULL,
-				 BOOL border = TRUE);
+	struct ItemParams : public LLInitParam::Block<ItemParams, LLCheckBoxCtrl::Params>
+	{
+		Optional<LLSD>	value;
+		ItemParams();
+	};
+
+	struct Params : public LLInitParam::Block<Params, LLUICtrl::Params>
+	{
+		Optional<bool>						has_border;
+		Multiple<ItemParams, AtLeast<1> >	items;
+		Params();
+	};
+
+protected:
+	LLRadioGroup(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
+
+	/*virtual*/ void initFromParams(const Params&);
 
 	virtual ~LLRadioGroup();
-
+	
+	virtual BOOL postBuild();
+	
+	virtual BOOL handleMouseDown(S32 x, S32 y, MASK mask);
+	
 	virtual BOOL handleKeyHere(KEY key, MASK mask);
 
-	virtual void setEnabled(BOOL enabled);
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
 	void setIndexEnabled(S32 index, BOOL enabled);
-	
 	// return the index value of the selected item
 	S32 getSelectedIndex() const { return mSelectedIndex; }
 	
@@ -102,16 +87,8 @@ public:
 	virtual void	setValue(const LLSD& value );
 	virtual LLSD	getValue() const;
 
-	// Draw the group, but also fix the highlighting based on the control.
-	void draw();
-
-	// You must use this method to add buttons to a radio group.
-	// Don't use addChild -- it won't set the callback function
-	// correctly.
-	LLRadioCtrl* addRadioButton(const std::string& name, const std::string& label, const LLRect& rect, const LLFontGL* font);
-	LLRadioCtrl* getRadioButton(const S32& index) { return mRadioButtons[index]; }
 	// Update the control as needed.  Userdata must be a pointer to the button.
-	static void onClickButton(LLUICtrl* radio, void* userdata);
+	void onClickButton(LLUICtrl* clicked_radio);
 	
 	//========================================================================
 	LLCtrlSelectionInterface* getSelectionInterface()	{ return (LLCtrlSelectionInterface*)this; };
@@ -132,15 +109,12 @@ public:
 	/*virtual*/ BOOL	operateOnAll(EOperation op);
 
 private:
-	// protected function shared by the two constructors.
-	void init(BOOL border);
-
+	const LLFontGL* mFont;
 	S32 mSelectedIndex;
-	typedef std::vector<LLRadioCtrl*> button_list_t;
+	typedef std::vector<class LLRadioCtrl*> button_list_t;
 	button_list_t mRadioButtons;
 
 	BOOL mHasBorder;
 };
-
 
 #endif

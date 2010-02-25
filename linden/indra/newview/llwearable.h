@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,91 +38,115 @@
 #include "llpermissions.h"
 #include "llsaleinfo.h"
 #include "llassetstorage.h"
+#include "llwearabledictionary.h"
+#include "llfile.h"
+#include "lllocaltextureobject.h"
 
 class LLViewerInventoryItem;
-
-enum	EWearableType  // If you change this, update LLWearable::getTypeName(), getTypeLabel(), and LLVOAvatar::getTEWearableType()
-{
-	WT_SHAPE	= 0,
-	WT_SKIN		= 1,
-	WT_HAIR		= 2,
-	WT_EYES		= 3,
-	WT_SHIRT	= 4,
-	WT_PANTS	= 5,
-	WT_SHOES	= 6,
-	WT_SOCKS	= 7,
-	WT_JACKET	= 8,
-	WT_GLOVES	= 9,
-	WT_UNDERSHIRT = 10,
-	WT_UNDERPANTS = 11,
-	WT_SKIRT	= 12,
-	WT_COUNT	= 13,
-	WT_INVALID	= 255
-};
+class LLVisualParam;
+class LLTexGlobalColorInfo;
+class LLTexGlobalColor;
 
 class LLWearable
 {
 	friend class LLWearableList;
+
+	//--------------------------------------------------------------------
+	// Constructors and destructors
+	//--------------------------------------------------------------------
+private:
+	// Private constructors used by LLWearableList
+	LLWearable(const LLTransactionID& transactionID);
+	LLWearable(const LLAssetID& assetID);
 public:
-	~LLWearable();
+	virtual ~LLWearable();
 
-	const LLAssetID&		getID() const { return mAssetID; }
+	//--------------------------------------------------------------------
+	// Accessors
+	//--------------------------------------------------------------------
+public:
+	const LLUUID&				getItemID() const;
+	const LLAssetID&			getAssetID() const { return mAssetID; }
 	const LLTransactionID&		getTransactionID() const { return mTransactionID; }
+	EWearableType				getType() const	{ return mType; }
+	void						setType(EWearableType type);
+	const std::string&			getName() const	{ return mName; }
+	void						setName(const std::string& name) { mName = name; }
+	const std::string&			getDescription() const { return mDescription; }
+	void						setDescription(const std::string& desc)	{ mDescription = desc; }
+	const LLPermissions& 		getPermissions() const { return mPermissions; }
+	void						setPermissions(const LLPermissions& p) { mPermissions = p; }
+	const LLSaleInfo&			getSaleInfo() const	{ return mSaleInfo; }
+	void						setSaleInfo(const LLSaleInfo& info)	{ mSaleInfo = info; }
+	const std::string&			getTypeLabel() const;
+	const std::string&			getTypeName() const;
+	LLAssetType::EType			getAssetType() const;
+	LLLocalTextureObject*		getLocalTextureObject(S32 index) const;
+	S32							getDefinitionVersion() const { return mDefinitionVersion; }
+	void						setDefinitionVersion( S32 new_version ) { mDefinitionVersion = new_version; }
 
-	BOOL				isDirty();
-	BOOL				isOldVersion();
+public:
+	typedef std::vector<LLVisualParam*> visual_param_vec_t;
 
-	void				writeToAvatar( BOOL set_by_user );
-	void				readFromAvatar();
-	void				removeFromAvatar( BOOL set_by_user )	{ LLWearable::removeFromAvatar( mType, set_by_user ); }
-	static void			removeFromAvatar( EWearableType type, BOOL set_by_user ); 
+	BOOL				isDirty() const;
+	BOOL				isOldVersion() const;
 
-	BOOL				exportFile(LLFILE* file);
+	void				writeToAvatar();
+	void				removeFromAvatar( BOOL upload_bake )	{ LLWearable::removeFromAvatar( mType, upload_bake ); }
+	static void			removeFromAvatar( EWearableType type, BOOL upload_bake ); 
+
+	BOOL				exportFile(LLFILE* file) const;
 	BOOL				importFile(LLFILE* file);
-
-	EWearableType		getType() const							{ return mType; }
-	void				setType( EWearableType type )			{ mType = type; }
-
-	void				setName( const std::string& name )			{ mName = name; }
-	const std::string&	getName() const								{ return mName; }
-
-	void				setDescription( const std::string& desc )	{ mDescription = desc; }
-	const std::string&	getDescription() const						{ return mDescription; }
-
-	void				setPermissions( const LLPermissions& p ) { mPermissions = p; }
-	const LLPermissions& getPermissions() const						{ return mPermissions; }
-
-	void				setSaleInfo( const LLSaleInfo& info )	{ mSaleInfo = info; }
-	const LLSaleInfo&	getSaleInfo() const							{ return mSaleInfo; }
-
-	const std::string&	getTypeLabel() const					{ return LLWearable::sTypeLabel[ mType ]; }
-	const std::string&	getTypeName() const						{ return LLWearable::sTypeName[ mType ]; }
-
+	
 	void				setParamsToDefaults();
 	void				setTexturesToDefaults();
 
-	LLAssetType::EType	getAssetType() const					{ return LLWearable::typeToAssetType( mType ); }
-
-	static EWearableType typeNameToType( const std::string& type_name );
-	static const std::string& typeToTypeName( EWearableType type )	{ return LLWearable::sTypeName[llmin(type,WT_COUNT)]; }
-	static const std::string& typeToTypeLabel( EWearableType type )	{ return LLWearable::sTypeLabel[llmin(type,WT_COUNT)]; }
-	static LLAssetType::EType typeToAssetType( EWearableType wearable_type );
-
-	void				saveNewAsset();
+	void				saveNewAsset() const;
 	static void			onSaveNewAssetComplete( const LLUUID& asset_uuid, void* user_data, S32 status, LLExtStat ext_status );
 
-	BOOL				isMatchedToInventoryItem( LLViewerInventoryItem* item );
-
-	void				copyDataFrom( LLWearable* src );
+	void				copyDataFrom(const LLWearable* src);
 
 	static void			setCurrentDefinitionVersion( S32 version ) { LLWearable::sCurrentDefinitionVersion = version; }
 
 	friend std::ostream& operator<<(std::ostream &s, const LLWearable &w);
+	void				setItemID(const LLUUID& item_id);
+
+	LLLocalTextureObject* getLocalTextureObject(S32 index);
+	const LLLocalTextureObject* getConstLocalTextureObject(S32 index) const;
+
+	void				setLocalTextureObject(S32 index, LLLocalTextureObject &lto);
+	void				addVisualParam(LLVisualParam *param);
+	void				setVisualParams();
+	void 				setVisualParamWeight(S32 index, F32 value, BOOL upload_bake);
+	F32					getVisualParamWeight(S32 index) const;
+	LLVisualParam*		getVisualParam(S32 index) const;
+	void				getVisualParams(visual_param_vec_t &list);
+	void				animateParams(F32 delta, BOOL upload_bake);
+
+	LLColor4			getClothesColor(S32 te) const;
+	void 				setClothesColor( S32 te, const LLColor4& new_color, BOOL upload_bake );
+
+	void				revertValues();
+	void				saveValues();
+	void				pullCrossWearableValues();		
+
+	BOOL				isOnTop() const;
+
+	// Something happened that requires the wearable's label to be updated (e.g. worn/unworn).
+	void				setLabelUpdated() const;
+
+	// the wearable was worn. make sure the name of the wearable object matches the LLViewerInventoryItem,
+	// not the wearable asset itself.
+	void				refreshName();
 
 private:
-	// Private constructor used by LLWearableList
-	LLWearable(const LLTransactionID& transactionID);
-	LLWearable(const LLAssetID& assetID);
+	typedef std::map<S32, LLLocalTextureObject*> te_map_t;
+	typedef std::map<S32, LLVisualParam *>    visual_param_index_map_t;
+
+	void 				createLayers(S32 te);
+	void 				createVisualParams();
+	void				syncImages(te_map_t &src, te_map_t &dst);
+	void				destroyTextures();	
 
 	static S32			sCurrentDefinitionVersion;	// Depends on the current state of the avatar_lad.xml.
 	S32					mDefinitionVersion;			// Depends on the state of the avatar_lad.xml when this asset was created.
@@ -135,12 +159,13 @@ private:
 	EWearableType		mType;
 
 	typedef std::map<S32, F32> param_map_t;
-	param_map_t mVisualParamMap;	// maps visual param id to weight
-	typedef std::map<S32, LLUUID> te_map_t;
-	te_map_t mTEMap;				// maps TE to Image ID
+	param_map_t mSavedVisualParamMap; // last saved version of visual params
 
-	static const std::string sTypeName[ WT_COUNT+1 ];
-	static const std::string sTypeLabel[ WT_COUNT+1 ];
+	visual_param_index_map_t mVisualParamIndexMap;
+
+	te_map_t mTEMap;				// maps TE to LocalTextureObject
+	te_map_t mSavedTEMap;			// last saved version of TEMap
+	LLUUID				mItemID;  // ID of the inventory item in the agent's inventory
 };
 
 #endif  // LL_LLWEARABLE_H

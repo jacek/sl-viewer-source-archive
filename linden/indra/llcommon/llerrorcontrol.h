@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,7 @@
 #define LL_LLERRORCONTROL_H
 
 #include "llerror.h"
-
+#include "boost/function.hpp"
 #include <string>
 
 class LLSD;
@@ -63,12 +63,12 @@ public:
 
 namespace LLError
 {
-	void initForServer(const std::string& identity);
+	LL_COMMON_API void initForServer(const std::string& identity);
 		// resets all logging settings to defaults needed by server processes
 		// logs to stderr, syslog, and windows debug log
 		// the identity string is used for in the syslog
 
-	void initForApplication(const std::string& dir);
+	LL_COMMON_API void initForApplication(const std::string& dir);
 		// resets all logging settings to defaults needed by applicaitons
 		// logs to stderr and windows debug log
 		// sets up log configuration from the file logcontrol.xml in dir
@@ -79,14 +79,14 @@ namespace LLError
 		Setting a level means log messages at that level or above.
 	*/
 	
-	void setPrintLocation(bool);
-	void setDefaultLevel(LLError::ELevel);
-	void setFunctionLevel(const std::string& function_name, LLError::ELevel);
-	void setClassLevel(const std::string& class_name, LLError::ELevel);
-	void setFileLevel(const std::string& file_name, LLError::ELevel);
-	void setTagLevel(const std::string& file_name, LLError::ELevel);
+	LL_COMMON_API void setPrintLocation(bool);
+	LL_COMMON_API void setDefaultLevel(LLError::ELevel);
+	LL_COMMON_API void setFunctionLevel(const std::string& function_name, LLError::ELevel);
+	LL_COMMON_API void setClassLevel(const std::string& class_name, LLError::ELevel);
+	LL_COMMON_API void setFileLevel(const std::string& file_name, LLError::ELevel);
+	LL_COMMON_API void setTagLevel(const std::string& file_name, LLError::ELevel);
 	
-	void configure(const LLSD&);
+	LL_COMMON_API void configure(const LLSD&);
 		// the LLSD can configure all of the settings
 		// usually read automatically from the live errorlog.xml file
 
@@ -95,26 +95,48 @@ namespace LLError
 		Control functions.
 	*/
 
-	typedef void(*FatalFunction)(const std::string& message);
-	void crashAndLoop(const std::string& message);
-		// Default fatal funtion: access null pointer and loops forever
+	typedef boost::function<void(const std::string&)> FatalFunction;
+	LL_COMMON_API void crashAndLoop(const std::string& message);
+		// Default fatal function: access null pointer and loops forever
 
-	void setFatalFunction(FatalFunction);
+	LL_COMMON_API void setFatalFunction(const FatalFunction&);
 		// The fatal function will be called when an message of LEVEL_ERROR
 		// is logged.  Note: supressing a LEVEL_ERROR message from being logged
 		// (by, for example, setting a class level to LEVEL_NONE), will keep
 		// the that message from causing the fatal funciton to be invoked.
-		
+
+    LL_COMMON_API FatalFunction getFatalFunction();
+        // Retrieve the previously-set FatalFunction
+
+    /// temporarily override the FatalFunction for the duration of a
+    /// particular scope, e.g. for unit tests
+    class LL_COMMON_API OverrideFatalFunction
+    {
+    public:
+        OverrideFatalFunction(const FatalFunction& func):
+            mPrev(getFatalFunction())
+        {
+            setFatalFunction(func);
+        }
+        ~OverrideFatalFunction()
+        {
+            setFatalFunction(mPrev);
+        }
+
+    private:
+        FatalFunction mPrev;
+    };
+
 	typedef std::string (*TimeFunction)();
-	std::string utcTime();
+	LL_COMMON_API std::string utcTime();
 	
-	void setTimeFunction(TimeFunction);
+	LL_COMMON_API void setTimeFunction(TimeFunction);
 		// The function is use to return the current time, formatted for
 		// display by those error recorders that want the time included.
 
 
 
-	class Recorder
+	class LL_COMMON_API Recorder
 	{
 		// An object that handles the actual output or error messages.
 	public:
@@ -128,17 +150,17 @@ namespace LLError
 			// included in the text of the message
 	};
 	
-	void addRecorder(Recorder*);
-	void removeRecorder(Recorder*);
+	LL_COMMON_API void addRecorder(Recorder*);
+	LL_COMMON_API void removeRecorder(Recorder*);
 		// each error message is passed to each recorder via recordMessage()
 	
-	void logToFile(const std::string& filename);
-	void logToFixedBuffer(LLLineBuffer*);
+	LL_COMMON_API void logToFile(const std::string& filename);
+	LL_COMMON_API void logToFixedBuffer(LLLineBuffer*);
 		// Utilities to add recorders for logging to a file or a fixed buffer
 		// A second call to the same function will remove the logger added
 		// with the first.
 		// Passing the empty string or NULL to just removes any prior.
-	std::string logFileName();
+	LL_COMMON_API std::string logFileName();
 		// returns name of current logging file, empty string if none
 
 
@@ -147,11 +169,11 @@ namespace LLError
 	*/
 
 	class Settings;
-	Settings* saveAndResetSettings();
-	void restoreSettings(Settings *);
+	LL_COMMON_API Settings* saveAndResetSettings();
+	LL_COMMON_API void restoreSettings(Settings *);
 		
-	std::string abbreviateFile(const std::string& filePath);
-	int shouldLogCallCount();
+	LL_COMMON_API std::string abbreviateFile(const std::string& filePath);
+	LL_COMMON_API int shouldLogCallCount();
 	
 };
 

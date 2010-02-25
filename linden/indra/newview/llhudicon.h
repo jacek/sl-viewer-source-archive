@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,7 @@
 #ifndef LL_LLHUDICON_H
 #define LL_LLHUDICON_H
 
-#include "llmemory.h"
+#include "llpointer.h"
 #include "lldarrayptr.h"
 
 #include "llhudobject.h"
@@ -61,7 +61,7 @@ public:
 	/*virtual*/ void markDead();
 	/*virtual*/ F32 getDistance() const { return mDistance; }
 
-	void setImage(LLViewerImage* imagep);
+	void setImage(LLViewerTexture* imagep);
 	void setScale(F32 fraction_of_fov);
 
 	void restartLifeTimer() { mLifeTimer.reset(); }
@@ -88,7 +88,7 @@ protected:
 	void renderIcon(BOOL for_select); // common render code
 
 private:
-	LLPointer<LLViewerImage> mImagep;
+	LLPointer<LLViewerTexture> mImagep;
 	LLFrameTimer	mAnimTimer;
 	LLFrameTimer	mLifeTimer;
 	F32				mDistance;

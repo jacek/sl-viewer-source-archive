@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+
+<panel
+ background_opaque="false"
+ background_visible="true"
+ bg_alpha_color="0.7 0.7 0.7 1.0"
+ follows="left|right|top"
+ height="2"
+ layout="topleft"
+ left="0"
+ name="separator_panel"
+ top="0"
+ visible="true"
+ width="318"/>

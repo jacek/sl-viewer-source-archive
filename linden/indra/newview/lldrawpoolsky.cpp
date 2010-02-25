@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,16 +41,18 @@
 #include "llface.h"
 #include "llsky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
-#include "llviewerwindow.h"
 #include "llvosky.h"
 #include "llworld.h" // To get water height
 #include "pipeline.h"
 #include "llviewershadermgr.h"
 
-LLDrawPoolSky::LLDrawPoolSky() :
-	LLFacePool(POOL_SKY), mShader(NULL)
+LLDrawPoolSky::LLDrawPoolSky()
+:	LLFacePool(POOL_SKY),
+	
+	mSkyTex(NULL),
+	mShader(NULL)
 {
 }
 
@@ -133,6 +135,7 @@ void LLDrawPoolSky::renderSkyCubeFace(U8 side)
 		return;
 	}
 
+	llassert(mSkyTex);
 	mSkyTex[side].bindTexture(TRUE);
 	
 	face.renderIndexed();

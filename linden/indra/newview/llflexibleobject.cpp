@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,11 +39,10 @@
 #include "llglheaders.h"
 #include "llrendersphere.h"
 #include "llviewerobject.h"
-#include "llimagegl.h"
 #include "llagent.h"
 #include "llsky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewercontrol.h"
 #include "llviewerobjectlist.h"
 #include "llviewerregion.h"
@@ -67,6 +66,7 @@ LLVolumeImplFlexible::LLVolumeImplFlexible(LLViewerObject* vo, LLFlexibleObjectD
 	mInitializedRes = -1;
 	mSimulateRes = 0;
 	mFrameNum = 0;
+	mCollisionSphereRadius = 0.f;
 	mRenderRes = 1;
 
 	if(mVO->mDrawable.notNull())
@@ -262,6 +262,7 @@ void LLVolumeImplFlexible::onSetVolume(const LLVolumeParams &volume_params, cons
 // updated every time step. In the future, perhaps there could be an 
 // optimization similar to what Havok does for objects that are stationary. 
 //---------------------------------------------------------------------------------
+static LLFastTimer::DeclareTimer FTM_FLEXIBLE_UPDATE("Update Flexies");
 BOOL LLVolumeImplFlexible::doIdleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 {
 	if (mVO->mDrawable.isNull())
@@ -280,7 +281,7 @@ BOOL LLVolumeImplFlexible::doIdleUpdate(LLAgent &agent, LLWorld &world, const F6
 		parent->mDrawable->mQuietCount = 0;
 	}
 
-	LLFastTimer ftm(LLFastTimer::FTM_FLEXIBLE_UPDATE);
+	LLFastTimer ftm(FTM_FLEXIBLE_UPDATE);
 		
 	S32 new_res = mAttributes->getSimulateLOD();
 
@@ -704,7 +705,7 @@ BOOL LLVolumeImplFlexible::doUpdateGeometry(LLDrawable *drawable)
 	}
 
 	if (volume->mLODChanged || volume->mFaceMappingChanged ||
-		volume->mVolumeChanged)
+		volume->mVolumeChanged || drawable->isState(LLDrawable::REBUILD_MATERIAL))
 	{
 		volume->regenFaces();
 		volume->mDrawable->setState(LLDrawable::REBUILD_VOLUME);

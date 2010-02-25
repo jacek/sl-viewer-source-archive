@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -59,8 +59,8 @@ namespace tut
 	class LLSDStorageNode : public LLHTTPNode
 	{
 	public:
-		LLSD get() const					{ return storage; }
-		LLSD put(const LLSD& value) const	{ storage = value; return LLSD(); }
+		LLSD simpleGet() const					{ return storage; }
+		LLSD simplePut(const LLSD& value) const	{ storage = value; return LLSD(); }
 	};
 
 	class ErrorNode : public LLHTTPNode
@@ -269,6 +269,7 @@ namespace tut
 	template<> template<>
 	void HTTPClientTestObject::test<2>()
 	{
+		skip("error test depends on dev's local ISP not supplying \"helpful\" search page");
 		LLHTTPClient::get("http://www.invalid", newResult());
 		runThePump();
 		ensureStatusError();

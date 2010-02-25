@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,18 +37,25 @@
 
 #include "v3dmath.h"
 #include "lluuid.h"
-#include "lluserauth.h"
 
 class LLMessageSystem;
 
 class LLEventInfo
 {
 public:
-	LLEventInfo() {}
+        LLEventInfo() :
+	mID(0),
+	mDuration(0),
+	mUnixTime(0),
+	mHasCover(FALSE),
+	mCover(0),
+	mEventFlags(0),
+	mSelected(FALSE)
+	{}
 
 	void unpack(LLMessageSystem *msg);
 
-	static void loadCategories(LLUserAuth::options_t event_options);
+	static void loadCategories(const LLSD& options);
 
 public:
 	std::string mName;

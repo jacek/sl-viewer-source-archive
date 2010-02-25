@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,7 +42,7 @@
 #include "llstrider.h"
 #include "llviewervisualparam.h"
 #include "llframetimer.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 class LLViewerJointMesh;
 class LLPolyMesh;
@@ -51,17 +51,18 @@ class LLViewerObject;
 //-----------------------------------------------------------------------------
 // LLVisualParamHint
 //-----------------------------------------------------------------------------
-class LLVisualParamHint
-:	public LLDynamicTexture
+class LLVisualParamHint : public LLViewerDynamicTexture
 {
+protected:
+	virtual ~LLVisualParamHint();
+
 public:
 	LLVisualParamHint(
 		S32 pos_x, S32 pos_y,
 		S32 width, S32 height, 
 		LLViewerJointMesh *mesh, 
 		LLViewerVisualParam *param,
-		F32 param_weight);
-	virtual ~LLVisualParamHint();
+		F32 param_weight);	
 
 	BOOL					needsRender();
 	void					preRender(BOOL clear_depth);
@@ -94,13 +95,15 @@ protected:
 
 	LLUIImagePtr mBackgroundp;
 
-	typedef std::set<LLVisualParamHint*> instance_list_t;
+	typedef std::set< LLVisualParamHint* > instance_list_t;
 	static instance_list_t sInstances;
 };
 
 // this class resets avatar data at the end of an update cycle
-class LLVisualParamReset : public LLDynamicTexture
+class LLVisualParamReset : public LLViewerDynamicTexture
 {
+protected:
+	/*virtual */ ~LLVisualParamReset(){}
 public:
 	LLVisualParamReset();
 	/*virtual */ BOOL render();

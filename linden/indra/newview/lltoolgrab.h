@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,7 @@
 #include "lltool.h"
 #include "v3math.h"
 #include "llquaternion.h"
-#include "llmemory.h"
+#include "llsingleton.h"
 #include "lluuid.h"
 #include "llviewerwindow.h" // for LLPickInfo
 

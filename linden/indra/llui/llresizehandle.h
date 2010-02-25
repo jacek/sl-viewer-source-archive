@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,6 @@
 
 #include "stdtypes.h"
 #include "llview.h"
-#include "llimagegl.h"
 #include "llcoord.h"
 
 
@@ -44,9 +43,18 @@ class LLResizeHandle : public LLView
 public:
 	enum ECorner { LEFT_TOP, LEFT_BOTTOM, RIGHT_TOP, RIGHT_BOTTOM };
 
-	
-	LLResizeHandle(const std::string& name, const LLRect& rect, S32 min_width, S32 min_height, ECorner corner = RIGHT_BOTTOM );
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
+	{
+		Mandatory<ECorner>	corner;
+		Optional<S32>		min_width;
+		Optional<S32>		min_height;
+		Params();
+	};
 
+protected:
+	LLResizeHandle(const LLResizeHandle::Params&);
+	friend class LLUICtrlFactory;
+public:
 	virtual void	draw();
 	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
@@ -68,8 +76,8 @@ private:
 	const ECorner	mCorner;
 };
 
-const S32 RESIZE_HANDLE_HEIGHT = 16;
-const S32 RESIZE_HANDLE_WIDTH = 16;
+const S32 RESIZE_HANDLE_HEIGHT = 11;
+const S32 RESIZE_HANDLE_WIDTH = 11;
 
 #endif  // LL_RESIZEHANDLE_H
 

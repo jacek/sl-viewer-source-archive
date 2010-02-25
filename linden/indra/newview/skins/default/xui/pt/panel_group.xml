@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="GroupInfo" title="Informações do Grupo">
-	<text name="default_needs_apply_text">
-		Existem mudanças não aplicadas na aba atual.
-	</text>
-	<text name="want_apply_text">
-		Deseja fazer as mudanças?
-	</text>
-	<button label="Aplicar" label_selected="Aplicar" name="btn_apply"/>
+<panel label="Sobre o grupo" name="GroupInfo" title="Informações do Grupo">
+	<panel.string name="default_needs_apply_text">
+		As mudanças feitas nesta guia ainda não foram salvas
+	</panel.string>
+	<panel.string name="want_apply_text">
+		Deseja salvar essas mudanças?
+	</panel.string>
+	<line_editor label="Digite o nome do grupo novo aqui" name="group_name_editor"/>
+	<texture_picker name="insignia" tool_tip="Selecionar imagem"/>
+	<accordion name="groups_accordion">
+		<accordion_tab name="tab_general" title="Geral"/>
+		<accordion_tab name="tab_roles" title="Cargos"/>
+		<accordion_tab name="tab_notices" title="Avisos"/>
+		<accordion_tab name="tab_land" title="Terrenos/Bens"/>
+	</accordion>
 	<button label="Cancelar" label_selected="Cancelar" name="btn_cancel"/>
-	<button label="OK" label_selected="OK" name="btn_ok"/>
+	<button label="Salvar" label_selected="Salvar" name="btn_ok"/>
 	<button label="Atualizar" label_selected="Atualizar" name="btn_refresh"/>
+	<button label="Entrar (L$0)" label_selected="Entrar (L$0)" name="join_button"/>
+	<button label="Detalhes" label_selected="Detalhes" name="info_button"/>
 </panel>

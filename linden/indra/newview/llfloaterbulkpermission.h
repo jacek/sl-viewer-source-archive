@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,15 +44,16 @@
 #include "llfloater.h"
 #include "llscrolllistctrl.h"
 
-#include "llviewerinventory.h"
-
-class LLFloaterBulkPermission : public LLFloater, public LLVOInventoryListener, public LLFloaterSingleton<LLFloaterBulkPermission>
+class LLFloaterBulkPermission : public LLFloater, public LLVOInventoryListener
 {
+	friend class LLFloaterReg;
 public:
 
-	LLFloaterBulkPermission(const LLSD& seed);
+	BOOL postBuild();
 
 private:
+	
+	LLFloaterBulkPermission(const LLSD& seed);	
 	virtual ~LLFloaterBulkPermission() {}
 
 	BOOL start(); // returns TRUE if the queue has started, otherwise FALSE.
@@ -76,12 +77,11 @@ private:
 								U8 key,
 								bool is_new);
 
-	static void onHelpBtn(void* user_data);
-	static void onCloseBtn(void* user_data);
-	static void onApplyBtn(void* user_data);
-	static void onCommitCopy(LLUICtrl* ctrl, void* data);
-	static void onCheckAll(  void* user_data) { ((LLFloaterBulkPermission*)user_data)->doCheckUncheckAll(TRUE); }
-	static void onUncheckAll(void* user_data) { ((LLFloaterBulkPermission*)user_data)->doCheckUncheckAll(FALSE); }
+	void onCloseBtn();
+	void onApplyBtn();
+	void onCommitCopy();
+	void onCheckAll() { doCheckUncheckAll(TRUE); }
+	void onUncheckAll() { doCheckUncheckAll(FALSE); }
 	
 	// returns true if this is done
 	BOOL isDone() const { return (mCurrentObjectID.isNull() || (mObjectIDs.count() == 0)); }

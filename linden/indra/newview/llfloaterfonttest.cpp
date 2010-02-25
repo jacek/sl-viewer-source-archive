@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,25 +42,11 @@
 #include "lluictrlfactory.h"
 
 
-LLFloaterFontTest* LLFloaterFontTest::sInstance = NULL;
-
-LLFloaterFontTest::LLFloaterFontTest()
-	:	LLFloater(std::string("floater_font_test"), LLRect(0,500,700,0), std::string("Font Test"))
+LLFloaterFontTest::LLFloaterFontTest(const LLSD& key)
+	:	LLFloater("floater_font_test")
 {
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_font_test.xml");
 }
 
 LLFloaterFontTest::~LLFloaterFontTest()
 {
-	sInstance = NULL;
-}
-
-// static
-void LLFloaterFontTest::show(void *unused)
-{
-	if (!sInstance)
-		sInstance = new LLFloaterFontTest();
-
-	sInstance->open(); /*Flawfinder: ignore*/
-	sInstance->setFocus(TRUE);
 }

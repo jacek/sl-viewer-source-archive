@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,8 +40,8 @@
 #include "lluuid.h"
 #include "llsd.h"
 #include "llsdserialize.h"
-#include "llsdutil.h"
-#include "llmemory.h"
+#include "llsdutil_math.h"
+#include "llpointer.h"
 #include "message.h"
 
 #include "message.h"
@@ -68,9 +68,11 @@ const S32 IM_TTL = 1;
  * LLIMInfo
  */
 LLIMInfo::LLIMInfo() :
+	mFromGroup(FALSE),
 	mParentEstateID(0),
 	mOffline(0),
 	mViewerThinksToIsOnline(false),
+	mIMType(IM_NOTHING_SPECIAL),
 	mTimeStamp(0),
 	mSource(IM_FROM_SIM),
 	mTTL(IM_TTL)
@@ -357,7 +359,7 @@ LLPointer<LLIMInfo> llsd_to_im_info(const LLSD& im_info_sd)
 		param_message["message"].asString(),
 		param_message["id"].asUUID(),
 		(U32) param_message["parent_estate_id"].asInteger(),
-		im_info->mRegionID = param_message["region_id"].asUUID(),
+		param_message["region_id"].asUUID(),
 		ll_vector3_from_sd(param_message["position"]),
 		param_message["data"],
 		(U8) param_message["offline"].asInteger(),

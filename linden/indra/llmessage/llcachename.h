@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,12 +33,22 @@
 #ifndef LL_LLCACHENAME_H
 #define LL_LLCACHENAME_H
 
+#include <boost/bind.hpp>
+#include <boost/signals2.hpp>
+
 class LLMessageSystem;
 class LLHost;
 class LLUUID;
 
-// agent_id/group_id, first_name, last_name, is_group, user_data
-typedef void (*LLCacheNameCallback)(const LLUUID&, const std::string&, const std::string&, BOOL, void*);
+
+typedef boost::signals2::signal<void (const LLUUID& id,
+                                      const std::string& first_name,
+                                      const std::string& last_name,
+                                      BOOL is_group)> LLCacheNameSignal;
+typedef LLCacheNameSignal::slot_type LLCacheNameCallback;
+
+// Old callback with user data for compatability
+typedef void (*old_callback_t)(const LLUUID&, const std::string&, const std::string&, BOOL, void*);
 
 // Here's the theory:
 // If you request a name that isn't in the cache, it returns "waiting"
@@ -59,10 +69,7 @@ public:
 	// for simulators, this is the data server
 	void setUpstream(const LLHost& upstream_host);
 
-	void addObserver(LLCacheNameCallback callback);
-	void removeObserver(LLCacheNameCallback callback);
-
-	void cancelCallback(const LLUUID& id, LLCacheNameCallback callback, void* user_data = NULL);
+	boost::signals2::connection addObserver(const LLCacheNameCallback& callback);
 
 	// janky old format. Remove after a while. Phoenix. 2008-01-30
 	void importFile(LLFILE* fp);
@@ -79,6 +86,10 @@ public:
 	BOOL getName(const LLUUID& id, std::string& first, std::string& last);
 	BOOL getFullName(const LLUUID& id, std::string& fullname);
 	
+	// Reverse lookup of UUID from name
+	BOOL getUUID(const std::string& first, const std::string& last, LLUUID& id);
+	BOOL getUUID(const std::string& fullname, LLUUID& id);
+	
 	// If available, this method copies the group name into the string
 	// provided. The caller must allocate at least
 	// DB_GROUP_NAME_BUF_SIZE characters. If not available, this
@@ -89,12 +100,10 @@ public:
 	// If the data is currently available, may call the callback immediatly
 	// otherwise, will request the data, and will call the callback when
 	// available.  There is no garuntee the callback will ever be called.
-	void get(const LLUUID& id, BOOL is_group, LLCacheNameCallback callback, void* user_data = NULL);
+	boost::signals2::connection get(const LLUUID& id, BOOL is_group, const LLCacheNameCallback& callback);
 	
 	// LEGACY
-	void getName(const LLUUID& id, LLCacheNameCallback callback, void* user_data = NULL)
-			{ get(id, FALSE, callback, user_data); }
-
+	boost::signals2::connection get(const LLUUID& id, BOOL is_group, old_callback_t callback, void* user_data);
 	// This method needs to be called from time to time to send out
 	// requests.
 	void processPending();
@@ -107,7 +116,8 @@ public:
 	void dumpStats();	// Dumps the sizes of the cache and associated queues.
 
 	static std::string getDefaultName();
-
+	static void LocalizeCacheName(std::string key, std::string value);
+	static std::map<std::string, std::string> sCacheName;
 private:
 
 	class Impl;

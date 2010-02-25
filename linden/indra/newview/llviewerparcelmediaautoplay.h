@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,8 @@
 #ifndef LLVIEWERPARCELMEDIAAUTOPLAY_H
 #define LLVIEWERPARCELMEDIAAUTOPLAY_H
 
-#include "lltimer.h"
+#include "lleventtimer.h"
+#include "lluuid.h"
 
 // timer to automatically play media
 class LLViewerParcelMediaAutoPlay : LLEventTimer
@@ -47,6 +48,7 @@ class LLViewerParcelMediaAutoPlay : LLEventTimer
 
  private:
 	S32 mLastParcelID;
+	LLUUID mLastRegionID;
 	BOOL mPlayed;
 	F32 mTimeInParcel;
 };

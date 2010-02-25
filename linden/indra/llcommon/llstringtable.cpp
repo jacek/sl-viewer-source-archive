@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,23 @@
 #include "llstl.h"
 
 LLStringTable gStringTable(32768);
+
+LLStringTableEntry::LLStringTableEntry(const char *str)
+: mString(NULL), mCount(1)
+{
+	// Copy string
+	U32 length = (U32)strlen(str) + 1;	 /*Flawfinder: ignore*/
+	length = llmin(length, MAX_STRINGS_LENGTH);
+	mString = new char[length];
+	strncpy(mString, str, length);	 /*Flawfinder: ignore*/
+	mString[length - 1] = 0;
+}
+
+LLStringTableEntry::~LLStringTableEntry()
+{
+	delete [] mString;
+	mCount = 0;
+}
 
 LLStringTable::LLStringTable(int tablesize)
 : mUniqueEntries(0)

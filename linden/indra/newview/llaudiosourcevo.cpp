@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,8 +41,11 @@
 
 LLAudioSourceVO::LLAudioSourceVO(const LLUUID &sound_id, const LLUUID& owner_id, const F32 gain, LLViewerObject *objectp)
 	:	LLAudioSource(sound_id, owner_id, gain, LLAudioEngine::AUDIO_TYPE_SFX), 
-	mObjectp(objectp)
+	mObjectp(objectp), 
+	mActualGain(gain)
 {
+	setAmbient(FALSE);
+	updateGain();
 	update();
 }
 
@@ -57,18 +60,18 @@ LLAudioSourceVO::~LLAudioSourceVO()
 
 void LLAudioSourceVO::setGain(const F32 gain)
 {
-	mGain = llclamp(gain, 0.f, 1.f);
+	mActualGain = llclamp(gain, 0.f, 1.f);
+	updateGain();
 }
 
-void LLAudioSourceVO::updateMute()
+void LLAudioSourceVO::updateGain()
 {
-	if (!mObjectp || mObjectp->isDead())
+	if (!mObjectp)
 	{
-	  	mSourceMuted = true;
 		return;
 	}
 
-	bool mute = false;
+	BOOL mute = FALSE;
 	LLVector3d pos_global;
 
 	if (mObjectp->isAttachment())
@@ -87,21 +90,21 @@ void LLAudioSourceVO::updateMute()
 	{
 		pos_global = mObjectp->getPositionGlobal();
 	}
-
+	
 	if (!LLViewerParcelMgr::getInstance()->canHearSound(pos_global))
 	{
-		mute = true;
+		mute = TRUE;
 	}
 
 	if (!mute)
 	{
 		if (LLMuteList::getInstance()->isMuted(mObjectp->getID()))
 		{
-			mute = true;
+			mute = TRUE;
 		}
 		else if (LLMuteList::getInstance()->isMuted(mOwnerID, LLMute::flagObjectSounds))
 		{
-			mute = true;
+			mute = TRUE;
 		}
 		else if (mObjectp->isAttachment())
 		{
@@ -113,38 +116,24 @@ void LLAudioSourceVO::updateMute()
 			if (parent 
 				&& LLMuteList::getInstance()->isMuted(parent->getID()))
 			{
-				mute = true;
+				mute = TRUE;
 			}
 		}
 	}
 
-	if (mute != mSourceMuted)
+	if (!mute)
 	{
-		mSourceMuted = mute;
-		if (mSourceMuted)
-		{
-		  	// Stop the sound.
-			this->play(LLUUID::null);
-		}
-		else
-		{
-		  	// Muted sounds keep there data at all times, because
-			// it's the place where the audio UUID is stored.
-			// However, it's possible that mCurrentDatap is
-			// NULL when this source did only preload sounds.
-			if (mCurrentDatap)
-			{
-		  		// Restart the sound.
-				this->play(mCurrentDatap->getID());
-			}
-		}
+		mGain = mActualGain;
+	}
+	else
+	{
+		mGain = 0.f;
 	}
 }
 
+
 void LLAudioSourceVO::update()
 {
-	updateMute();
-
 	if (!mObjectp)
 	{
 		return;
@@ -156,11 +145,7 @@ void LLAudioSourceVO::update()
 		return;
 	}
 
-	if (mSourceMuted)
-	{
-	  	return;
-	}
-
+	updateGain();
 	if (mObjectp->isHUDAttachment())
 	{
 		mPositionGlobal = gAgent.getCameraPositionGlobal();

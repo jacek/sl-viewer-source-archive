@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,6 +43,7 @@ void hud_render_text(const LLWString &wstr,
 					 const LLVector3 &pos_agent,
 					 const LLFontGL &font,
 					 const U8 style,
+					 const LLFontGL::ShadowType, 
 					 const F32 x_offset,
 					 const F32 y_offset,
 					 const LLColor4& color,
@@ -53,6 +54,7 @@ void hud_render_utf8text(const std::string &str,
 						 const LLVector3 &pos_agent,
 						 const LLFontGL &font,
 						 const U8 style,
+						const LLFontGL::ShadowType, 
 						 const F32 x_offset,
 						 const F32 y_offset,
 						 const LLColor4& color,

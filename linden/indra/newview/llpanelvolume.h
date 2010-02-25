@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,7 +35,7 @@
 
 #include "v3math.h"
 #include "llpanel.h"
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llvolume.h"
 
 class LLSpinCtrl;
@@ -45,13 +45,12 @@ class LLUICtrl;
 class LLButton;
 class LLViewerObject;
 class LLComboBox;
-class LLPanelInventory;
 class LLColorSwatchCtrl;
 
 class LLPanelVolume : public LLPanel
 {
 public:
-	LLPanelVolume(const std::string& name);
+	LLPanelVolume();
 	virtual ~LLPanelVolume();
 
 	virtual void	draw();
@@ -64,15 +63,19 @@ public:
 	void			sendIsLight();
 	void			sendIsFlexible();
 
-	static BOOL		precommitValidate(LLUICtrl* ctrl,void* userdata);
+	static bool		precommitValidate(const LLSD& data);
 	
 	static void 	onCommitIsLight(		LLUICtrl* ctrl, void* userdata);
 	static void 	onCommitLight(			LLUICtrl* ctrl, void* userdata);
 	static void 	onCommitIsFlexible(		LLUICtrl* ctrl, void* userdata);
 	static void 	onCommitFlexible(		LLUICtrl* ctrl, void* userdata);
 
-	static void		onLightCancelColor(LLUICtrl* ctrl, void* userdata);
-	static void		onLightSelectColor(LLUICtrl* ctrl, void* userdata);
+	void		onLightCancelColor(const LLSD& data);
+	void		onLightSelectColor(const LLSD& data);
+
+	void		onLightCancelTexture(const LLSD& data); 
+	void		onLightSelectTexture(const LLSD& data);
+
 
 protected:
 	void			getState();
@@ -99,6 +102,7 @@ protected:
 */
 
 	LLColor4		mLightSavedColor;
+	LLUUID			mLightSavedTexture;
 	LLPointer<LLViewerObject> mObject;
 	LLPointer<LLViewerObject> mRootObject;
 };

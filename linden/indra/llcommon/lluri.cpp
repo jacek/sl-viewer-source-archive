@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,10 +46,21 @@
 
 void encode_character(std::ostream& ostr, std::string::value_type val)
 {
-	ostr << "%" << std::uppercase << std::hex << std::setw(2) << std::setfill('0') 
+	ostr << "%"
+
+	     << std::uppercase
+	     << std::hex
+	     << std::setw(2)
+	     << std::setfill('0') 
+
 	     // VWR-4010 Cannot cast to U32 because sign-extension on 
 	     // chars > 128 will result in FFFFFFC3 instead of F3.
-	     << static_cast<S32>(static_cast<U8>(val));
+	     << static_cast<S32>(static_cast<U8>(val))
+
+		// reset stream state
+	     << std::nouppercase
+	     << std::dec
+	     << std::setfill(' ');
 }
 
 // static
@@ -162,11 +173,10 @@ namespace
 		{ return LLURI::escape(s, unreserved() + ":@!$'()*+,="); }	// sub_delims - "&;" + ":@"
 }
 
-// *TODO: Consider using curl. After http textures gets merged everywhere.
-// static
+//static
 std::string LLURI::escape(const std::string& str)
 {
-	static std::string default_allowed(unreserved() + ":@!$'()*+,=/?&#;");
+	static std::string default_allowed = unreserved();
 	static bool initialized = false;
 	if(!initialized)
 	{

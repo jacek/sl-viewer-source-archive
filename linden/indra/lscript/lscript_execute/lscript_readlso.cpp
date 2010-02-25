@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,7 +39,7 @@
 LLScriptLSOParse::LLScriptLSOParse(LLFILE *fp)
 {
 	U8  sizearray[4];
-	S32 filesize;
+	size_t filesize;
 	S32 pos = 0;
 	if (fread(&sizearray, 1, 4, fp) != 4)
 	{

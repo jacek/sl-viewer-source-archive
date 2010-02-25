@@ -1,36 +1,30 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Classified" title="Classificados">
-	<line_editor name="given_name_editor" tool_tip="O Nome precisa começar com uma letra ou número, não pontuação."/>
-	<line_editor name="location_editor" tool_tip="Defina a localização para este classificado como sendo sua posição atual."/>
+<panel label="Anúncio" name="Classified" title="Classificados">
+	<panel.string name="ad_placed_paid">
+		Anúncio colocado em: [DATE], Pago L$[AMT] para listar.
+	</panel.string>
+	<panel.string name="update_txt">
+		Atualizar
+	</panel.string>
+	<panel.string name="publish_txt">
+		Publicar…
+	</panel.string>
+	<line_editor name="given_name_editor" tool_tip="Nomes devem começar com letras ou números, não sinais de pontuação."/>
+	<line_editor name="location_editor" tool_tip="Definir o local deste anúncio como a sua localização atual."/>
 	<button label="Definir Posição" name="set_location_btn"/>
 	<button label="Teletransporte" name="classified_teleport_btn" width="105"/>
-	<button label="Mapa" name="classified_map_btn" left_delta="105"/>
+	<button label="Mapa" left_delta="105" name="classified_map_btn"/>
 	<combo_box label="" name="classified_mature_check" width="160">
-		<combo_item name="select_mature">
-			- Selecionar Maturidade -
-		</combo_item>
-		<combo_item name="mature">
-			Conteúdo Mature
-		</combo_item>
-		<combo_item name="pg">
-			Conteúdo PG
-		</combo_item>
+		<combo_box.item label="- Selecione -" name="select_mature"/>
+		<combo_box.item label="Conteúdo Mature" name="mature"/>
+		<combo_box.item label="Conteúdo PG" name="pg"/>
 	</combo_box>
-	<text name="classified_info_text" tool_tip="Quando mais você escolhe pagar pelo seu anúncio, melhor será sua visualizaçã na lista.">
+	<text name="classified_info_text" tool_tip="Quanto mais pagar pelo anúncio, mais alto ele aparece na lista">
 		Lugar do Anúncio: Ainda não publicado
 	</text>
-	<text name="click_through_text" tool_tip="Número total de cliques em cada botão desde que este classificado foi colocado.">
+	<text name="click_through_text" tool_tip="Total de cliques em cada botão desde que o anúncio foi publicado">
 		Cliques:
 	</text>
 	<button label="Publicar..." name="classified_update_btn"/>
 	<check_box label="Auto-Renovar a cada Semana" name="auto_renew_check"/>
-	<string name="ad_placed_paid">
-		Anúncio colocado em: [DATE], Pago L$[AMT] para listar.
-	</string>
-	<string name="update_txt">
-		Atualizar
-	</string>
-	<string name="publish_txt">
-		Publicar…
-	</string>
 </panel>

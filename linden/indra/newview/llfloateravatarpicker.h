@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,37 +37,42 @@
 
 #include <vector>
 
-
 class LLFloaterAvatarPicker : public LLFloater
 {
 public:
-	// Call this to select an avatar.
+	typedef boost::signals2::signal<bool(const std::vector<LLUUID>&), boost_boolean_combiner> validate_signal_t;
+	typedef validate_signal_t::slot_type validate_callback_t;
+
 	// The callback function will be called with an avatar name and UUID.
-	typedef void(*callback_t)(const std::vector<std::string>&, const std::vector<LLUUID>&, void*);
-	static LLFloaterAvatarPicker* show(callback_t callback, 
-									   void* userdata,
+	typedef boost::function<void (const std::vector<std::string>&, const std::vector<LLUUID>&)> select_callback_t;
+	// Call this to select an avatar.	
+	static LLFloaterAvatarPicker* show(select_callback_t callback, 
 									   BOOL allow_multiple = FALSE,
 									   BOOL closeOnSelect = FALSE);
+
+	LLFloaterAvatarPicker(const LLSD& key);
+	virtual ~LLFloaterAvatarPicker();
+	
 	virtual	BOOL postBuild();
+
+	void setOkBtnEnableCb(validate_callback_t cb);
 
 	static void processAvatarPickerReply(class LLMessageSystem* msg, void**);
 
 private:
+	void editKeystroke(class LLLineEditor* caller, void* user_data);
 
-	static void editKeystroke(class LLLineEditor* caller, void* user_data);
-
-	static void onBtnFind(void* userdata);
-	static void onBtnSelect(void* userdata);
-	static void onBtnRefresh(void* userdata);
-	static void onRangeAdjust(LLUICtrl* source, void* data);
-	static void onBtnClose(void* userdata);
-	static void onList(class LLUICtrl* ctrl, void* userdata);
-	static void onTabChanged(void* userdata, bool from_click);
-	
-		   void doCallingCardSelectionChange(const std::deque<class LLFolderViewItem*> &items, BOOL user_action, void* data);
-	static void onCallingCardSelectionChange(const std::deque<class LLFolderViewItem*> &items, BOOL user_action, void* data);
+	void onBtnFind();
+	void onBtnSelect();
+	void onBtnRefresh();
+	void onRangeAdjust();
+	void onBtnClose();
+	void onList();
+	void onTabChanged();
+	bool isSelectBtnEnabled();
 
 	void populateNearMe();
+	void populateFriend();
 	BOOL visibleItemsSelected() const; // Returns true if any items in the current tab are selected.
 
 	void find();
@@ -76,21 +81,13 @@ private:
 	virtual void draw();
 	virtual BOOL handleKeyHere(KEY key, MASK mask);
 
-	std::vector<LLUUID>				mSelectedInventoryAvatarIDs;
-	std::vector<std::string>		mSelectedInventoryAvatarNames;
 	LLUUID				mQueryID;
-	BOOL				mResultsReturned;
+	int				mNumResultsReturned;
 	BOOL				mNearMeListComplete;
 	BOOL				mCloseOnSelect;
 
-	void (*mCallback)(const std::vector<std::string>& name, const std::vector<LLUUID>& id, void* userdata);
-	void* mCallbackUserdata;
-
-	static LLFloaterAvatarPicker* sInstance;
-
-	// do not call these directly
-	LLFloaterAvatarPicker();
-	virtual ~LLFloaterAvatarPicker();
+	validate_signal_t mOkButtonValidateSignal;
+	select_callback_t mSelectionCallback;
 };
 
 #endif

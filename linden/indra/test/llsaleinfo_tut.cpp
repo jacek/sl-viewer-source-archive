@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -167,19 +167,8 @@ namespace tut
 	template<> template<>
 	void llsaleinfo_test_t::test<4>()
 	{
-// LLXMLNode is teh suck.
-#if 0		
-		S32 sale_price = 23445;
-		LLSaleInfo saleinfo(LLSaleInfo::FS_CONTENTS, sale_price);
-		
-		LLXMLNode* x_node = saleinfo.exportFileXML();
-
-		LLSaleInfo saleinfo1(LLSaleInfo::FS_NOT, 0);
-		
-		saleinfo1.importXML(x_node);
-		ensure_equals("1.importXML() fn failed", saleinfo.getSalePrice(), saleinfo1.getSalePrice());
-		ensure_equals("2.importXML() fn failed", saleinfo.getSaleType(), saleinfo1.getSaleType());
-#endif
+		// Deleted LLSaleInfo::exportFileXML() and LLSaleInfo::importXML()
+		// because I can't find any non-test code references to it. 2009-05-04 JC
 	}
 
 	template<> template<>

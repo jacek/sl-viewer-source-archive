@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 #ifndef LL_LLERRORLEGACY_H
 #define LL_LLERRORLEGACY_H
 
-
+#include "llpreprocessor.h"
 
 /*
 	LEGACY -- DO NOT USE THIS STUFF ANYMORE
@@ -75,6 +75,10 @@ const int LL_ERR_PRICE_MISMATCH = -23018;
 #define SHOW_ASSERT
 #else // _DEBUG
 
+#ifdef LL_RELEASE_WITH_DEBUG_INFO
+#define SHOW_ASSERT
+#endif // LL_RELEASE_WITH_DEBUG_INFO
+
 #ifdef RELEASE_SHOW_DEBUG
 #define SHOW_DEBUG
 #endif
@@ -103,17 +107,14 @@ const int LL_ERR_PRICE_MISMATCH = -23018;
 
 #define llwarning(msg, num)		llwarns << "Warning # " << num << ": " << msg << llendl;
 
-#ifdef SHOW_ASSERT
-#define llassert(func)			if (!(func)) llerrs << "ASSERT (" << #func << ")" << llendl;
-#else
-#define llassert(func)
-#endif
-#define llassert_always(func)	if (!(func)) llerrs << "ASSERT (" << #func << ")" << llendl;
+#define llassert_always(func)	if (LL_UNLIKELY(!(func))) llerrs << "ASSERT (" << #func << ")" << llendl;
 
 #ifdef SHOW_ASSERT
-#define llverify(func)			if (!(func)) llerrs << "ASSERT (" << #func << ")" << llendl;
+#define llassert(func)			llassert_always(func)
+#define llverify(func)			llassert_always(func)
 #else
-#define llverify(func)			(func); // get rid of warning C4189
+#define llassert(func)
+#define llverify(func)			do {if (func) {}} while(0)
 #endif
 
 // handy compile-time assert - enforce those template parameters! 

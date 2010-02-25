@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -74,13 +74,16 @@ public:
 
 	// machine transation between type and strings
 	static EType lookup(const std::string& name);
-	static const char* lookup(EType type);
+	static const std::string &lookup(EType type);
 
 	// translation from a type to a human readable form.
-	static const char* lookupHumanReadable(EType type);
+	static const std::string &lookupHumanReadable(EType type);
 
 	// return the default inventory for the given asset type.
 	static EType defaultForAssetType(LLAssetType::EType asset_type);
+
+	// true if this type cannot have restricted permissions.
+	static bool cannotRestrictPermissions(EType type);
 
 private:
 	// don't instantiate or derive one of these objects
@@ -88,11 +91,10 @@ private:
 	~LLInventoryType( void );
 };
 
-// helper function which returns true if inventory type and asset type
+// helper function that returns true if inventory type and asset type
 // are potentially compatible. For example, an attachment must be an
 // object, but a wearable can be a bodypart or clothing asset.
-bool inventory_and_asset_types_match(
-	LLInventoryType::EType inventory_type,
-	LLAssetType::EType asset_type);
+bool inventory_and_asset_types_match(LLInventoryType::EType inventory_type,
+									 LLAssetType::EType asset_type);
 
 #endif

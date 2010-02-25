@@ -1,10 +1,10 @@
 /** 
- * @file llfloaterhtmlhelp.h
- * @brief HTML Help floater - uses embedded web browser control
+ * @file llfloatermediabrowser.h
+ * @brief media browser floater - uses embedded media browser control
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -30,43 +30,27 @@
  * $/LicenseInfo$
  */
 
-#ifndef LL_LLFLOATERHTMLHELP_H
-#define LL_LLFLOATERHTMLHELP_H
+#ifndef LL_LLFLOATERMEDIABROWSER_H
+#define LL_LLFLOATERMEDIABROWSER_H
 
-#include "llhtmlhelp.h"
 #include "llfloater.h"
 #include "llmediactrl.h"
 
-class LLViewerHtmlHelp : public LLHtmlHelp
-{
-public:
-	LLViewerHtmlHelp();
-	virtual ~LLViewerHtmlHelp();
-
-	/*virtual*/ void show();
-	/*virtual*/ void show(std::string start_url);
-	void show(std::string start_url, std::string title);
-
-	static bool onClickF1HelpLoadURL(const LLSD& notification, const LLSD& response);
-
-};
 
 class LLComboBox;
 class LLMediaCtrl;
 
 class LLFloaterMediaBrowser : 
 	public LLFloater, 
-	public LLUISingleton<LLFloaterMediaBrowser, 
-	VisibilityPolicy<LLFloater> >, 
 	public LLViewerMediaObserver
 {
-	friend class LLUISingleton<LLFloaterMediaBrowser, VisibilityPolicy<LLFloater> >;
 public:
-	LLFloaterMediaBrowser(const LLSD& media_data);
+	LLFloaterMediaBrowser(const LLSD& key);
 
 	/*virtual*/ BOOL postBuild();
 	/*virtual*/ void onClose(bool app_quitting);
 	/*virtual*/ void draw();
+	/*virtual*/ void onOpen(const LLSD& key);
 
 	// inherited from LLViewerMediaObserver
 	/*virtual*/ void handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event);
@@ -76,7 +60,6 @@ public:
 	std::string getSupportURL();
 	void setCurrentURL(const std::string& url);
 
-	static LLFloaterMediaBrowser* showInstance(const LLSD& id);
 	static void onEnterAddress(LLUICtrl* ctrl, void* user_data);
 	static void onClickRefresh(void* user_data);
 	static void onClickBack(void* user_data);
@@ -96,7 +79,5 @@ private:
 	std::string mCurrentURL;
 };
 
-extern LLViewerHtmlHelp gViewerHtmlHelp;
-
-#endif  // LL_LLFLOATERHTMLHELP_H
+#endif  // LL_LLFLOATERMEDIABROWSER_H
 

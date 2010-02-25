@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,7 +40,7 @@
 // Note: Win32 does not support the heartbeat/smackdown system;
 //   heartbeat-delivery turns into a no-op there.
 
-class LLHeartbeat
+class LL_COMMON_API LLHeartbeat
 {
 public:
 	// secs_between_heartbeat: after a heartbeat is successfully delivered,

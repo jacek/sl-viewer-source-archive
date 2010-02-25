@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -73,6 +73,10 @@ LLLFSThread::LLLFSThread(bool threaded) :
 	LLQueuedThread("LFS", threaded),
 	mPriorityCounter(PRIORITY_LOWBITS)
 {
+	if(!mLocalAPRFilePoolp)
+	{
+		mLocalAPRFilePoolp = new LLVolatileAPRPool() ;
+	}
 }
 
 LLLFSThread::~LLLFSThread()
@@ -185,7 +189,7 @@ bool LLLFSThread::Request::processRequest()
 	{
 		llassert(mOffset >= 0);
 		LLAPRFile infile ;
-		infile.open(mFileName, LL_APR_RB, LLAPRFile::local);
+		infile.open(mFileName, LL_APR_RB, mThread->getLocalAPRFilePool());
 		if (!infile.getFileHandle())
 		{
 			llwarns << "LLLFS: Unable to read file: " << mFileName << llendl;
@@ -209,7 +213,7 @@ bool LLLFSThread::Request::processRequest()
 		if (mOffset < 0)
 			flags |= APR_APPEND;
 		LLAPRFile outfile ;
-		outfile.open(mFileName, flags, LLAPRFile::local);
+		outfile.open(mFileName, flags, mThread->getLocalAPRFilePool());
 		if (!outfile.getFileHandle())
 		{
 			llwarns << "LLLFS: Unable to write file: " << mFileName << llendl;

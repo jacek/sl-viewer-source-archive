@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MEDIA I NÆRHEDEN">
+	<string name="media_item_count_format">
+		(%ld medie enheder)
+	</string>
+	<string name="default_location_text">
+		Ukendt
+	</string>
+	<string name="empty_item_text">
+		&lt;tom&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;Intet media tilgængeligt&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Slå parcel media til/fra
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? media enheder)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Slå al media i nærheden til/fra"/>
+		</panel>
+		<panel>
+			<button name="parcel_media_enable_btn" tool_tip="Slå media til/fra"/>
+			<text name="parcel_media_name">
+				&lt;Intet media tilgængeligt&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Afspil media på parcel"/>
+			<button name="parcel_media_pause_btn" tool_tip="Pause media på parcel"/>
+			<button name="parcel_media_stop_btn" tool_tip="Stop media på parcel"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Afspil lyd på parcel"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Pause lyd på parcel"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Stop lyd på parcel"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="Til/Fra" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Navn" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Tillad auto-afspil media" name="media_auto_play_btn" tool_tip="Tillad automatisk afspiling af media" value="true"/>
+		</panel>
+	</panel>
+</floater>

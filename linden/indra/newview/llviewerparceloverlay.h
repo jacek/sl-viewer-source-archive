@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,21 +39,22 @@
 #include "lldarray.h"
 #include "llframetimer.h"
 #include "lluuid.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
+#include "llgl.h"
 
 class LLViewerRegion;
 class LLVector3;
 class LLColor4U;
 class LLVector2;
 
-class LLViewerParcelOverlay
+class LLViewerParcelOverlay : public LLGLUpdate
 {
 public:
 	LLViewerParcelOverlay(LLViewerRegion* region, F32 region_width_meters);
 	~LLViewerParcelOverlay();
 
 	// ACCESS
-	LLImageGL*		getTexture() const		{ return mTexture; }
+	LLViewerTexture*		getTexture() const		{ return mTexture; }
 
 	BOOL			isOwned(const LLVector3& pos) const;
 	BOOL			isOwnedSelf(const LLVector3& pos) const;
@@ -76,6 +77,7 @@ public:
 	void	setDirty();
 
 	void	idleUpdate(bool update_now = false);
+	void	updateGL();
 
 private:
 	// This is in parcel rows and columns, not grid rows and columns
@@ -99,7 +101,7 @@ private:
 
 	S32				mParcelGridsPerEdge;
 
-	LLPointer<LLImageGL> mTexture;
+	LLPointer<LLViewerTexture> mTexture;
 	LLPointer<LLImageRaw> mImageRaw;
 	
 	// Size: mParcelGridsPerEdge * mParcelGridsPerEdge

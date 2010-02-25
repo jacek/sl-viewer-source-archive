@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,8 @@
 #define LL_INDRA_CONSTANTS_H
 
 #include "stdtypes.h"
-#include "lluuid.h"
+
+class LLUUID;
 
 // At 45 Hz collisions seem stable and objects seem
 // to settle down at a reasonable rate.
@@ -46,7 +47,7 @@
 #define PHYSICS_TIMESTEP (1.f / 45.f)
 
 const F32 COLLISION_TOLERANCE = 0.1f;
-const F32 HALF_COLLISION_TOLERANCE = COLLISION_TOLERANCE * 0.5f;
+const F32 HALF_COLLISION_TOLERANCE = 0.05f;
 
 // Time constants
 const U32 HOURS_PER_LINDEN_DAY		= 4;	
@@ -97,9 +98,9 @@ const 	F32 	MIN_AGENT_WIDTH 		= 0.40f;
 const 	F32 	DEFAULT_AGENT_WIDTH 	= 0.60f;
 const 	F32 	MAX_AGENT_WIDTH 		= 0.80f;
 
-const 	F32 	MIN_AGENT_HEIGHT		= 1.3f - 2.0f * COLLISION_TOLERANCE;
+const 	F32 	MIN_AGENT_HEIGHT		= 1.1f;
 const 	F32 	DEFAULT_AGENT_HEIGHT	= 1.9f;
-const 	F32 	MAX_AGENT_HEIGHT		= 2.65f - 2.0f * COLLISION_TOLERANCE;
+const 	F32 	MAX_AGENT_HEIGHT		= 2.45f;
 
 // For linked sets
 const S32 MAX_CHILDREN_PER_TASK = 255;
@@ -253,6 +254,10 @@ const U8 SIM_ACCESS_MAX 	= SIM_ACCESS_ADULT;
 // group constants
 const S32 MAX_AGENT_GROUPS = 25;
 
+// attachment constants
+const S32 MAX_AGENT_ATTACHMENTS = 38;
+const U8  ATTACHMENT_ADD = 0x80;
+
 // god levels
 const U8 GOD_MAINTENANCE = 250;
 const U8 GOD_FULL = 200;
@@ -262,14 +267,15 @@ const U8 GOD_LIKE = 1;
 const U8 GOD_NOT = 0;
 
 // "agent id" for things that should be done to ALL agents
-const LLUUID LL_UUID_ALL_AGENTS("44e87126-e794-4ded-05b3-7c42da3d5cdb");
+LL_COMMON_API extern const LLUUID LL_UUID_ALL_AGENTS;
 
-// Governor Linden's agent id.
-const LLUUID ALEXANDRIA_LINDEN_ID("ba2a564a-f0f1-4b82-9c61-b7520bfcd09f");
-const LLUUID GOVERNOR_LINDEN_ID("3d6181b0-6a4b-97ef-18d8-722652995cf1");
-const LLUUID REALESTATE_LINDEN_ID("3d6181b0-6a4b-97ef-18d8-722652995cf1");
+// inventory library owner
+LL_COMMON_API extern const LLUUID ALEXANDRIA_LINDEN_ID;
+
+LL_COMMON_API extern const LLUUID GOVERNOR_LINDEN_ID;
+LL_COMMON_API extern const LLUUID REALESTATE_LINDEN_ID;
 // Maintenance's group id.
-const LLUUID MAINTENANCE_GROUP_ID("dc7b21cd-3c89-fcaa-31c8-25f9ffd224cd");
+LL_COMMON_API extern const LLUUID MAINTENANCE_GROUP_ID;
 
 // Flags for kick message
 const U32 KICK_FLAGS_DEFAULT	= 0x0;
@@ -286,6 +292,7 @@ const U8 UPD_UNIFORM 		= 0x10;	// used with UPD_SCALE
 // Agent Update Flags (U8)
 const U8 AU_FLAGS_NONE      		= 0x00;
 const U8 AU_FLAGS_HIDETITLE      	= 0x01;
+const U8 AU_FLAGS_CLIENT_AUTOPILOT	= 0x02;
 
 // start location constants
 const U32 START_LOCATION_ID_LAST 		= 0;
@@ -354,13 +361,23 @@ const U32 PARCEL_MEDIA_COMMAND_LOOP_SET = 13;
 const U32 MAP_ITEM_TELEHUB = 0x01;
 const U32 MAP_ITEM_PG_EVENT = 0x02;
 const U32 MAP_ITEM_MATURE_EVENT = 0x03;
-const U32 MAP_ITEM_POPULAR = 0x04;
+//const U32 MAP_ITEM_POPULAR = 0x04;		// No longer supported, 2009-03-02 KLW
 //const U32 MAP_ITEM_AGENT_COUNT = 0x05;
 const U32 MAP_ITEM_AGENT_LOCATIONS = 0x06;
 const U32 MAP_ITEM_LAND_FOR_SALE = 0x07;
 const U32 MAP_ITEM_CLASSIFIED = 0x08;
 const U32 MAP_ITEM_ADULT_EVENT = 0x09;
 const U32 MAP_ITEM_LAND_FOR_SALE_ADULT = 0x0a;
+
+// Region map layer numbers
+const S32 MAP_SIM_OBJECTS = 0;	
+const S32 MAP_SIM_TERRAIN = 1;
+const S32 MAP_SIM_LAND_FOR_SALE = 2;			// Transparent alpha overlay of land for sale
+const S32 MAP_SIM_IMAGE_TYPES = 3;				// Number of map layers
+const S32 MAP_SIM_INFO_MASK  		= 0x00FFFFFF;		// Agent access may be stuffed into upper byte
+const S32 MAP_SIM_LAYER_MASK 		= 0x0000FFFF;		// Layer info is in lower 16 bits
+const S32 MAP_SIM_RETURN_NULL_SIMS 	= 0x00010000;
+const S32 MAP_SIM_PRELUDE 			= 0x00020000;
 
 // Crash reporter behavior
 const char* const CRASH_SETTINGS_FILE = "settings_crash_behavior.xml";

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,6 +38,8 @@
 #include <vector>
 
 #include "llassetstorage.h"	// LLAssetType
+#include "llinventoryobserver.h"
+#include "llsingleton.h"
 #include "llviewerinventory.h"
 
 class LLMultiGesture;
@@ -52,9 +54,15 @@ public:
 	virtual void changed() = 0;
 };
 
-class LLGestureManager
+class LLGestureManager : public LLSingleton<LLGestureManager>, public LLInventoryFetchObserver
 {
 public:
+
+	typedef boost::function<void (LLMultiGesture* loaded_gesture)> gesture_loaded_callback_t;
+	// Maps inventory item_id to gesture
+	typedef std::map<LLUUID, LLMultiGesture*> item_map_t;
+	typedef std::map<LLUUID, gesture_loaded_callback_t> callback_map_t;
+
 	LLGestureManager();
 	~LLGestureManager();
 
@@ -95,6 +103,9 @@ public:
 
 	BOOL isGesturePlaying(const LLUUID& item_id);
 
+	BOOL isGesturePlaying(LLMultiGesture* gesture);
+
+	const item_map_t& getActiveGestures() const { return mActive; }
 	// Force a gesture to be played, for example, if it is being
 	// previewed.
 	void playGesture(LLMultiGesture* gesture);
@@ -104,7 +115,15 @@ public:
 	// Also remove from playing list
 	void stopGesture(LLMultiGesture* gesture);
 	void stopGesture(const LLUUID& item_id);
-
+	/**
+	 * Add cb into callbackMap.
+	 * Note:
+	 * Manager will call cb after gesture will be loaded and will remove cb automatically. 
+	 */
+	void setGestureLoadedCallback(LLUUID inv_item_id, gesture_loaded_callback_t cb)
+	{
+		mCallbackMap[inv_item_id] = cb;
+	}
 	// Trigger the first gesture that matches this key.
 	// Returns TRUE if it finds a gesture bound to that key.
 	BOOL triggerGesture(KEY key, MASK mask);
@@ -121,6 +140,9 @@ public:
 	void removeObserver(LLGestureManagerObserver* observer);
 	void notifyObservers();
 
+	// Overriding so we can update active gesture names and notify observers 
+	void changed(U32 mask); 
+
 	BOOL matchPrefix(const std::string& in_str, std::string* out_str);
 
 	// Copy item ids into the vector
@@ -133,19 +155,16 @@ protected:
 	// Do a single step in a gesture
 	void runStep(LLMultiGesture* gesture, LLGestureStep* step);
 
+	// LLInventoryCompletionObserver trigger
+	void done();
+
 	// Used by loadGesture
 	static void onLoadComplete(LLVFS *vfs,
 						   const LLUUID& asset_uuid,
 						   LLAssetType::EType type,
 						   void* user_data, S32 status, LLExtStat ext_status);
 
-public:
-	BOOL mValid;
-	std::vector<LLMultiGesture*> mPlaying;
-
-	// Maps inventory item_id to gesture
-	typedef std::map<LLUUID, LLMultiGesture*> item_map_t;
-
+private:
 	// Active gestures.
 	// NOTE: The gesture pointer CAN BE NULL.  This means that
 	// there is a gesture with that item_id, but the asset data
@@ -154,10 +173,11 @@ public:
 
 	S32 mLoadingCount;
 	std::string mDeactivateSimilarNames;
-
+	
 	std::vector<LLGestureManagerObserver*> mObservers;
+	callback_map_t mCallbackMap;
+	std::vector<LLMultiGesture*> mPlaying;	
+	BOOL mValid;
 };
-
-extern LLGestureManager gGestureManager;
 
 #endif

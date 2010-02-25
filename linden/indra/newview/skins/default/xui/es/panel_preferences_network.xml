@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Red" name="network">
-	<text length="1" name="text_box" type="string">
+	<text name="text_box">
 		Ancho de banda máximo:
 	</text>
-	<text length="1" name="text_box2" type="string">
+	<text name="text_box2">
 		kbps (kilobites por segundo)
 	</text>
 	<text name="cache_size_label_l">

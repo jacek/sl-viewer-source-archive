@@ -7,15 +7,9 @@
 	<button label="Mapa" name="classified_map_btn"/>
 	<combo_box label="" name="classified_category_combo"/>
 	<combo_box label="" name="classified_mature_check">
-		<combo_item name="select_mature">
-			- Wybierz Treść -
-		</combo_item>
-		<combo_item name="mature">
-			Treść &apos;Mature&apos;
-		</combo_item>
-		<combo_item name="pg">
-			Treść &apos;PG&apos;
-		</combo_item>
+		<combo_box.item name="select_mature" label="- Wybierz Treść -"/>
+		<combo_box.item name="mature" label="Treść &apos;Mature&apos;"/>
+		<combo_box.item name="pg" label="Treść &apos;PG&apos;"/>
 	</combo_box>
 	<text name="classified_info_text" tool_tip="Twoja reklama jest tym wyżej na liście im więcej za nią płacisz.">
 		Reklama: Jeszcze nie zamieszczona
@@ -25,13 +19,13 @@
 	</text>
 	<button label="Zamieść..." name="classified_update_btn"/>
 	<check_box label="Auto-odnawiaj co tydzień" name="auto_renew_check"/>
-	<string name="ad_placed_paid">
+	<panel.string name="ad_placed_paid">
 		Od: [DATE], Zapłacono [AMT]L$ za zamieszczenie.
-	</string>
-	<string name="update_txt">
+	</panel.string>
+	<panel.string name="update_txt">
 		Aktualizuj
-	</string>
-	<string name="publish_txt">
+	</panel.string>
+	<panel.string name="publish_txt">
 		Zamieść...
-	</string>
+	</panel.string>
 </panel>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="mute floater" short_title="Lista de ignorados" title="Residentes y Objetos ignorados">
+<floater name="mute floater" short_title="LISTA DE IGNORADOS" title="RESIDENTES Y OBJETOS IGNORADOS">
 	<scroll_list name="mutes" tool_tip="Lista de los residentes ignorados actualmente"/>
 	<button width="215" label="Ignorar al residente..." label_selected="Ignorar al residente..." name="Mute resident..." tool_tip="Elija un residente para ignorarle"/>
 	<button width="215" label="Ignorar un objeto según su nombre..." label_selected="Ignorar un objeto según su nombre..." name="Mute object by name..."/>

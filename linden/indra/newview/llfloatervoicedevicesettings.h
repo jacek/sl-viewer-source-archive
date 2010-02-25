@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,8 +36,6 @@
 
 #include "llfloater.h"
 
-class LLPrefsVoiceLogic;
-
 class LLPanelVoiceDeviceSettings : public LLPanel
 {
 public:
@@ -49,9 +47,11 @@ public:
 	void apply();
 	void cancel();
 	void refresh();
-	void onOpen();
-	void onClose(bool app_quitting);
+	void initialize();
+	void cleanup();
 
+	/*virtual*/ void handleVisibilityChange ( BOOL new_visibility );
+	
 protected:
 	static void onCommitInputDevice(LLUICtrl* ctrl, void* user_data);
 	static void onCommitOutputDevice(LLUICtrl* ctrl, void* user_data);
@@ -64,19 +64,25 @@ protected:
 	BOOL mDevicesUpdated;
 };
 
-class LLFloaterVoiceDeviceSettings : public LLFloater, public LLFloaterSingleton<LLFloaterVoiceDeviceSettings>
+class LLFloaterVoiceDeviceSettings : public LLFloater
 {
+	friend class LLFloaterReg;
+
 public:
-	LLFloaterVoiceDeviceSettings(const LLSD& seed);
-	/*virtual*/ void onOpen();
-	/*virtual*/ void onClose(bool app_quitting);
+
+	/*virtual*/ BOOL postBuild();
+	/*virtual*/ void onOpen(const LLSD& key);
+	/*virtual*/ void onClose(bool app_settings);
 	/*virtual*/ void draw();
 	void apply();
 	void cancel();
-
+private:
+	LLFloaterVoiceDeviceSettings(const LLSD& seed);
+	
 protected:
 	static void* createPanelVoiceDeviceSettings(void* user_data);
-
+		
+protected:
 	LLPanelVoiceDeviceSettings* mDevicePanel;
 };
 

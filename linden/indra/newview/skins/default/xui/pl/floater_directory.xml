@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="directory" title="Przeszukaj Second Life">
+<floater name="directory" title="PRZESZUKAJ [SECOND_LIFE]">
 	<tab_container name="Directory Tabs">
 		<panel label="Wszystko" name="find_all_panel">
 			<string name="searching_text">
@@ -11,29 +11,23 @@
 			<text name="find">
 				Szukaj:
 			</text>
-			<line_editor label="Szukaj" name="search_editor" tool_tip="Search Second Life"/>
+			<line_editor label="Szukaj" name="search_editor" tool_tip="Search [SECOND_LIFE]"/>
 			<button label="Wróć" name="back_btn"/>
 			<button label="Dalej" name="forward_btn"/>
 			<button label="Szukaj" name="search_btn"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					Każda Kategoria
-				</combo_item>
-				<combo_item name="Events">
-					Imprezy
-				</combo_item>
-				<combo_item name="Groups">
-					Grupy
-				</combo_item>
-				<combo_item name="People">
-					Ludzie
-				</combo_item>
-				<combo_item name="Places">
-					Miejsca
-				</combo_item>
-				<combo_item name="Wiki">
-					Wiki
-				</combo_item>
+				<combo_box.item name="item0" label="Każda Kategoria"
+				/>
+				<combo_box.item name="item1" label="Imprezy"
+				/>
+				<combo_box.item name="item2" label="Grupy"
+				/>
+				<combo_box.item name="item3" label="Ludzie"
+				/>
+				<combo_box.item name="item4" label="Miejsca"
+				/>
+				<combo_box.item name="item5" label="Wiki"
+				/>
 			</combo_box>
 			<check_box label="Treść &apos;PG&apos;" name="incpg"/>
 			<check_box label="Treść &apos;Mature&apos;" name="incmature"/>
@@ -66,36 +60,26 @@
 			<check_box label="Treść &apos;Mature&apos;" name="incmature"/>
 			<check_box label="Treść &apos;Adult&apos;" name="incadult"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					Każda Kategoria
-				</combo_item>
-				<combo_item name="Shopping">
-					Zakupy
-				</combo_item>
-				<combo_item name="LandRental">
-					Wynajm Posiadłości
-				</combo_item>
-				<combo_item name="PropertyRental">
-					Wynajm Własności
-				</combo_item>
-				<combo_item name="SpecialAttraction">
-					Specjalne Atrakcje
-				</combo_item>
-				<combo_item name="NewProducts">
-					Nowe Produkty
-				</combo_item>
-				<combo_item name="Employment">
-					Praca
-				</combo_item>
-				<combo_item name="Wanted">
-					Potrzebne
-				</combo_item>
-				<combo_item name="Service">
-					Serwis
-				</combo_item>
-				<combo_item name="Personal">
-					Personalne
-				</combo_item>
+				<combo_box.item name="item0" label="Każda Kategoria"
+				/>
+				<combo_box.item name="item1" label="Zakupy"
+				/>
+				<combo_box.item name="item2" label="Wynajm Posiadłości"
+				/>
+				<combo_box.item name="item3" label="Wynajm Własności"
+				/>
+				<combo_box.item name="item4" label="Specjalne Atrakcje"
+				/>
+				<combo_box.item name="item5" label="Nowe Produkty"
+				/>
+				<combo_box.item name="item6" label="Praca"
+				/>
+				<combo_box.item name="item7" label="Potrzebne"
+				/>
+				<combo_box.item name="item8" label="Serwis"
+				/>
+				<combo_box.item name="item9" label="Personalne"
+				/>
 			</combo_box>
 			<button label="Szukaj" label_selected="Szukaj" name="Browse"/>
 			<button label="Szukaj" label_selected="Szukaj" name="Search"/>
@@ -121,12 +105,8 @@
 				Znajdź:
 			</text>
 			<radio_group name="date_mode">
-				<radio_item name="current">
-					W Trakcie/Przyszłe...
-				</radio_item>
-				<radio_item name="date">
-					Data
-				</radio_item>
+				<radio_item name="current" label="W Trakcie/Przyszłe..."/>
+				<radio_item name="date" label="Data"/>
 			</radio_group>
 			<button label="&lt;&lt;" label_selected="&lt;&lt;" name="&lt;&lt;" tool_tip="Poprzedni dzień"/>
 			<text name="date_text">
@@ -138,42 +118,30 @@
 				Kategoria:
 			</text>
 			<combo_box name="category combo">
-				<combo_item name="All">
-					Każda Kategoria
-				</combo_item>
-				<combo_item name="Discussion">
-					Dyskusja
-				</combo_item>
-				<combo_item name="Sports">
-					Sport
-				</combo_item>
-				<combo_item name="LiveMusic">
-					Muzyka na Żywo
-				</combo_item>
-				<combo_item name="Commercial">
-					Komercja
-				</combo_item>
-				<combo_item name="Nightlife/Entertainment">
-					Życie Nocne/Rozrywka
-				</combo_item>
-				<combo_item name="Games/Contests">
-					Gry/Konkursy
-				</combo_item>
-				<combo_item name="Pageants">
-					Przedstawienia
-				</combo_item>
-				<combo_item name="Education">
-					Edukacja
-				</combo_item>
-				<combo_item name="ArtsandCulture">
-					Sztuka i Kultura
-				</combo_item>
-				<combo_item name="Charity/SupportGroups">
-					Charytatywne
-				</combo_item>
-				<combo_item name="Miscellaneous">
-					Różne
-				</combo_item>
+				<combo_box.item name="item0" label="Każda Kategoria"
+				/>
+				<combo_box.item name="item18" label="Dyskusja"
+				/>
+				<combo_box.item name="item19" label="Sport"
+				/>
+				<combo_box.item name="item20" label="Muzyka na Żywo"
+				/>
+				<combo_box.item name="item22" label="Komercja"
+				/>
+				<combo_box.item name="item23" label="Życie Nocne/Rozrywka"
+				/>
+				<combo_box.item name="item24" label="Gry/Konkursy"
+				/>
+				<combo_box.item name="item25" label="Przedstawienia"
+				/>
+				<combo_box.item name="item26" label="Edukacja"
+				/>
+				<combo_box.item name="item27" label="Sztuka i Kultura"
+				/>
+				<combo_box.item name="item28" label="Charytatywne"
+				/>
+				<combo_box.item name="item29" label="Różne"
+				/>
 			</combo_box>
 			<check_box label="Treść &apos;PG&apos;" name="incpg"/>
 			<check_box label="Treść &apos;Mature&apos;" name="incmature"/>
@@ -231,18 +199,14 @@ By zakupić posiadłość bezpośrednio, odwiedź ją oraz kliknij na nazwę pos
 			<check_box left="490" label="Treść &apos;Mature&apos;" name="incmature"/>
 			<check_box left="490" label="Treść &apos;Adult&apos;" name="incadult"/>
 			<combo_box name="type" width="195">
-				<combo_item name="AllTypes">
-					Wszystko
-				</combo_item>
-				<combo_item name="Auction">
-					Aukcje
-				</combo_item>
-				<combo_item name="MainlandSales">
-					Na Sprzedaż - Regiony Główne
-				</combo_item>
-				<combo_item name="EstateSales">
-					Na Sprzedaż - Regiony Prywatne
-				</combo_item>
+				<combo_box.item name="AllTypes" label="Wszystko"
+				/>
+				<combo_box.item name="Auction" label="Aukcje"
+				/>
+				<combo_box.item name="MainlandSales" label="Na Sprzedaż - Regiony Główne"
+				/>
+				<combo_box.item name="EstateSales" label="Na Sprzedaż - Regiony Prywatne"
+				/>
 			</combo_box>
 			<check_box label="Cena &#8804; " name="pricecheck"/>
 			<text left="186" name="pricecheck_symbol">
@@ -281,83 +245,58 @@ By zakupić posiadłość bezpośrednio, odwiedź ją oraz kliknij na nazwę pos
 			<check_box label="Treść &apos;Mature&apos;" name="incmature"/>
 			<check_box label="Treść &apos;Adult&apos;" name="incadult"/>
 			<combo_box name="Category" width="170">
-				<combo_item name="AnyCategory">
-					Wszystko
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Lokacje Linden
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					Sztuka i Kultura
-				</combo_item>
-				<combo_item name="Business">
-					Biznes
-				</combo_item>
-				<combo_item name="Educational">
-					Edukacyjne
-				</combo_item>
-				<combo_item name="Gaming">
-					Gry
-				</combo_item>
-				<combo_item name="Hangout">
-					Chillout
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					Przyjazne dla Nowych
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					Parki i Natura
-				</combo_item>
-				<combo_item name="Residential">
-					Rezydencja
-				</combo_item>
-				<combo_item name="Shopping">
-					Zakupy
-				</combo_item>
-				<combo_item name="Other">
-					Inne
-				</combo_item>
+				<combo_box.item name="item0" label="Każda Kategoria"
+				/>
+				<combo_box.item name="item1" label="Lokacje Linden"
+				/>
+				<combo_box.item name="item3" label="Sztuka i Kultura"
+				/>
+				<combo_box.item name="item4" label="Biznes"
+				/>
+				<combo_box.item name="item5" label="Edukacyjne"
+				/>
+				<combo_box.item name="item6" label="Gry"
+				/>
+				<combo_box.item name="item7" label="Poznawanie ludzi"
+				/>
+				<combo_box.item name="item8" label="Przyjazne dla nowych"
+				/>
+				<combo_box.item name="item9" label="Parki i Natura"
+				/>
+				<combo_box.item name="item10" label="Rezydencja"
+				/>
+				<combo_box.item name="item11" label="Zakupy"
+				/>
+				<combo_box.item name="item12" label="Inna"
+				/>
 			</combo_box>
 			<combo_box name="Category_Adult">
-				<combo_item name="AnyCategory">
-					Każda Kategoria
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Lokacja Linden
-				</combo_item>
-				<combo_item name="Adult">
-					&apos;Adult&apos;
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					Sztuka i Kultura
-				</combo_item>
-				<combo_item name="Business">
-					Biznes
-				</combo_item>
-				<combo_item name="Educational">
-					Edukacja
-				</combo_item>
-				<combo_item name="Gaming">
-					Gra
-				</combo_item>
-				<combo_item name="Hangout">
-					Poznawanie ludzi
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					Przyjazne dla nowych
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					Parki i Natura
-				</combo_item>
-				<combo_item name="Residential">
-					Mieszkalna
-				</combo_item>
-				<combo_item name="Shopping">
-					Zakupy
-				</combo_item>
-				<combo_item name="Other">
-					Inna
-				</combo_item>
+				<combo_box.item name="AnyCategory" label="Każda Kategoria"
+				/>
+				<combo_box.item name="LindenLocation" label="Lokacja Linden"
+				/>
+				<combo_box.item name="Adult" label="&apos;Adult&apos;"
+				/>
+				<combo_box.item name="Arts&amp;Culture" label="Sztuka i Kultura"
+				/>
+				<combo_box.item name="Business" label="Biznes"
+				/>
+				<combo_box.item name="Educational" label="Edukacyjne"
+				/>
+				<combo_box.item name="Gaming" label="Gry"
+				/>
+				<combo_box.item name="Hangout" label="Poznawanie ludzi"
+				/>
+				<combo_box.item name="NewcomerFriendly" label="Przyjazne dla nowych"
+				/>
+				<combo_box.item name="Parks&amp;Nature" label="Parki i Natura"
+				/>
+				<combo_box.item name="Residential" label="Rezydencja"
+				/>
+				<combo_box.item name="Shopping" label="Zakupy"
+				/>
+				<combo_box.item name="Other" label="Inna"
+				/>
 			</combo_box>
 			<button label="Szukaj" label_selected="Szukaj" left_delta="178" name="Search"/>
 			<scroll_list name="results">
@@ -398,7 +337,7 @@ By zakupić posiadłość bezpośrednio, odwiedź ją oraz kliknij na nazwę pos
 			<text name="find">
 				Szukaj:
 			</text>
-			<line_editor label="Szukaj" name="search_editor" tool_tip="Szukaj w Second Life"/>
+			<line_editor label="Szukaj" name="search_editor" tool_tip="Szukaj w [SECOND_LIFE]"/>
 			<button label="Wróć" name="back_btn"/>
 			<button label="Dalej" name="forward_btn"/>
 			<button label="Szukaj" name="search_btn"/>

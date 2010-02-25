@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,8 +42,9 @@ class LLVivoxProtocolParser;
 #include "v3math.h"
 #include "llframetimer.h"
 #include "llviewerregion.h"
-#include "llcallingcard.h"   // for LLFriendObserver
+#include "m3math.h"			// LLMatrix3
 
+class LLFriendObserver;
 class LLVoiceClientParticipantObserver
 {
 public:
@@ -64,6 +65,11 @@ public:
 		STATUS_JOINED,
 		STATUS_LEFT_CHANNEL,
 		STATUS_VOICE_DISABLED,
+
+		// Adding STATUS_VOICE_ENABLED as pair status for STATUS_VOICE_DISABLED
+		// See LLVoiceClient::setVoiceEnabled()
+		STATUS_VOICE_ENABLED,
+
 		BEGIN_ERROR_STATUS,
 		ERROR_CHANNEL_FULL,
 		ERROR_CHANNEL_LOCKED,
@@ -178,18 +184,24 @@ static	void updatePosition(void);
 
 		
 		void setMuteMic(bool muted);		// Use this to mute the local mic (for when the client is minimized, etc), ignoring user PTT state.
+		bool getMuteMic() const;
 		void setUserPTTState(bool ptt);
 		bool getUserPTTState();
 		void toggleUserPTTState(void);
+		void inputUserControlState(bool down); // interpret any sort of up-down mic-open control input according to ptt-toggle prefs
 		void setVoiceEnabled(bool enabled);
 		static bool voiceEnabled();
+		// Checks is voice working judging from mState
+		// Returns true if vivox has successfully logged in and is not in error state
+		bool voiceWorking();
 		void setUsePTT(bool usePTT);
 		void setPTTIsToggle(bool PTTIsToggle);
+		bool getPTTIsToggle();
 		void setPTTKey(std::string &key);
 		void setEarLocation(S32 loc);
 		void setVoiceVolume(F32 volume);
 		void setMicGain(F32 volume);
-		void setUserVolume(const LLUUID& id, F32 volume); // set's volume for specified agent, from 0-1 (where .5 is nominal)
+		void setUserVolume(const LLUUID& id, F32 volume); // sets volume for specified agent, from 0-1 (where .5 is nominal)
 		void setLipSyncEnabled(BOOL enabled);
 		BOOL lipSyncEnabled();
 
@@ -197,6 +209,9 @@ static	void updatePosition(void);
 		void keyDown(KEY key, MASK mask);
 		void keyUp(KEY key, MASK mask);
 		void middleMouseState(bool down);
+
+		// Return the version of the Vivox library
+		std::string getAPIVersion() const { return mAPIVersion; }
 		
 		/////////////////////////////
 		// Accessors for data related to nearby speakers
@@ -342,6 +357,7 @@ static	void updatePosition(void);
 
 		participantState *findParticipantByID(const LLUUID& id);
 		participantMap *getParticipantList(void);
+		void getParticipantsUUIDSet(std::set<LLUUID>& participant_uuids);
 		
 		typedef std::map<const std::string*, sessionState*, stringMapComparitor> sessionMap;
 		typedef std::set<sessionState*> sessionSet;
@@ -461,7 +477,7 @@ static	void updatePosition(void);
 		void removeObserver(LLFriendObserver* observer);
 		
 		void lookupName(const LLUUID &id);
-		static void onAvatarNameLookup(const LLUUID& id, const std::string& first, const std::string& last, BOOL is_group, void* user_data);
+		static void onAvatarNameLookup(const LLUUID& id, const std::string& first, const std::string& last, BOOL is_group);
 		void avatarNameResolved(const LLUUID &id, const std::string &name);
 		
 		typedef std::vector<std::string> deviceList;
@@ -727,11 +743,12 @@ static	std::string nameFromsipURI(const std::string &uri);
 		bool		mVoiceEnabled;
 		bool		mWriteInProgress;
 		std::string mWriteString;
-		size_t		mWriteOffset;
 		
 		LLTimer		mUpdateTimer;
 		
 		BOOL		mLipSyncEnabled;
+
+		std::string	mAPIVersion;
 
 		typedef std::set<LLVoiceClientParticipantObserver*> observer_set_t;
 		observer_set_t mParticipantObservers;

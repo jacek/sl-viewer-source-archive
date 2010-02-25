@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="Inventory Finder" title="ítems_recientes_del_inventario">
+<floater name="Inventory Finder" title="ÍTEMS_RECIENTES_DEL_INVENTARIO">
 	<check_box label="Animaciones" name="check_animation"/>
 	<check_box label="Tarjetas de visita" name="check_calling_card"/>
 	<check_box label="Ropa" name="check_clothing"/>
@@ -15,7 +15,7 @@
 	<button label="Nada" label_selected="Nada" name="None" width="70" bottom_delta="0" left="83"/>
 	<check_box label="Mostrar siempre las&#10;carpetas" name="check_show_empty"/>
 	<check_box label="Desde el fin de sesión" name="check_since_logoff" bottom_delta="-36"/>
-	<text length="1" name="- OR -" type="string">
+	<text name="- OR -">
 		- O -
 	</text>
 	<spinner label="horas atrás" name="spin_hours_ago"/>

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,6 +38,7 @@
 #include "lluuid.h"
 #include "llxmlnode.h"
 #include "reflective.h"
+#include "llinventorytype.h"
 
 // prototypes
 class LLMessageSystem;
@@ -129,6 +130,8 @@ public:
 	void initMasks(PermissionMask base, PermissionMask owner,
 				   PermissionMask everyone, PermissionMask group,
 				   PermissionMask next);
+	// adjust permissions based on inventory type.
+	void initMasks(LLInventoryType::EType type);
 
 	//
 	// ACCESSORS
@@ -229,6 +232,10 @@ public:
 	// ownerhsip changes
 	void yesReallySetOwner(const LLUUID& owner, bool group_owned);
 
+	// Last owner doesn't have much in the way of permissions so it's 
+	//not too dangerous to do this. 
+	void setLastOwner(const LLUUID& last_owner);
+
 	// saves last owner, sets owner to uuid null, sets group
 	// owned. group_id must be the group of the object (that's who it
 	// is being deeded to) and the object must be group
@@ -249,7 +256,11 @@ public:
 	BOOL setGroupBits( const LLUUID& agent, const LLUUID& group, BOOL set, PermissionMask bits);
 	BOOL setEveryoneBits(const LLUUID& agent, const LLUUID& group, BOOL set, PermissionMask bits);
 	BOOL setNextOwnerBits(const LLUUID& agent, const LLUUID& group, BOOL set, PermissionMask bits);
-
+	
+	// This is currently only used in the Viewer to handle calling cards
+	// where the creator is actually used to store the target. Use with care.
+	void setCreator(const LLUUID& creator) { mCreator = creator; }
+	
 	//
 	// METHODS
 	//
@@ -313,9 +324,6 @@ public:
 
 	BOOL	importLegacyStream(std::istream& input_stream);
 	BOOL	exportLegacyStream(std::ostream& output_stream) const;
-
-	LLXMLNode *exportFileXML() const;
-	bool importXML(LLXMLNode* node);
 
 	bool operator==(const LLPermissions &rhs) const;
 	bool operator!=(const LLPermissions &rhs) const;

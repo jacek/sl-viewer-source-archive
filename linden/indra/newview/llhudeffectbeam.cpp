@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,6 @@
 #include "llgl.h"
 #include "llglheaders.h"
 #include "llhudrender.h"
-#include "llimagegl.h"
 #include "llrendersphere.h"
 #include "llviewercamera.h"
 #include "llvoavatar.h"
@@ -310,11 +309,6 @@ void LLHUDEffectBeam::render()
 		gSphere.render(0);
 		glPopMatrix();
 	}
-}
-
-void LLHUDEffectBeam::renderForTimer()
-{
-	render();
 }
 
 void LLHUDEffectBeam::setupParticle(const S32 i)

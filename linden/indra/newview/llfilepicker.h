@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -59,15 +59,12 @@
 #include <commdlg.h>
 #endif
 
+extern "C" {
 // mostly for Linux, possible on others
 #if LL_GTK
 # include "gtk/gtk.h"
 #endif // LL_GTK
-
-// also mostly for Linux, for some X11-specific filepicker usability tweaks
-#if LL_X11
-#include "SDL/SDL_syswm.h"
-#endif
+}
 
 class LLFilePicker
 {
@@ -179,8 +176,7 @@ private:
 
 	std::vector<std::string> mFiles;
 	S32 mCurrentFile;
-	BOOL mLocked;
-	BOOL mMultiFile;
+	bool mLocked;
 
 	static LLFilePicker sInstance;
 	

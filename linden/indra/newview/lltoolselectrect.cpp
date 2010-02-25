@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,7 +44,6 @@
 #include "llviewercontrol.h"
 #include "llui.h"
 #include "llselectmgr.h"
-#include "lltoolview.h"
 #include "lltoolmgr.h"
 #include "llviewerobject.h"
 #include "llviewerobjectlist.h"
@@ -159,7 +158,7 @@ BOOL LLToolSelectRect::handleHover(S32 x, S32 y, MASK mask)
 		lldebugst(LLERR_USER_INPUT) << "hover handled by LLToolSelectRect (inactive)" << llendl;		
 	}
 
-	gViewerWindow->getWindow()->setCursor(UI_CURSOR_ARROW);
+	gViewerWindow->setCursor(UI_CURSOR_ARROW);
 	return TRUE;
 }
 

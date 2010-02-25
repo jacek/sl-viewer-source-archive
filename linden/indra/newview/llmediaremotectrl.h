@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,7 @@
 #define LL_LLMEDIAREMOTECTRL_H
 
 #include "llpanel.h"
-
+#include "llfloater.h"
 ////////////////////////////////////////////////////////////////////////////////
 //
 class LLMediaRemoteCtrl : public LLPanel
@@ -51,12 +51,32 @@ public:
 	LLPanel* mControls;
 	
 	static void onClickExpandBtn(void* user_data);
-	static void* createVolumePanel(void* data);
 	
-	virtual void setToolTip(const std::string& msg);
+	void expandOrCollapse();
+};
 
-protected:
-	void build();
+class LLFloaterMediaRemoteCtrl : public LLFloater
+{
+	friend class LLFloaterReg;
+public:
+	
+	/*virtual*/ BOOL postBuild();
+	/*virtual*/ void draw();
+	void onBtnLock();
+	void enableMediaButtons();
+	void voiceRemoteDraw();
+	LLPanel* mControls;
+	static void onBtnTalkHeld(void *user_data);
+	static void onBtnTalkReleased(void* user_data);
+	static void onBtnTalkClicked(void* user_data);
+	static void onClickEndCall(void* user_data);
+private:
+	LLFloaterMediaRemoteCtrl (const LLSD& key);
+	
+	/*virtual*/ LLFloaterMediaRemoteCtrl();
+	LLButton* mTalkBtn;
+	LLButton* mTalkLockBtn;
+	LLButton* mSpeakersBtn;
 };
 
 #endif

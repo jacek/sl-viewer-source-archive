@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,38 +35,35 @@
 
 #include "lltexteditor.h"
 
-
 //
 // Classes
 //
 class LLViewerTextEditor : public LLTextEditor
 {
-	
 public:
-	LLViewerTextEditor(const std::string& name,
-					   const LLRect& rect,
-					   S32 max_length,
-					   const std::string& default_text = std::string(),
-					   const LLFontGL* glfont = NULL,
-					   BOOL allow_embedded_items = FALSE);
+	struct Params : public LLInitParam::Block<Params, LLTextEditor::Params>
+	{
+		Params()
+		{
+			name = "text_editor";
+		}
+	};
 
+protected:
+	LLViewerTextEditor(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
 	virtual ~LLViewerTextEditor();
 
 	virtual void makePristine();
 	
-	virtual LLXMLNodePtr getXML(bool save_children = true) const;
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
-
 	// mousehandler overrides
 	virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleMiddleMouseDown(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleMiddleMouseUp(S32 x, S32 y, MASK mask);
-	virtual BOOL	handleRightMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL	handleDoubleClick(S32 x, S32 y, MASK mask );
 
-	virtual BOOL	handleToolTip(S32 x, S32 y, std::string& msg, LLRect* sticky_rect);
 	virtual BOOL	handleDragAndDrop(S32 x, S32 y, MASK mask,
 										BOOL drop, EDragAndDropType cargo_type, 
 										void *cargo_data, EAcceptance *accept, std::string& tooltip_msg);
@@ -75,10 +72,13 @@ public:
 	virtual BOOL 	importBuffer(const char* buffer, S32 length);
 	virtual bool	importStream(std::istream& str);
 	virtual BOOL 	exportBuffer(std::string& buffer);
-	void setNotecardInfo(const LLUUID& notecard_item_id, const LLUUID& object_id)
+	virtual void	onValueChange(S32 start, S32 end);
+
+	void setNotecardInfo(const LLUUID& notecard_item_id, const LLUUID& object_id, const LLUUID& preview_id)
 	{
 		mNotecardInventoryID = notecard_item_id;
 		mObjectID = object_id;
+		mPreviewID = preview_id;
 	}
 	
 	void setASCIIEmbeddedText(const std::string& instr);
@@ -100,11 +100,9 @@ public:
 
 private:
 	// Embedded object operations
+	void findEmbeddedItemSegments(S32 start, S32 end);
 	virtual llwchar	pasteEmbeddedItem(llwchar ext_char);
-	virtual void	bindEmbeddedChars(const LLFontGL* font) const;
-	virtual void	unbindEmbeddedChars(const LLFontGL* font) const;
 
-	BOOL			getEmbeddedItemToolTipAtPos(S32 pos, LLWString &wmsg) const;
 	BOOL			openEmbeddedItemAtPos( S32 pos );
 	BOOL			openEmbeddedItem(LLInventoryItem* item, llwchar wc);
 
@@ -114,6 +112,7 @@ private:
 	void			openEmbeddedSound( LLInventoryItem* item, llwchar wc );
 	void			openEmbeddedLandmark( LLInventoryItem* item, llwchar wc );
 	void			openEmbeddedNotecard( LLInventoryItem* item, llwchar wc);
+	void			openEmbeddedCallingcard( LLInventoryItem* item, llwchar wc);
 	void			showCopyToInvDialog( LLInventoryItem* item, llwchar wc );
 	void			showUnsavedAlertDialog( LLInventoryItem* item );
 
@@ -121,23 +120,22 @@ private:
 	static bool		onNotecardDialog(const LLSD& notification, const LLSD& response );
 	
 	LLPointer<LLInventoryItem> mDragItem;
+	LLTextSegment* mDragSegment;
 	llwchar mDragItemChar;
 	BOOL mDragItemSaved;
 	class LLEmbeddedItems* mEmbeddedItemList;
 
 	LLUUID mObjectID;
 	LLUUID mNotecardInventoryID;
+	LLUUID mPreviewID;
 
 	LLPointer<class LLEmbeddedNotecardOpener> mInventoryCallback;
-
-	// *TODO: Add right click menus for SLURLs
-	//LLViewHandle mPopupMenuHandle;
 
 	//
 	// Inner classes
 	//
 
-	class LLTextCmdInsertEmbeddedItem;
+	class TextCmdInsertEmbeddedItem;
 };
 
 #endif  // LL_VIEWERTEXTEDITOR_H

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -61,7 +61,7 @@
 #include "llviewerjoint.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "llworld.h"
 #include "llui.h"
 #include "pipeline.h"
@@ -78,7 +78,7 @@ const F32 PLANE_TICK_SIZE = 0.4f;
 const F32 MANIPULATOR_SCALE_HALF_LIFE = 0.07f;
 const F32 SNAP_ARROW_SCALE = 0.7f;
 
-static LLPointer<LLImageGL> sGridTex = NULL ;
+static LLPointer<LLViewerTexture> sGridTex = NULL ;
 
 const LLManip::EManipPart MANIPULATOR_IDS[9] = 
 {
@@ -101,6 +101,16 @@ const U32 ARROW_TO_AXIS[4] =
 	VZ
 };
 
+// Sort manipulator handles by their screen-space projection
+struct ClosestToCamera
+{
+	bool operator()(const LLManipTranslate::ManipulatorHandle& a,
+					const LLManipTranslate::ManipulatorHandle& b) const
+	{
+		return a.mEndPosition.mV[VZ] < b.mEndPosition.mV[VZ];
+	}
+};
+
 LLManipTranslate::LLManipTranslate( LLToolComposite* composite )
 :	LLManip( std::string("Move"), composite ),
 	mLastHoverMouseX(-1),
@@ -113,9 +123,13 @@ LLManipTranslate::LLManipTranslate( LLToolComposite* composite )
 	mAxisArrowLength(50),
 	mConeSize(0),
 	mArrowLengthMeters(0.f),
+	mGridSizeMeters(1.f),
 	mPlaneManipOffsetMeters(0.f),
 	mUpdateTimer(),
 	mSnapOffsetMeters(0.f),
+	mSubdivisions(10.f),
+	mInSnapRegime(FALSE),
+	mSnapped(FALSE),
 	mArrowScales(1.f, 1.f, 1.f),
 	mPlaneScales(1.f, 1.f, 1.f),
 	mPlaneManipPositions(1.f, 1.f, 1.f, 1.f)
@@ -154,7 +168,7 @@ void LLManipTranslate::restoreGL()
 	U32 mip = 0;
 
 	destroyGL() ;
-	sGridTex = new LLImageGL() ;
+	sGridTex = LLViewerTextureManager::getLocalTexture() ;
 	if(!sGridTex->createGLTexture())
 	{
 		sGridTex = NULL ;
@@ -163,7 +177,7 @@ void LLManipTranslate::restoreGL()
 
 	GLuint* d = new GLuint[rez*rez];	
 
-	gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, sGridTex->getTexName());
+	gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, sGridTex->getTexName(), true);
 	gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_TRILINEAR);
 
 	while (rez >= 1)
@@ -273,7 +287,6 @@ void LLManipTranslate::restoreGL()
 
 LLManipTranslate::~LLManipTranslate()
 {
-	for_each(mProjectedManipulators.begin(), mProjectedManipulators.end(), DeletePointer());
 }
 
 
@@ -379,7 +392,7 @@ BOOL LLManipTranslate::handleMouseDownOnPart( S32 x, S32 y, MASK mask )
 		}
 		else if (gSavedSettings.getBOOL("SnapToMouseCursor"))
 		{
-			LLUI::setCursorPositionScreen(mouse_pos.mX, mouse_pos.mY);
+			LLUI::setMousePositionScreen(mouse_pos.mX, mouse_pos.mY);
 			x = mouse_pos.mX;
 			y = mouse_pos.mY;
 		}
@@ -413,8 +426,9 @@ BOOL LLManipTranslate::handleHover(S32 x, S32 y, MASK mask)
 	}
 	
 	// Handle auto-rotation if necessary.
+	LLRect world_rect = gViewerWindow->getWorldViewRectScaled();
 	const F32 ROTATE_ANGLE_PER_SECOND = 30.f * DEG_TO_RAD;
-	const S32 ROTATE_H_MARGIN = gViewerWindow->getWindowWidth() / 20;
+	const S32 ROTATE_H_MARGIN = world_rect.getWidth() / 20;
 	const F32 rotate_angle = ROTATE_ANGLE_PER_SECOND / gFPSClamped;
 	BOOL rotated = FALSE;
 
@@ -426,7 +440,7 @@ BOOL LLManipTranslate::handleHover(S32 x, S32 y, MASK mask)
 			gAgent.cameraOrbitAround(rotate_angle);
 			rotated = TRUE;
 		}
-		else if (x > gViewerWindow->getWindowWidth() - ROTATE_H_MARGIN)
+		else if (x > world_rect.getWidth() - ROTATE_H_MARGIN)
 		{
 			gAgent.cameraOrbitAround(-rotate_angle);
 			rotated = TRUE;
@@ -887,8 +901,9 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 		planar_manip_xy_visible = TRUE;
 	}
 
-	for_each(mProjectedManipulators.begin(), mProjectedManipulators.end(), DeletePointer());
-	mProjectedManipulators.clear();
+	// Project up to 9 manipulators to screen space 2*X, 2*Y, 2*Z, 3*planes
+	std::vector<ManipulatorHandle> projected_manipulators;
+	projected_manipulators.reserve(9);
 	
 	for (S32 i = 0; i < num_arrow_manips; i+= 2)
 	{
@@ -898,12 +913,12 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 		LLVector4 projected_end = mManipulatorVertices[i + 1] * transform;
 		projected_end = projected_end * (1.f / projected_end.mV[VW]);
 
-		ManipulatorHandle* projManipulator = 
-			new ManipulatorHandle(LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
+		ManipulatorHandle projected_manip(
+				LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
 				LLVector3(projected_end.mV[VX], projected_end.mV[VY], projected_end.mV[VZ]), 
 				MANIPULATOR_IDS[i / 2],
 				10.f); // 10 pixel hotspot for arrows
-		mProjectedManipulators.insert(projManipulator);
+		projected_manipulators.push_back(projected_manip);
 	}
 
 	if (planar_manip_yz_visible)
@@ -915,12 +930,12 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 		LLVector4 projected_end = mManipulatorVertices[i + 1] * transform;
 		projected_end = projected_end * (1.f / projected_end.mV[VW]);
 
-		ManipulatorHandle* projManipulator = 
-			new ManipulatorHandle(LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
+		ManipulatorHandle projected_manip(
+				LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
 				LLVector3(projected_end.mV[VX], projected_end.mV[VY], projected_end.mV[VZ]), 
 				MANIPULATOR_IDS[i / 2],
 				20.f); // 20 pixels for planar manipulators
-		mProjectedManipulators.insert(projManipulator);
+		projected_manipulators.push_back(projected_manip);
 	}
 
 	if (planar_manip_xz_visible)
@@ -932,12 +947,12 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 		LLVector4 projected_end = mManipulatorVertices[i + 1] * transform;
 		projected_end = projected_end * (1.f / projected_end.mV[VW]);
 
-		ManipulatorHandle* projManipulator = 
-			new ManipulatorHandle(LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
+		ManipulatorHandle projected_manip(
+				LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
 				LLVector3(projected_end.mV[VX], projected_end.mV[VY], projected_end.mV[VZ]), 
 				MANIPULATOR_IDS[i / 2],
 				20.f); // 20 pixels for planar manipulators
-		mProjectedManipulators.insert(projManipulator);
+		projected_manipulators.push_back(projected_manip);
 	}
 
 	if (planar_manip_xy_visible)
@@ -949,29 +964,35 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 		LLVector4 projected_end = mManipulatorVertices[i + 1] * transform;
 		projected_end = projected_end * (1.f / projected_end.mV[VW]);
 
-		ManipulatorHandle* projManipulator = 
-			new ManipulatorHandle(LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
+		ManipulatorHandle projected_manip(
+				LLVector3(projected_start.mV[VX], projected_start.mV[VY], projected_start.mV[VZ]), 
 				LLVector3(projected_end.mV[VX], projected_end.mV[VY], projected_end.mV[VZ]), 
 				MANIPULATOR_IDS[i / 2],
 				20.f); // 20 pixels for planar manipulators
-		mProjectedManipulators.insert(projManipulator);
+		projected_manipulators.push_back(projected_manip);
 	}
 
 	LLVector2 manip_start_2d;
 	LLVector2 manip_end_2d;
 	LLVector2 manip_dir;
-	F32 half_width = gViewerWindow->getWindowWidth() / 2.f;
-	F32 half_height = gViewerWindow->getWindowHeight() / 2.f;
+	LLRect world_view_rect = gViewerWindow->getWorldViewRectScaled();
+	F32 half_width = (F32)world_view_rect.getWidth() / 2.f;
+	F32 half_height = (F32)world_view_rect.getHeight() / 2.f;
 	LLVector2 mousePos((F32)x - half_width, (F32)y - half_height);
 	LLVector2 mouse_delta;
 
-	for (minpulator_list_t::iterator iter = mProjectedManipulators.begin();
-		 iter != mProjectedManipulators.end(); ++iter)
+	// Keep order consistent with insertion via stable_sort
+	std::stable_sort( projected_manipulators.begin(),
+		projected_manipulators.end(),
+		ClosestToCamera() );
+
+	std::vector<ManipulatorHandle>::iterator it = projected_manipulators.begin();
+	for ( ; it != projected_manipulators.end(); ++it)
 	{
-		ManipulatorHandle* manipulator = *iter;
+		ManipulatorHandle& manipulator = *it;
 		{
-			manip_start_2d.setVec(manipulator->mStartPosition.mV[VX] * half_width, manipulator->mStartPosition.mV[VY] * half_height);
-			manip_end_2d.setVec(manipulator->mEndPosition.mV[VX] * half_width, manipulator->mEndPosition.mV[VY] * half_height);
+			manip_start_2d.setVec(manipulator.mStartPosition.mV[VX] * half_width, manipulator.mStartPosition.mV[VY] * half_height);
+			manip_end_2d.setVec(manipulator.mEndPosition.mV[VX] * half_width, manipulator.mEndPosition.mV[VY] * half_height);
 			manip_dir = manip_end_2d - manip_start_2d;
 
 			mouse_delta = mousePos - manip_start_2d;
@@ -983,9 +1004,9 @@ void LLManipTranslate::highlightManipulators(S32 x, S32 y)
 
 			if (mouse_pos_manip > 0.f &&
 				mouse_pos_manip < manip_length &&
-				mouse_dist_manip_squared < manipulator->mHotSpotRadius * manipulator->mHotSpotRadius)
+				mouse_dist_manip_squared < manipulator.mHotSpotRadius * manipulator.mHotSpotRadius)
 			{
-				mHighlightedPart = manipulator->mManipID;
+				mHighlightedPart = manipulator.mManipID;
 				break;
 			}
 		}
@@ -1225,7 +1246,7 @@ void LLManipTranslate::renderSnapGuides()
 		{
 			LLVector3 cam_to_selection = getPivotPoint() - LLViewerCamera::getInstance()->getOrigin();
 			F32 current_range = cam_to_selection.normVec();
-			guide_size_meters = SNAP_GUIDE_SCREEN_SIZE * gViewerWindow->getWindowHeight() * current_range / LLViewerCamera::getInstance()->getPixelMeterRatio();
+			guide_size_meters = SNAP_GUIDE_SCREEN_SIZE * gViewerWindow->getWorldViewHeightRaw() * current_range / LLViewerCamera::getInstance()->getPixelMeterRatio();
 	
 			F32 fraction_of_fov = mAxisArrowLength / (F32) LLViewerCamera::getInstance()->getViewHeightInPixels();
 			F32 apparent_angle = fraction_of_fov * LLViewerCamera::getInstance()->getView();  // radians
@@ -1438,13 +1459,13 @@ void LLManipTranslate::renderSnapGuides()
 				LLVector3 help_text_pos = selection_center_start + (snap_offset_meters_up * 3.f * mSnapOffsetAxis);
 				const LLFontGL* big_fontp = LLFontGL::getFontSansSerif();
 
-				std::string help_text = "Move mouse cursor over ruler to snap";
+				std::string help_text = "Move mouse cursor over ruler";
 				LLColor4 help_text_color = LLColor4::white;
 				help_text_color.mV[VALPHA] = clamp_rescale(mHelpTextTimer.getElapsedTimeF32(), sHelpTextVisibleTime, sHelpTextVisibleTime + sHelpTextFadeTime, line_alpha, 0.f);
-				hud_render_utf8text(help_text, help_text_pos, *big_fontp, LLFontGL::NORMAL, -0.5f * big_fontp->getWidthF32(help_text), 3.f, help_text_color, mObjectSelection->getSelectType() == SELECT_TYPE_HUD);
+				hud_render_utf8text(help_text, help_text_pos, *big_fontp, LLFontGL::NORMAL, LLFontGL::NO_SHADOW, -0.5f * big_fontp->getWidthF32(help_text), 3.f, help_text_color, mObjectSelection->getSelectType() == SELECT_TYPE_HUD);
 				help_text = "to snap to grid";
 				help_text_pos -= LLViewerCamera::getInstance()->getUpAxis() * mSnapOffsetMeters * 0.2f;
-				hud_render_utf8text(help_text, help_text_pos, *big_fontp, LLFontGL::NORMAL, -0.5f * big_fontp->getWidthF32(help_text), 3.f, help_text_color, mObjectSelection->getSelectType() == SELECT_TYPE_HUD);
+				hud_render_utf8text(help_text, help_text_pos, *big_fontp, LLFontGL::NORMAL, LLFontGL::NO_SHADOW, -0.5f * big_fontp->getWidthF32(help_text), 3.f, help_text_color, mObjectSelection->getSelectType() == SELECT_TYPE_HUD);
 			}
 		}
 	}
@@ -1522,7 +1543,7 @@ void LLManipTranslate::renderSnapGuides()
 		
 		float a = line_alpha;
 
-		LLColor4 col = gColors.getColor("SilhouetteChildColor");
+		LLColor4 col = LLUIColorTable::instance().getColor("SilhouetteChildColor");
 		{
 			//draw grid behind objects
 			LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
@@ -1800,7 +1821,7 @@ void LLManipTranslate::renderTranslationHandles()
 	// Drag handles 	
 	if (mObjectSelection->getSelectType() == SELECT_TYPE_HUD)
 	{
-		mArrowLengthMeters = mAxisArrowLength / gViewerWindow->getWindowHeight();
+		mArrowLengthMeters = mAxisArrowLength / gViewerWindow->getWorldViewHeightRaw();
 		mArrowLengthMeters /= gAgent.mHUDCurZoom;
 	}
 	else

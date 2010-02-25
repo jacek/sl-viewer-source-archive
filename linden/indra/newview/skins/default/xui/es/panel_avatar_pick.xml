@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Pick" title="Elegir">
-	<button font="SansSerifSmall" label="Marcar esta posición" name="set_location_btn" width="135" left="210"/>
+<panel label="Imagen" name="Pick" title="Elegir">
+	<button font="SansSerifSmall" label="Marcar esta posición" left="210" name="set_location_btn" width="135"/>
 	<button font="SansSerifSmall" label="Teleportar" name="pick_teleport_btn" width="75"/>
-	<button font="SansSerifSmall" label="Mostrar en el mapa" name="pick_map_btn" width="125" left="85"/>
+	<button font="SansSerifSmall" label="Mapa" left="85" name="pick_map_btn" width="125"/>
 	<text name="sort_order_text">
 		Ordenar:
 	</text>

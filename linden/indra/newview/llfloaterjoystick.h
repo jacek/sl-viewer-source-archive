@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,11 +38,11 @@
 
 class LLCheckBoxCtrl;
 
-class LLFloaterJoystick : public LLFloater, public LLFloaterSingleton<LLFloaterJoystick >
+class LLFloaterJoystick : public LLFloater
 {
+	friend class LLFloaterReg;
+
 public:
-	LLFloaterJoystick(const LLSD& data);
-	virtual ~LLFloaterJoystick();
 
 	virtual BOOL postBuild();
 	virtual void refresh();
@@ -52,6 +52,12 @@ public:
 	static  void setSNDefaults();
 
 private:
+
+	LLFloaterJoystick(const LLSD& data);
+	virtual ~LLFloaterJoystick();
+
+	void initFromSettings();
+	
 	static void onCommitJoystickEnabled(LLUICtrl*, void*);
 	static void onClickRestoreSNDefaults(void*);
 	static void onClickCancel(void*);
@@ -84,9 +90,8 @@ private:
 	LLCheckBoxCtrl	*mCheckFlycamEnabled;
 
 	// stats view 
-	LLStatView*		mAxisStatsView;
-	LLStat*			mAxisStats[6];
-	LLStatBar*		mAxisStatsBar[6];
+	LLStat* mAxisStats[6];
+	LLStatBar* mAxisStatsBar[6];
 };
 
 #endif

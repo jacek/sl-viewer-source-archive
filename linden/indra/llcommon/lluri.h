@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,7 +47,7 @@ class LLApp;
  * See: http://www.ietf.org/rfc/rfc3986.txt
  *
  */
-class LLURI
+class LL_COMMON_API LLURI
 {
 public:
   LLURI();
@@ -127,27 +127,16 @@ public:
 	/** @name Escaping Utilities */
 	//@{
 	/**
-	 * @brief Escape a raw url with a reasonable set of allowed characters.
-	 *
-	 * The default set was chosen to match HTTP urls and general
-     *  guidelines for naming resources. Passing in a raw url does not
-     *  produce well defined results because you really need to know
-     *  which segments are path parts because path parts are supposed
-     *  to be escaped individually. The default set chosen is:
+	 * @brief Escape the string passed except for unreserved
 	 *
 	 *  ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 	 *  0123456789
 	 *  -._~
-	 *  :@!$'()*+,=/?&#;
 	 *
-	 * *NOTE: This API is basically broken because it does not
-     *  allow you to specify significant path characters. For example,
-     *  if the filename actually contained a /, then you cannot use
-     *  this function to generate the serialized url for that
-     *  resource.
+	 * @see http://www.ietf.org/rfc/rfc1738.txt
 	 *
 	 * @param str The raw URI to escape.
-	 * @return Returns the escaped uri or an empty string.
+	 * @return Returns the rfc 1738 escaped uri or an empty string.
 	 */
 	static std::string escape(const std::string& str);
 
@@ -189,6 +178,6 @@ private:
 };
 
 // this operator required for tut
-bool operator!=(const LLURI& first, const LLURI& second);
+LL_COMMON_API bool operator!=(const LLURI& first, const LLURI& second);
 
 #endif // LL_LLURI_H

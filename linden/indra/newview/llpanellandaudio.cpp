@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -69,13 +69,7 @@ enum
 //---------------------------------------------------------------------------
 
 LLPanelLandAudio::LLPanelLandAudio(LLParcelSelectionHandle& parcel)
-:	LLPanel(),
-	mParcel(parcel),
-	mCheckSoundLocal(NULL),
-	mSoundHelpButton(NULL),
-	mRadioVoiceChat(NULL),
-	mMusicURLEdit(NULL),
-	mMusicUrlCheck(NULL)
+:	LLPanel(/*std::string("land_media_panel")*/), mParcel(parcel)
 {
 }
 
@@ -88,14 +82,17 @@ LLPanelLandAudio::~LLPanelLandAudio()
 
 BOOL LLPanelLandAudio::postBuild()
 {
-	mCheckSoundLocal = getChild<LLCheckBoxCtrl>("check_sound_local");
-	childSetCommitCallback("check_sound_local", onCommitAny, this);
+	mCheckSoundLocal = getChild<LLCheckBoxCtrl>("check sound local");
+	childSetCommitCallback("check sound local", onCommitAny, this);
 
-	mSoundHelpButton = getChild<LLButton>("?");
-	mSoundHelpButton->setClickedCallback(onClickSoundHelp, this);
-	
-	mRadioVoiceChat = getChild<LLRadioGroup>("parcel_voice_channel");
-	childSetCommitCallback("parcel_voice_channel", onCommitAny, this);
+	mCheckParcelEnableVoice = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel");
+	childSetCommitCallback("parcel_enable_voice_channel", onCommitAny, this);
+
+	// This one is always disabled so no need for a commit callback
+	mCheckEstateDisabledVoice = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel_is_estate_disabled");
+
+	mCheckParcelVoiceLocal = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel_local");
+	childSetCommitCallback("parcel_enable_voice_channel_local", onCommitAny, this);
 
 	mMusicURLEdit = getChild<LLLineEditor>("music_url");
 	childSetCommitCallback("music_url", onCommitAny, this);
@@ -123,32 +120,49 @@ void LLPanelLandAudio::refresh()
 		// Display options
 		BOOL can_change_media = LLViewerParcelMgr::isParcelModifiableByAgent(parcel, GP_LAND_CHANGE_MEDIA);
 
-		mMusicURLEdit->setText(parcel->getMusicURL());
-		mMusicURLEdit->setEnabled( can_change_media );
+		mCheckSoundLocal->set( parcel->getSoundLocal() );
+		mCheckSoundLocal->setEnabled( can_change_media );
 
 		mMusicUrlCheck->set( parcel->getObscureMusic() );
 		mMusicUrlCheck->setEnabled( can_change_media );
 
-		bool obscure_music = ! can_change_media && parcel->getObscureMusic();
-		mMusicURLEdit->setDrawAsterixes( obscure_music );
+		bool allow_voice = parcel->getParcelFlagAllowVoice();
 
-		mCheckSoundLocal->set( parcel->getSoundLocal() );
-		mCheckSoundLocal->setEnabled( can_change_media );
-
-		if(parcel->getParcelFlagAllowVoice())
+		LLViewerRegion* region = LLViewerParcelMgr::getInstance()->getSelectionRegion();
+		if (region && region->isVoiceEnabled())
 		{
-			if(parcel->getParcelFlagUseEstateVoiceChannel())
-				mRadioVoiceChat->setSelectedIndex(kRadioVoiceChatEstate);
-			else
-				mRadioVoiceChat->setSelectedIndex(kRadioVoiceChatPrivate);
+			mCheckEstateDisabledVoice->setVisible(false);
+
+			mCheckParcelEnableVoice->setVisible(true);
+			mCheckParcelEnableVoice->setEnabled( can_change_media );
+			mCheckParcelEnableVoice->set(allow_voice);
+
+			mCheckParcelVoiceLocal->setEnabled( can_change_media && allow_voice );
 		}
 		else
 		{
-			mRadioVoiceChat->setSelectedIndex(kRadioVoiceChatDisable);
+			// Voice disabled at estate level, overrides parcel settings
+			// Replace the parcel voice checkbox with a disabled one
+			// labelled with an explanatory message
+			mCheckEstateDisabledVoice->setVisible(true);
+
+			mCheckParcelEnableVoice->setVisible(false);
+			mCheckParcelEnableVoice->setEnabled(false);
+			mCheckParcelVoiceLocal->setEnabled(false);
 		}
 
-		LLViewerRegion* region = LLViewerParcelMgr::getInstance()->getSelectionRegion();
-		mRadioVoiceChat->setEnabled( region && region->isVoiceEnabled() && can_change_media );
+		mCheckParcelEnableVoice->set(allow_voice);
+		mCheckParcelVoiceLocal->set(!parcel->getParcelFlagUseEstateVoiceChannel());
+
+		// don't display urls if you're not able to change it
+		// much requested change in forums so people can't 'steal' urls
+		// NOTE: bug#2009 means this is still vunerable - however, bug
+		// should be closed since this bug opens up major security issues elsewhere.
+		bool obscure_music = ! can_change_media && parcel->getObscureMusic();
+		
+		mMusicURLEdit->setDrawAsterixes(obscure_music);
+		mMusicURLEdit->setText(parcel->getMusicURL());
+		mMusicURLEdit->setEnabled( can_change_media );
 	}
 }
 // static
@@ -164,30 +178,11 @@ void LLPanelLandAudio::onCommitAny(LLUICtrl*, void *userdata)
 
 	// Extract data from UI
 	BOOL sound_local		= self->mCheckSoundLocal->get();
-	int voice_setting		= self->mRadioVoiceChat->getSelectedIndex();
 	std::string music_url	= self->mMusicURLEdit->getText();
 	U8 obscure_music		= self->mMusicUrlCheck->get();
 
-
-	BOOL voice_enabled;
-	BOOL voice_estate_chan;
-
-	switch(voice_setting)
-	{
-		default:
-		case kRadioVoiceChatEstate:
-			voice_enabled = TRUE;
-			voice_estate_chan = TRUE;
-		break;
-		case kRadioVoiceChatPrivate:
-			voice_enabled = TRUE;
-			voice_estate_chan = FALSE;
-		break;
-		case kRadioVoiceChatDisable:
-			voice_enabled = FALSE;
-			voice_estate_chan = FALSE;
-		break;
-	}
+	BOOL voice_enabled = self->mCheckParcelEnableVoice->get();
+	BOOL voice_estate_chan = !self->mCheckParcelVoiceLocal->get();
 
 	// Remove leading/trailing whitespace (common when copying/pasting)
 	LLStringUtil::trim(music_url);
@@ -205,10 +200,3 @@ void LLPanelLandAudio::onCommitAny(LLUICtrl*, void *userdata)
 	// Might have changed properties, so let's redraw!
 	self->refresh();
 }
-
-
-// static 
-void LLPanelLandAudio::onClickSoundHelp(void*)
-{ 
-	LLNotifications::instance().add("ClickSoundHelpLand");
-} 

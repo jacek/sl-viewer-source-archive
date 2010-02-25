@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,6 +36,8 @@
 #include "lscript_byteconvert.h"
 #include "linked_lists.h"
 #include "lscript_library.h"
+
+class LLTimer;
 
 // Return values for run() methods
 const U32 NO_DELETE_FLAG	= 0x0000;
@@ -369,8 +371,7 @@ class LLScriptExecute
 {
 public:
 	LLScriptExecute();
-	virtual ~LLScriptExecute() {;}
-
+	virtual ~LLScriptExecute()  = 0;
 	virtual S32 getVersion() const = 0;
 	virtual void deleteAllEvents() = 0;
 	virtual void addEvent(LLScriptDataCollection* event) = 0;

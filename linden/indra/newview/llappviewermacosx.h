@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -48,6 +48,9 @@ public:
 	//
 	virtual bool init();			// Override to do application initialization
 
+	// mute/unmute the system's master audio
+	virtual void setMasterSystemAudioMute(bool mute);
+	virtual bool getMasterSystemAudioMute();
 
 protected:
 	virtual bool restoreErrorTrap();

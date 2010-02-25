@@ -16,11 +16,10 @@ set(cmake_SOURCE_FILES
     CARes.cmake
     CURL.cmake
     CMakeCopyIfDifferent.cmake
-    CopyWinLibs.cmake
+    Copy3rdPartyLibs.cmake
     CSharpMacros.cmake
     DBusGlib.cmake
     DirectX.cmake
-    DownloadPrebuilt.cmake.in
     ELFIO.cmake
     EXPAT.cmake
     FindAPR.cmake
@@ -31,7 +30,6 @@ set(cmake_SOURCE_FILES
     FindMono.cmake
     FindMT.cmake
     FindMySQL.cmake
-    FindNDOF.cmake
     FindOpenJPEG.cmake
     FindXmlRpcEpi.cmake
     FMOD.cmake
@@ -55,6 +53,7 @@ set(cmake_SOURCE_FILES
     LLPrimitive.cmake
     LLRender.cmake
     LLScene.cmake
+    LLTestCommand.cmake
     LLUI.cmake
     LLVFS.cmake
     LLWindow.cmake
@@ -71,13 +70,11 @@ set(cmake_SOURCE_FILES
     PNG.cmake
     Python.cmake
     Prebuilt.cmake
-    RunBuildTest.cmake
     TemplateCheck.cmake
     Tut.cmake
     UI.cmake
     UnixInstall.cmake
     Variables.cmake
-    Versions.cmake
     XmlRpcEpi.cmake
     ZLIB.cmake
     )

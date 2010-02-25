@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -190,7 +190,7 @@ BOOL LLKeyframeStandMotion::onUpdate(F32 time, U8* joint_mask)
 	if (dot(mPelvisState->getJoint()->getWorldRotation(), mLastGoodPelvisRotation) < ROTATION_THRESHOLD)
 	{
 		mLastGoodPelvisRotation = mPelvisState->getJoint()->getWorldRotation();
-		mLastGoodPelvisRotation.normQuat();
+		mLastGoodPelvisRotation.normalize();
 		mTrackAnkles = TRUE;
 	}
 	else if ((mCharacter->getCharacterPosition() - mLastGoodPosition).magVecSquared() > POSITION_THRESHOLD)

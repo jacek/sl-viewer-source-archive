@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -963,6 +963,7 @@ std::ostream&		operator<<(std::ostream& s, const LLNameValue &a)
 			U64_to_str(*a.mNameValueReference.u64, u64_string, sizeof(u64_string));
 			s << u64_string;
 		}
+		break;
 	case NVT_VEC3:
 		s << *(a.mNameValueReference.vec3);
 		break;

@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,9 +45,6 @@
 # include <syslog.h>
 # include <unistd.h>
 #endif // !LL_WINDOWS
-#if LL_WINDOWS
-# include <windows.h>
-#endif // LL_WINDOWS
 #include <vector>
 
 #include "llapp.h"
@@ -57,7 +54,7 @@
 #include "llsd.h"
 #include "llsdserialize.h"
 #include "llstl.h"
-
+#include "lltimer.h"
 
 namespace {
 #if !LL_WINDOWS
@@ -288,7 +285,7 @@ namespace
 	public:
 		static LogControlFile& fromDirectory(const std::string& dir);
 		
-		virtual void loadFile();
+		virtual bool loadFile();
 		
 	private:
 		LogControlFile(const std::string &filename)
@@ -316,7 +313,7 @@ namespace
 			// NB: This instance is never freed
 	}
 	
-	void LogControlFile::loadFile()
+	bool LogControlFile::loadFile()
 	{
 		LLSD configuration;
 
@@ -332,12 +329,13 @@ namespace
 				llwarns << filename() << " missing, ill-formed,"
 							" or simply undefined; not changing configuration"
 						<< llendl;
-				return;
+				return false;
 			}
 		}
 		
 		LLError::configure(configuration);
 		llinfos << "logging reconfigured from " << filename() << llendl;
+		return true;
 	}
 
 
@@ -431,7 +429,7 @@ namespace LLError
 		Settings()
 			:	printLocation(false),
 				defaultLevel(LLError::LEVEL_DEBUG),
-				crashFunction(NULL),
+				crashFunction(),
 				timeFunction(NULL),
 				fileRecorder(NULL),
 				fixedBufferRecorder(NULL),
@@ -599,11 +597,17 @@ namespace LLError
 		s.printLocation = print;
 	}
 
-	void setFatalFunction(FatalFunction f)
+	void setFatalFunction(const FatalFunction& f)
 	{
 		Settings& s = Settings::get();
 		s.crashFunction = f;
 	}
+
+    FatalFunction getFatalFunction()
+    {
+        Settings& s = Settings::get();
+        return s.crashFunction;
+    }
 
 	void setTimeFunction(TimeFunction f)
 	{
@@ -1104,29 +1108,6 @@ namespace LLError
 				s.uniqueLogMessages[message] = 1;
 			}
 		}
-
-		if (site.mPrintOnce)
-		{
-			std::map<std::string, unsigned int>::iterator messageIter = s.uniqueLogMessages.find(message);
-			if (messageIter != s.uniqueLogMessages.end())
-			{
-				messageIter->second++;
-				unsigned int num_messages = messageIter->second;
-				if (num_messages == 10 || num_messages == 50 || (num_messages % 100) == 0)
-				{
-					prefix << "ONCE (" << num_messages << "th time seen): ";
-				} 
-				else
-				{
-					return;
-				}
-			}
-			else 
-			{
-				prefix << "ONCE: ";
-				s.uniqueLogMessages[message] = 1;
-			}
-		}
 		
 		prefix << message;
 		message = prefix.str();
@@ -1209,14 +1190,17 @@ namespace LLError
 	void crashAndLoop(const std::string& message)
 	{
 		// Now, we go kaboom!
-		int* crash = NULL;
+		int* make_me_crash = NULL;
 
-		*crash = 0;
+		*make_me_crash = 0;
 
 		while(true)
 		{
 			// Loop forever, in case the crash didn't work?
 		}
+		
+		// this is an attempt to let Coverity and other semantic scanners know that this function won't be returning ever.
+		exit(EXIT_FAILURE);
 	}
 #if LL_WINDOWS
 		#pragma optimize("", on)

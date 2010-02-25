@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,6 +35,7 @@
 
 #include "llpanelgroup.h"
 
+class LLFilterEditor;
 class LLNameListCtrl;
 class LLPanelGroupSubTab;
 class LLPanelGroupMembersSubTab;
@@ -42,17 +43,17 @@ class LLPanelGroupRolesSubTab;
 class LLPanelGroupActionsSubTab;
 class LLScrollListCtrl;
 class LLScrollListItem;
+class LLTextEditor;
 
 // Forward declare for friend usage.
 //virtual BOOL LLPanelGroupSubTab::postBuildSubTab(LLView*);
 
 typedef std::map<std::string,std::string> icon_map_t;
 
-class LLPanelGroupRoles : public LLPanelGroupTab,
-						  public LLPanelGroupTabObserver
+class LLPanelGroupRoles : public LLPanelGroupTab
 {
 public:
-	LLPanelGroupRoles(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupRoles();
 	virtual ~LLPanelGroupRoles();
 
 	// Allow sub tabs to ask for sibling controls.
@@ -63,8 +64,7 @@ public:
 	virtual BOOL postBuild();
 	virtual BOOL isVisibleByAgent(LLAgent* agentp);
 
-	static void* createTab(void* data);
-	static void onClickSubTab(void*,bool);
+	
 	void handleClickSubTab();
 
 	// Checks if the current tab needs to be applied, and tries to switch to the requested tab.
@@ -78,7 +78,6 @@ public:
 	bool onModalClose(const LLSD& notification, const LLSD& response);
 
 	// Most of these messages are just passed on to the current sub-tab.
-	virtual std::string getHelpText() const;
 	virtual void activate();
 	virtual void deactivate();
 	virtual bool needsApply(std::string& mesg);
@@ -87,8 +86,7 @@ public:
 	virtual void cancel();
 	virtual void update(LLGroupChange gc);
 
-	// PanelGroupTab observer trigger
-	virtual void tabChanged();
+	virtual void setGroupID(const LLUUID& id);
 
 protected:
 	LLPanelGroupTab*		mCurrentTab;
@@ -104,21 +102,13 @@ protected:
 class LLPanelGroupSubTab : public LLPanelGroupTab
 {
 public:
-	LLPanelGroupSubTab(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupSubTab();
 	virtual ~LLPanelGroupSubTab();
 
 	virtual BOOL postBuild();
 
 	// This allows sub-tabs to collect child widgets from a higher level in the view hierarchy.
-	virtual BOOL postBuildSubTab(LLView* root) { return TRUE; }
-
-	static void onSearchKeystroke(LLLineEditor* caller, void* user_data);
-	void handleSearchKeystroke(LLLineEditor* caller);
-
-	static void onClickSearch(void*);
-	void handleClickSearch();
-	static void onClickShowAll(void*);
-	void handleClickShowAll();
+	virtual BOOL postBuildSubTab(LLView* root);
 
 	virtual void setSearchFilter( const std::string& filter );
 
@@ -127,11 +117,16 @@ public:
 
 	// Helper functions
 	bool matchesActionSearchFilter(std::string action);
+
+
+	void setFooterEnabled(BOOL enable);
+
+	virtual void setGroupID(const LLUUID& id);
+protected:
 	void buildActionsList(LLScrollListCtrl* ctrl,
 								 U64 allowed_by_some,
 								 U64 allowed_by_all,
-								 icon_map_t& icons,
-								 void (*commit_callback)(LLUICtrl*,void*),
+						  		 LLUICtrl::commit_callback_t commit_callback,
 								 BOOL show_all,
 								 BOOL filter,
 								 BOOL is_owner_role);
@@ -139,24 +134,22 @@ public:
 									U64 allowed_by_some,
 									U64 allowed_by_all,
 									LLRoleActionSet* action_set,
-									icon_map_t& icons,
-									void (*commit_callback)(LLUICtrl*,void*),
+									LLUICtrl::commit_callback_t commit_callback,
 									BOOL show_all,
 									BOOL filter,
 									BOOL is_owner_role);
 
-	void setFooterEnabled(BOOL enable);
 protected:
 	LLPanel* mHeader;
 	LLPanel* mFooter;
 
-	LLLineEditor*	mSearchLineEditor;
-	LLButton*		mSearchButton;
-	LLButton*		mShowAllButton;
+	LLFilterEditor*	mSearchEditor;
 
 	std::string mSearchFilter;
 
 	icon_map_t	mActionIcons;
+
+	bool mActivated;
 
 	void setOthersVisible(BOOL b);
 };
@@ -164,12 +157,10 @@ protected:
 class LLPanelGroupMembersSubTab : public LLPanelGroupSubTab
 {
 public:
-	LLPanelGroupMembersSubTab(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupMembersSubTab();
 	virtual ~LLPanelGroupMembersSubTab();
 
 	virtual BOOL postBuildSubTab(LLView* root);
-
-	static void* createTab(void* data);
 
 	static void onMemberSelect(LLUICtrl*, void*);
 	void handleMemberSelect();
@@ -182,6 +173,7 @@ public:
 
 	static void onEjectMembers(void*);
 	void handleEjectMembers();
+	void sendEjectNotifications(const LLUUID& group_id, const std::vector<LLUUID>& selected_members);
 
 	static void onRoleCheck(LLUICtrl* check, void* user_data);
 	void handleRoleCheck(const LLUUID& role_id,
@@ -199,6 +191,8 @@ public:
 	void updateMembers();
 
 	virtual void draw();
+
+	virtual void setGroupID(const LLUUID& id);
 
 protected:
 	typedef std::map<LLUUID, LLRoleMemberChangeType> role_change_data_map_t;
@@ -229,12 +223,10 @@ protected:
 class LLPanelGroupRolesSubTab : public LLPanelGroupSubTab
 {
 public:
-	LLPanelGroupRolesSubTab(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupRolesSubTab();
 	virtual ~LLPanelGroupRolesSubTab();
 
 	virtual BOOL postBuildSubTab(LLView* root);
-
-	static void* createTab(void* data);
 
 	virtual void activate();
 	virtual void deactivate();
@@ -249,7 +241,6 @@ public:
 	void buildMembersList();
 
 	static void onActionCheck(LLUICtrl*, void*);
-	void handleActionCheck(LLCheckBoxCtrl*, bool force=false);
 	bool addActionCB(const LLSD& notification, const LLSD& response, LLCheckBoxCtrl* check);
 
 	static void onPropertiesKey(LLLineEditor*, void*);
@@ -268,10 +259,8 @@ public:
 
 	void saveRoleChanges();
 protected:
-	LLSD createRoleItem(const LLUUID& role_id, 
-								 std::string name, 
-								 std::string title, 
-								 S32 members);
+	void handleActionCheck(LLUICtrl* ctrl, bool force);
+	LLSD createRoleItem(const LLUUID& role_id, std::string name, std::string title, S32 members);
 
 	LLScrollListCtrl* mRolesList;
 	LLNameListCtrl* mAssignedMembersList;
@@ -293,12 +282,11 @@ protected:
 class LLPanelGroupActionsSubTab : public LLPanelGroupSubTab
 {
 public:
-	LLPanelGroupActionsSubTab(const std::string& name, const LLUUID& group_id);
+	LLPanelGroupActionsSubTab();
 	virtual ~LLPanelGroupActionsSubTab();
 
 	virtual BOOL postBuildSubTab(LLView* root);
 
-	static void* createTab(void* data);
 
 	virtual void activate();
 	virtual void deactivate();
@@ -306,7 +294,6 @@ public:
 	virtual bool apply(std::string& mesg);
 	virtual void update(LLGroupChange gc);
 
-	static void onActionSelect(LLUICtrl*, void*);
 	void handleActionSelect();
 protected:
 	LLScrollListCtrl*	mActionList;

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,9 +36,13 @@
 #include "llagent.h"
 #include "llfloateravatarpicker.h"
 #include "llbutton.h"
+#include "llcallingcard.h"
 #include "llcombobox.h"
+#include "llgroupactions.h"
 #include "llgroupmgr.h"
 #include "llnamelistctrl.h"
+#include "llnotificationsutil.h"
+#include "llscrolllistitem.h"
 #include "llspinctrl.h"
 #include "lltextbox.h"
 #include "llviewerobject.h"
@@ -79,6 +83,7 @@ public:
  	LLButton		*mRemoveButton;
 	LLTextBox		*mGroupName;
 	std::string		mOwnerWarning;
+	std::string		mAlreadyInGroup;
 	bool		mConfirmedOwnerInvite;
 
 	void (*mCloseCallback)(void* data);
@@ -161,21 +166,34 @@ void LLPanelGroupInvite::impl::submitInvitations()
 		{
 			LLSD args;
 			args["MESSAGE"] = mOwnerWarning;
-			LLNotifications::instance().add("GenericAlertYesCancel", args, LLSD(), boost::bind(&LLPanelGroupInvite::impl::inviteOwnerCallback, this, _1, _2));
+			LLNotificationsUtil::add("GenericAlertYesCancel", args, LLSD(), boost::bind(&LLPanelGroupInvite::impl::inviteOwnerCallback, this, _1, _2));
 			return; // we'll be called again if user confirms
 		}
 	}
 
+	bool already_in_group = false;
 	//loop over the users
 	std::vector<LLScrollListItem*> items = mInvitees->getAllData();
 	for (std::vector<LLScrollListItem*>::iterator iter = items.begin();
 		 iter != items.end(); ++iter)
 	{
 		LLScrollListItem* item = *iter;
+		if(LLGroupActions::isAvatarMemberOfGroup(mGroupID, item->getUUID()))
+		{
+			already_in_group = true;
+			continue;
+		}
 		role_member_pairs[item->getUUID()] = role_id;
 	}
-
+	
 	LLGroupMgr::getInstance()->sendGroupMemberInvites(mGroupID, role_member_pairs);
+	
+	if(already_in_group)
+	{
+		LLSD msg;
+		msg["MESSAGE"] = mAlreadyInGroup;
+		LLNotificationsUtil::add("GenericAlert", msg);
+	}
 
 	//then close
 	(*mCloseCallback)(mCloseCallbackUserData);
@@ -183,7 +201,7 @@ void LLPanelGroupInvite::impl::submitInvitations()
 
 bool LLPanelGroupInvite::impl::inviteOwnerCallback(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 
 	switch(option)
 	{
@@ -275,8 +293,8 @@ void LLPanelGroupInvite::impl::callbackClickAdd(void* userdata)
 		LLFloater* parentp;
 
 		parentp = gFloaterView->getParentFloater(panelp);
-		parentp->addDependentFloater(LLFloaterAvatarPicker::show(callbackAddUsers,
-																 panelp->mImplementation,
+		parentp->addDependentFloater(LLFloaterAvatarPicker::show(boost::bind(impl::callbackAddUsers, _1, _2,
+																panelp->mImplementation),
 																 TRUE));
 	}
 }
@@ -351,18 +369,13 @@ void LLPanelGroupInvite::impl::callbackAddUsers(const std::vector<std::string>& 
 	if ( selfp) selfp->addUsers(names, ids);
 }
 
-LLPanelGroupInvite::LLPanelGroupInvite(const std::string& name,
-									   const LLUUID& group_id)
-	: LLPanel(name)
+LLPanelGroupInvite::LLPanelGroupInvite(const LLUUID& group_id)
+	: LLPanel(),
+	  mImplementation(new impl(group_id)),
+	  mPendingUpdate(FALSE)
 {
-	mImplementation = new impl(group_id);
-	mPendingUpdate = FALSE;
-	mStoreSelected = LLUUID::null;
-
-	std::string panel_def_file;
-
 	// Pass on construction of this panel to the control factory.
-	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_group_invite.xml", &getFactoryMap());
+	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_group_invite.xml");
 }
 
 LLPanelGroupInvite::~LLPanelGroupInvite()
@@ -393,16 +406,13 @@ void LLPanelGroupInvite::addUsers(std::vector<LLUUID>& agent_ids)
 	{
 		LLUUID agent_id = agent_ids[i];
 		LLViewerObject* dest = gObjectList.findObject(agent_id);
+		std::string fullname;
 		if(dest && dest->isAvatar())
 		{
-			std::string fullname;
-			LLSD args;
 			LLNameValue* nvfirst = dest->getNVPair("FirstName");
 			LLNameValue* nvlast = dest->getNVPair("LastName");
 			if(nvfirst && nvlast)
 			{
-				args["FIRST"] = std::string(nvfirst->getString());
-				args["LAST"] = std::string(nvlast->getString());
 				fullname = std::string(nvfirst->getString()) + " " + std::string(nvlast->getString());
 			}
 			if (!fullname.empty())
@@ -415,10 +425,44 @@ void LLPanelGroupInvite::addUsers(std::vector<LLUUID>& agent_ids)
 				names.push_back("(Unknown)");
 			}
 		}
+		else
+		{
+			//looks like user try to invite offline friend
+			//for offline avatar_id gObjectList.findObject() will return null
+			//so we need to do this additional search in avatar tracker, see EXT-4732
+			if (LLAvatarTracker::instance().isBuddy(agent_id))
+			{
+				if (!gCacheName->getFullName(agent_id, fullname))
+				{
+					// actually it should happen, just in case
+					gCacheName->get(LLUUID(agent_id), false, boost::bind(
+							&LLPanelGroupInvite::addUserCallback, this, _1, _2,
+							_3));
+					// for this special case!
+					//when there is no cached name we should remove resident from agent_ids list to avoid breaking of sequence
+					// removed id will be added in callback
+					agent_ids.erase(agent_ids.begin() + i);
+				}
+				else
+				{
+					names.push_back(fullname);
+				}
+			}
+		}
 	}
 	mImplementation->addUsers(names, agent_ids);
 }
 
+void LLPanelGroupInvite::addUserCallback(const LLUUID& id, const std::string& first_name, const std::string& last_name)
+{
+	std::vector<std::string> names;
+	std::vector<LLUUID> agent_ids;
+	std::string full_name = first_name + " " + last_name;
+	agent_ids.push_back(id);
+	names.push_back(first_name + " " + last_name);
+
+	mImplementation->addUsers(names, agent_ids);
+}
 void LLPanelGroupInvite::draw()
 {
 	LLPanel::draw();
@@ -519,9 +563,8 @@ BOOL LLPanelGroupInvite::postBuild()
 		getChild<LLNameListCtrl>("invitee_list", recurse);
 	if ( mImplementation->mInvitees )
 	{
-		mImplementation->mInvitees->setCallbackUserData(mImplementation);
 		mImplementation->mInvitees->setCommitOnSelectionChange(TRUE);
-		mImplementation->mInvitees->setCommitCallback(impl::callbackSelect);
+		mImplementation->mInvitees->setCommitCallback(impl::callbackSelect, mImplementation);
 	}
 
 	LLButton* button = getChild<LLButton>("add_button", recurse);
@@ -529,17 +572,14 @@ BOOL LLPanelGroupInvite::postBuild()
 	{
 		// default to opening avatarpicker automatically
 		// (*impl::callbackClickAdd)((void*)this);
-		button->setClickedCallback(impl::callbackClickAdd);
-		button->setCallbackUserData(this);
+		button->setClickedCallback(impl::callbackClickAdd, this);
 	}
 
 	mImplementation->mRemoveButton = 
 			getChild<LLButton>("remove_button", recurse);
 	if ( mImplementation->mRemoveButton )
 	{
-		mImplementation->mRemoveButton->
-				setClickedCallback(impl::callbackClickRemove);
-		mImplementation->mRemoveButton->setCallbackUserData(mImplementation);
+		mImplementation->mRemoveButton->setClickedCallback(impl::callbackClickRemove, mImplementation);
 		mImplementation->mRemoveButton->setEnabled(FALSE);
 	}
 
@@ -547,20 +587,18 @@ BOOL LLPanelGroupInvite::postBuild()
 		getChild<LLButton>("ok_button", recurse);
 	if ( mImplementation->mOKButton )
  	{
-		mImplementation->mOKButton->
-				setClickedCallback(impl::callbackClickOK);
-		mImplementation->mOKButton->setCallbackUserData(mImplementation);
+		mImplementation->mOKButton->setClickedCallback(impl::callbackClickOK, mImplementation);
 		mImplementation->mOKButton->setEnabled(FALSE);
  	}
 
 	button = getChild<LLButton>("cancel_button", recurse);
 	if ( button )
 	{
-		button->setClickedCallback(impl::callbackClickCancel);
-		button->setCallbackUserData(mImplementation);
+		button->setClickedCallback(impl::callbackClickCancel, mImplementation);
 	}
 
 	mImplementation->mOwnerWarning = getString("confirm_invite_owner_str");
+	mImplementation->mAlreadyInGroup = getString("already_in_group");
 
 	update();
 	

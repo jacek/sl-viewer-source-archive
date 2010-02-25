@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Place" title="Platzieren">
+<panel label="Platzieren" name="Place" title="Platzieren">
+	<panel.string name="traffic_text">
+		Traffic: [TRAFFIC]
+	</panel.string>
+	<panel.string name="area_text">
+		Gebiet: [AREA] qm.
+	</panel.string>
+	<panel.string name="forsale_text">
+		Zum Verkauf für [PRICE] L$
+	</panel.string>
+	<panel.string name="auction_text">
+		Auktions-ID [ID].
+	</panel.string>
+	<panel.string name="server_update_text">
+		Ohne Serverupdate sind keine Ortsinformationen verfügbar.
+	</panel.string>
+	<panel.string name="server_error_text">
+		Zur Zeit gibt es keine Informationen zu diesem Standort. Bitte versuchen Sie es später.
+	</panel.string>
+	<panel.string name="server_forbidden_text">
+		Die Informationen über diesen Standort sind zugriffsbeschränkt.  Bitte wenden Sie sich bezüglich Ihrer Berechtigungen an den Eigentümer der Parzelle.
+	</panel.string>
 	<text name="name_label">
 		Name:
 	</text>
@@ -16,27 +37,6 @@
 		Standort:
 	</text>
 	<button label="Teleportieren" name="teleport_btn"/>
-	<button label="Auf Karte" name="map_btn"/>
+	<button label="Karte" name="map_btn"/>
 	<button label="Gebote..." name="auction_btn"/>
-	<string name="traffic_text">
-		Traffic: [TRAFFIC] 
-	</string>
-	<string name="area_text">
-		Gebiet: [AREA] qm. 
-	</string>
-	<string name="forsale_text">
-		Zum Verkauf für [PRICE] L$
-	</string>
-	<string name="auction_text">
-		Auktions-ID [ID].
-	</string>
-	<string name="server_update_text">
-		Ohne Serverupdate sind keine Ortsinformationen verfügbar.
-	</string>
-	<string name="server_error_text">
-		Zur Zeit gibt es keine Informationen zu diesem Standort. Bitte versuchen Sie es später.
-	</string>
-	<string name="server_forbidden_text">
-		Die Informationen über diesen Standort sind zugriffsbeschränkt.  Bitte wenden Sie sich bezüglich Ihrer Berechtigungen an den Eigentümer der Parzelle.
-	</string>
 </panel>

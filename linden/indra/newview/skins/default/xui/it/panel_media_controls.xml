@@ -8,8 +8,8 @@
 	<button label="" name="media_play" tool_tip="Suona/pausa media in streaming"/>
 	<button label="" name="media_pause" tool_tip="Pausa media streaming"/>
 	<button label="" name="media_stop" tool_tip="Stop media streaming"/>
-	<volume_slider name="volume_slider" tool_tip="Volume Master"/>
-	<button label="" name="mute_master" tool_tip="Muta Master"/>
+	<volume_slider name="volume_slider" tool_tip="Master volume"/>
+	<button label="" name="mute_master" tool_tip="Master mute"/>
 	<button label="" name="expand" tool_tip="Aggiusta i livelli dei volumi individuali"/>
 	<string name="play_label">
 		Play

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -84,6 +84,7 @@ const F32 SKEW_MIN	= -0.95f;
 const F32 SKEW_MAX	=  0.95f;
 
 const F32 SCULPT_MIN_AREA = 0.002f;
+const S32 SCULPT_MIN_AREA_DETAIL = 1;
 
 BOOL check_same_clock_dir( const LLVector3& pt1, const LLVector3& pt2, const LLVector3& pt3, const LLVector3& norm)
 {    
@@ -2230,10 +2231,14 @@ void LLVolume::sculpt(U16 sculpt_width, U16 sculpt_height, S8 sculpt_components,
 	if (!data_is_empty)
 	{
 		sculptGenerateMapVertices(sculpt_width, sculpt_height, sculpt_components, sculpt_data, sculpt_type);
-		
-		if (sculptGetSurfaceArea() < SCULPT_MIN_AREA)
+
+		// don't test lowest LOD to support legacy content DEV-33670
+		if (mDetail > SCULPT_MIN_AREA_DETAIL)
 		{
-			data_is_empty = TRUE;
+			if (sculptGetSurfaceArea() < SCULPT_MIN_AREA)
+			{
+				data_is_empty = TRUE;
+			}
 		}
 	}
 
@@ -3370,7 +3375,8 @@ void LLVolume::generateSilhouetteVertices(std::vector<LLVector3> &vertices,
 										  std::vector<S32> &segments,
 										  const LLVector3& obj_cam_vec,
 										  const LLMatrix4& mat,
-										  const LLMatrix3& norm_mat)
+										  const LLMatrix3& norm_mat,
+										  S32 face_mask)
 {
 	LLMemType m1(LLMemType::MTYPE_VOLUME);
 	
@@ -3378,12 +3384,17 @@ void LLVolume::generateSilhouetteVertices(std::vector<LLVector3> &vertices,
 	normals.clear();
 	segments.clear();
 
+	S32 cur_index = 0;
 	//for each face
 	for (face_list_t::iterator iter = mVolumeFaces.begin();
 		 iter != mVolumeFaces.end(); ++iter)
 	{
 		const LLVolumeFace& face = *iter;
 	
+		if (!(face_mask & (0x1 << cur_index++)))
+		{
+			continue;
+		}
 		if (face.mTypeMask & (LLVolumeFace::CAP_MASK)) {
 	
 		}
@@ -3571,7 +3582,7 @@ S32 LLVolume::lineSegmentIntersect(const LLVector3& start, const LLVector3& end,
 	if (face == -1) // ALL_SIDES
 	{
 		start_face = 0;
-		end_face = getNumFaces() - 1;
+		end_face = getNumVolumeFaces() - 1;
 	}
 	else
 	{
@@ -3811,6 +3822,7 @@ BOOL LLVolume::cleanupTriangleData( const S32 num_input_vertices,
 
 	// Generate the vertex mapping and the list of vertices without
 	// duplicates.  This will crash if there are no vertices.
+	llassert(num_input_vertices > 0); // check for no vertices!
 	S32 *vertex_mapping = new S32[num_input_vertices];
 	LLVector3 *new_vertices = new LLVector3[num_input_vertices];
 	LLVertexIndexPair *prev_pairp = NULL;

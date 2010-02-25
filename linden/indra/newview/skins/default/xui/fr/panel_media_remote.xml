@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel name="music_remote">
-	<text length="1" name="text" type="string">
+	<text name="text">
 		Vidéo
 	</text>
 	<button label="" label_selected="" name="stop_btn" tool_tip="Arrêter le média"/>

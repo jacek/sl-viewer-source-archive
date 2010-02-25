@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="リージョン URL" name="script_limits_region_urls_panel">
+	<text name="Parcel Script URLs">
+		区画のスクリプトURL
+	</text>
+	<text name="parcels_listed">
+		区画一覧：
+	</text>
+	<text name="urls_used">
+		使用されたURL：
+	</text>
+	<text name="loading_text">
+		ローディング...
+	</text>
+	<scroll_list name="scripts_list">
+		<scroll_list.columns label="URL" name="urls"/>
+		<scroll_list.columns label="オブジェクト名" name="name"/>
+		<scroll_list.columns label="オブジェクトの所有者" name="owner" width="120"/>
+		<scroll_list.columns label="区画・位置" name="location"/>
+	</scroll_list>
+	<button label="リスト更新" name="refresh_list_btn"/>
+	<button label="ハイライト" name="highlight_btn"/>
+	<button label="返却" name="return_btn"/>
+</panel>

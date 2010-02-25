@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,9 +39,8 @@
 #include "llcompilequeue.h"
 #include "llfloaterbuycurrency.h"
 #include "llfilepicker.h"
-#include "llnotify.h"
-#include "llinventorymodel.h"
-#include "llinventoryview.h"
+#include "llinventoryobserver.h"
+#include "llinventorypanel.h"
 #include "llpermissionsflags.h"
 #include "llpreviewnotecard.h"
 #include "llpreviewscript.h"
@@ -58,10 +57,14 @@
 #include "lltexlayer.h"
 
 // library includes
+#include "lldir.h"
 #include "lleconomy.h"
+#include "llfloaterreg.h"
 #include "llfocusmgr.h"
+#include "llnotificationsutil.h"
 #include "llscrolllistctrl.h"
 #include "llsdserialize.h"
+#include "llvfs.h"
 
 // When uploading multiple files, don't display any of them when uploading more than this number.
 static const S32 FILE_COUNT_DISPLAY_THRESHOLD = 5;
@@ -116,14 +119,14 @@ void LLAssetUploadResponder::error(U32 statusNum, const std::string& reason)
 			args["FILE"] = (mFileName.empty() ? mVFileID.asString() : mFileName);
 			args["REASON"] = "Error in upload request.  Please visit "
 				"http://secondlife.com/support for help fixing this problem.";
-			LLNotifications::instance().add("CannotUploadReason", args);
+			LLNotificationsUtil::add("CannotUploadReason", args);
 			break;
 		case 500:
 		default:
 			args["FILE"] = (mFileName.empty() ? mVFileID.asString() : mFileName);
 			args["REASON"] = "The server is experiencing unexpected "
 				"difficulties.";
-			LLNotifications::instance().add("CannotUploadReason", args);
+			LLNotificationsUtil::add("CannotUploadReason", args);
 			break;
 	}
 	LLUploadDialog::modalUploadFinished();
@@ -185,7 +188,7 @@ void LLAssetUploadResponder::uploadFailure(const LLSD& content)
 		LLSD args;
 		args["FILE"] = (mFileName.empty() ? mVFileID.asString() : mFileName);
 		args["REASON"] = content["message"].asString();
-		LLNotifications::instance().add("CannotUploadReason", args);
+		LLNotificationsUtil::add("CannotUploadReason", args);
 	}
 }
 
@@ -228,7 +231,7 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 
 		LLSD args;
 		args["AMOUNT"] = llformat("%d", expected_upload_cost);
-		LLNotifications::instance().add("UploadPayment", args);
+		LLNotificationsUtil::add("UploadPayment", args);
 	}
 
 	// Actually add the upload to viewer inventory
@@ -282,19 +285,18 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 
 		// Show the preview panel for textures and sounds to let
 		// user know that the image (or snapshot) arrived intact.
-		LLInventoryView* view = LLInventoryView::getActiveInventory();
-		if(view)
+		LLInventoryPanel *active_panel = LLInventoryPanel::getActiveInventoryPanel();
+		if (active_panel)
 		{
-			LLFocusableElement* focus = gFocusMgr.getKeyboardFocus();
-
-			view->getPanel()->setSelection(content["new_inventory_item"].asUUID(), TAKE_FOCUS_NO);
+			active_panel->setSelection(content["new_inventory_item"].asUUID(), TAKE_FOCUS_NO);
 			if((LLAssetType::AT_TEXTURE == asset_type || LLAssetType::AT_SOUND == asset_type)
 				&& LLFilePicker::instance().getFileCount() <= FILE_COUNT_DISPLAY_THRESHOLD)
 			{
-				view->getPanel()->openSelected();
+				active_panel->openSelected();
 			}
-			//LLInventoryView::dumpSelectionInformation((void*)view);
+			//LLFloaterInventory::dumpSelectionInformation((void*)view);
 			// restore keyboard focus
+			LLFocusableElement* focus = gFocusMgr.getKeyboardFocus();
 			gFocusMgr.setKeyboardFocus(focus);
 		}
 	}
@@ -330,7 +332,7 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 		LLAssetStorage::LLStoreAssetCallback callback = NULL;
 		void *userdata = NULL;
 		upload_new_resource(next_file, asset_name, asset_name,
-				    0, LLAssetType::AT_NONE, LLInventoryType::IT_NONE,
+				    0, LLFolderType::FT_NONE, LLInventoryType::IT_NONE,
 				    next_owner_perms, group_perms,
 				    everyone_perms, display_name,
 				    callback, expected_upload_cost, userdata);
@@ -338,11 +340,11 @@ void LLNewAgentInventoryResponder::uploadComplete(const LLSD& content)
 }
 
 LLSendTexLayerResponder::LLSendTexLayerResponder(const LLSD& post_data,
-														   const LLUUID& vfile_id,
-														   LLAssetType::EType asset_type,
-														   LLBakedUploadData * baked_upload_data)
-												: LLAssetUploadResponder(post_data, vfile_id, asset_type),
-												mBakedUploadData(baked_upload_data)
+												 const LLUUID& vfile_id,
+												 LLAssetType::EType asset_type,
+												 LLBakedUploadData * baked_upload_data) : 
+	LLAssetUploadResponder(post_data, vfile_id, asset_type),
+	mBakedUploadData(baked_upload_data)
 {
 }
 
@@ -365,7 +367,7 @@ void LLSendTexLayerResponder::uploadComplete(const LLSD& content)
 	std::string result = content["state"];
 	LLUUID new_id = content["new_asset"];
 
-	llinfos << "LLSendTexLayerResponder::result from capabilities: " << result << llendl;
+	llinfos << "result: " << result << "new_id:" << new_id << llendl;
 	if (result == "complete"
 		&& mBakedUploadData != NULL)
 	{	// Invoke 
@@ -428,72 +430,68 @@ void LLUpdateAgentInventoryResponder::uploadComplete(const LLSD& content)
 	LLInventoryType::EType inventory_type = new_item->getInventoryType();
 	switch(inventory_type)
 	{
-		case LLInventoryType::IT_NOTECARD:
-			{
+	  case LLInventoryType::IT_NOTECARD:
+	  {
+		  // Update the UI with the new asset.
+		  LLPreviewNotecard* nc = LLFloaterReg::findTypedInstance<LLPreviewNotecard>("preview_notecard", LLSD(item_id));
+		  if(nc)
+		  {
+			  // *HACK: we have to delete the asset in the VFS so
+			  // that the viewer will redownload it. This is only
+			  // really necessary if the asset had to be modified by
+			  // the uploader, so this can be optimized away in some
+			  // cases. A better design is to have a new uuid if the
+			  // script actually changed the asset.
+			  if(nc->hasEmbeddedInventory())
+			  {
+				  gVFS->removeFile(content["new_asset"].asUUID(), LLAssetType::AT_NOTECARD);
+			  }
+			  nc->refreshFromInventory(new_item->getUUID());
+		  }
+		  break;
+	  }
+	  case LLInventoryType::IT_LSL:
+	  {
+		  // Find our window and close it if requested.
+		  LLPreviewLSL* preview = LLFloaterReg::findTypedInstance<LLPreviewLSL>("preview_script", LLSD(item_id));
+		  if (preview)
+		  {
+			  // Bytecode save completed
+			  if (content["compiled"])
+			  {
+				  preview->callbackLSLCompileSucceeded();
+			  }
+			  else
+			  {
+				  preview->callbackLSLCompileFailed(content["errors"]);
+			  }
+		  }
+		  break;
+	  }
 
-				// Update the UI with the new asset.
-				LLPreviewNotecard* nc;
-				nc = (LLPreviewNotecard*)LLPreview::find(new_item->getUUID());
-				if(nc)
-				{
-					// *HACK: we have to delete the asset in the VFS so
-					// that the viewer will redownload it. This is only
-					// really necessary if the asset had to be modified by
-					// the uploader, so this can be optimized away in some
-					// cases. A better design is to have a new uuid if the
-					// script actually changed the asset.
-					if(nc->hasEmbeddedInventory())
-					{
-						gVFS->removeFile(
-							content["new_asset"].asUUID(),
-							LLAssetType::AT_NOTECARD);
-					}
-					nc->refreshFromInventory();
-				}
-			}
-			break;
-		case LLInventoryType::IT_LSL:
-			{
-				// Find our window and close it if requested.
-				LLPreviewLSL* preview = (LLPreviewLSL*)LLPreview::find(item_id);
-				if (preview)
-				{
-					// Bytecode save completed
-					if (content["compiled"])
-					{
-						preview->callbackLSLCompileSucceeded();
-					}
-					else
-					{
-						preview->callbackLSLCompileFailed(content["errors"]);
-					}
-				}
-			}
-			break;
+	  case LLInventoryType::IT_GESTURE:
+	  {
+		  // If this gesture is active, then we need to update the in-memory
+		  // active map with the new pointer.				
+		  if (LLGestureManager::instance().isGestureActive(item_id))
+		  {
+			  LLUUID asset_id = new_item->getAssetUUID();
+			  LLGestureManager::instance().replaceGesture(item_id, asset_id);
+			  gInventory.notifyObservers();
+		  }				
 
-		case LLInventoryType::IT_GESTURE:
-			{
-				// If this gesture is active, then we need to update the in-memory
-				// active map with the new pointer.				
-				if (gGestureManager.isGestureActive(item_id))
-				{
-					LLUUID asset_id = new_item->getAssetUUID();
-					gGestureManager.replaceGesture(item_id, asset_id);
-					gInventory.notifyObservers();
-				}				
-
-				//gesture will have a new asset_id
-				LLPreviewGesture* previewp = (LLPreviewGesture*)LLPreview::find(item_id);
-				if(previewp)
-				{
-					previewp->onUpdateSucceeded();	
-				}			
+		  //gesture will have a new asset_id
+		  LLPreviewGesture* previewp = LLFloaterReg::findTypedInstance<LLPreviewGesture>("preview_gesture", LLSD(item_id));
+		  if(previewp)
+		  {
+			  previewp->onUpdateSucceeded();	
+		  }			
 				
-			}
-			break;
-		case LLInventoryType::IT_WEARABLE:
-		default:
-			break;
+		  break;
+	  }
+	  case LLInventoryType::IT_WEARABLE:
+	  default:
+		break;
 	}
 }
 
@@ -531,64 +529,57 @@ void LLUpdateTaskInventoryResponder::uploadComplete(const LLSD& content)
 	
 	switch(mAssetType)
 	{
-		case LLAssetType::AT_NOTECARD:
-			{
-				// Update the UI with the new asset.
-				LLPreviewNotecard* nc;
-				nc = (LLPreviewNotecard*)LLPreview::find(item_id);
-				if(nc)
-				{
-					// *HACK: we have to delete the asset in the VFS so
-					// that the viewer will redownload it. This is only
-					// really necessary if the asset had to be modified by
-					// the uploader, so this can be optimized away in some
-					// cases. A better design is to have a new uuid if the
-					// script actually changed the asset.
-					if(nc->hasEmbeddedInventory())
-					{
-						gVFS->removeFile(
-							content["new_asset"].asUUID(),
-							LLAssetType::AT_NOTECARD);
-					}
-
-					nc->setAssetId(content["new_asset"].asUUID());
-					nc->refreshFromInventory();
-				}
-			}
-			break;
-		case LLAssetType::AT_LSL_TEXT:
-			{
-				if(mQueueId.notNull())
-				{
-					LLFloaterCompileQueue* queue = 
-						(LLFloaterCompileQueue*) LLFloaterScriptQueue::findInstance(mQueueId);
-					if(NULL != queue)
-					{
-						queue->removeItemByItemID(item_id);
-					}
-				}
-				else
-				{
-					LLLiveLSLEditor* preview = LLLiveLSLEditor::find(item_id, task_id);
-					if (preview)
-					{
-						// Bytecode save completed
-						if (content["compiled"])
-						{
-							preview->callbackLSLCompileSucceeded(
-								task_id,
-								item_id,
-								mPostData["is_script_running"]);
-						}
-						else
-						{
-							preview->callbackLSLCompileFailed(content["errors"]);
-						}
-					}
-				}
-			}
-			break;
-	default:
+	  case LLAssetType::AT_NOTECARD:
+	  {
+		  // Update the UI with the new asset.
+		  LLPreviewNotecard* nc = LLFloaterReg::findTypedInstance<LLPreviewNotecard>("preview_notecard", LLSD(item_id));
+		  if(nc)
+		  {
+			  // *HACK: we have to delete the asset in the VFS so
+			  // that the viewer will redownload it. This is only
+			  // really necessary if the asset had to be modified by
+			  // the uploader, so this can be optimized away in some
+			  // cases. A better design is to have a new uuid if the
+			  // script actually changed the asset.
+			  if(nc->hasEmbeddedInventory())
+			  {
+				  gVFS->removeFile(content["new_asset"].asUUID(),
+								   LLAssetType::AT_NOTECARD);
+			  }
+			  nc->setAssetId(content["new_asset"].asUUID());
+			  nc->refreshFromInventory();
+		  }
+		  break;
+	  }
+	  case LLAssetType::AT_LSL_TEXT:
+	  {
+		  if(mQueueId.notNull())
+		  {
+			  LLFloaterCompileQueue* queue = LLFloaterReg::findTypedInstance<LLFloaterCompileQueue>("compile_queue", mQueueId);
+			  if(NULL != queue)
+			  {
+				  queue->removeItemByItemID(item_id);
+			  }
+		  }
+		  else
+		  {
+			  LLLiveLSLEditor* preview = LLFloaterReg::findTypedInstance<LLLiveLSLEditor>("preview_scriptedit", LLSD(item_id));
+			  if (preview)
+			  {
+				  // Bytecode save completed
+				  if (content["compiled"])
+				  {
+					  preview->callbackLSLCompileSucceeded(task_id, item_id, mPostData["is_script_running"]);
+				  }
+				  else
+				  {
+					  preview->callbackLSLCompileFailed(content["errors"]);
+				  }
+			  }
+		  }
+		  break;
+	  }
+	  default:
 		break;
 	}
 }

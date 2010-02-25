@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,9 +40,7 @@
 
 // declarations
 class LLButton;
-class LLToolView;
 class LLStatusPanel;
-class LLFrameStatView;
 class LLFastTimerView;
 class LLMemoryView;
 class LLConsole;
@@ -52,10 +50,20 @@ class LLFloaterStats;
 class LLDebugView : public LLView
 {
 public:
-	LLDebugView(const std::string& name, const LLRect &rect);
+	struct Params : public LLInitParam::Block<Params, LLView::Params>
+	{
+		Params()
+		{
+			mouse_opaque = false;
+		}
+	};
+	LLDebugView(const Params&);
 	~LLDebugView();
 
-	LLFrameStatView* mFrameStatView;
+	void init();
+
+	void setStatsVisible(BOOL visible);
+	
 	LLFastTimerView* mFastTimerView;
 	LLMemoryView*	 mMemoryView;
 	LLConsole*		 mDebugConsolep;

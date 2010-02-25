@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -556,7 +556,7 @@ const U32 LSCRIPTRunTimePermissionBits[SCRIPT_PERMISSION_EOF] =
 // http_request string constants
 extern const char* URL_REQUEST_GRANTED;
 extern const char* URL_REQUEST_DENIED;
-extern const U64 LSL_HTTP_REQUEST_TIMEOUT;
+extern const U64 LSL_HTTP_REQUEST_TIMEOUT_USEC;
 
 #endif
 

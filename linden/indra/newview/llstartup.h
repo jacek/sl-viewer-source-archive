@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,11 @@
 #ifndef LL_LLSTARTUP_H
 #define LL_LLSTARTUP_H
 
-#include "llimagegl.h"
+#include <boost/scoped_ptr.hpp>
+
+class LLViewerTexture ;
+class LLEventPump;
+class LLStartupListener;
 
 // functions
 bool idle_startup();
@@ -50,16 +54,12 @@ typedef enum {
 	STATE_LOGIN_SHOW,				// Show login screen
 	STATE_LOGIN_WAIT,				// Wait for user input at login screen
 	STATE_LOGIN_CLEANUP,			// Get rid of login screen and start login
-	STATE_UPDATE_CHECK,				// Wait for user at a dialog box (updates, term-of-service, etc)
 	STATE_LOGIN_AUTH_INIT,			// Start login to SL servers
-	STATE_LOGIN_AUTHENTICATE,		// Do authentication voodoo
-	STATE_WAIT_LEGACY_LOGIN,        // Waiting for legacy login 
-	STATE_XMLRPC_LEGACY_LOGIN,      // XMLRPC for legacy login, OGPX maintain legacy XMLRPC
-	STATE_LOGIN_NO_DATA_YET,		// Waiting for authentication replies to start
-	STATE_LOGIN_DOWNLOADING,		// Waiting for authentication replies to download
+	STATE_LOGIN_CURL_UNSTUCK,		// Update progress to remove "SL appears frozen" msg.
 	STATE_LOGIN_PROCESS_RESPONSE,	// Check authentication reply
 	STATE_WORLD_INIT,				// Start building the world
 	STATE_MULTIMEDIA_INIT,			// Init the rest of multimedia library
+	STATE_FONT_INIT,				// Load default fonts
 	STATE_SEED_GRANTED_WAIT,		// Wait for seed cap grant
 	STATE_SEED_CAP_GRANTED,			// Have seed cap grant 
 	STATE_WORLD_WAIT,				// Waiting for simulator
@@ -75,9 +75,7 @@ typedef enum {
 
 // exported symbols
 extern bool gAgentMovementCompleted;
-extern LLPointer<LLImageGL> gStartImageGL;
-extern std::string gInitialOutfit;
-extern std::string gInitialOutfitGender;	// "male" or "female"
+extern LLPointer<LLViewerTexture> gStartTexture;
 
 class LLStartUp
 {
@@ -93,6 +91,9 @@ public:
 
 	static void multimediaInit();
 		// Initialize LLViewerMedia multimedia engine.
+
+	// Load default fonts not already loaded at start screen
+	static void fontInit();
 
 	// outfit_folder_name can be a folder anywhere in your inventory, 
 	// but the name must be a case-sensitive exact match.
@@ -117,9 +118,13 @@ public:
 		// *HACK: On startup, if we were passed a secondlife://app/do/foo
 		// command URL, store it for later processing.
 
+	static void postStartupState();
+
 private:
 	static std::string startupStateToString(EStartupState state);
 	static EStartupState gStartupState; // Do not set directly, use LLStartup::setStartupState
+	static boost::scoped_ptr<LLEventPump> sStateWatcher;
+	static boost::scoped_ptr<LLStartupListener> sListener;
 };
 
 

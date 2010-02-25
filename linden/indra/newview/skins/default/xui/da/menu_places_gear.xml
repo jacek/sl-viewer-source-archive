@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<toggleable_menu name="all_nearby_gear_menu">
+	<menu_item_call label="Kopiér URL" name="copy_url"/>
+	<menu_item_call label="Fremhæv med pejlelys" name="highlight"/>
+	<menu_item_call label="Markér som upassende" name="flag"/>
+	<menu_item_call label="Blokér ejer" name="mute"/>
+</toggleable_menu>

@@ -14,6 +14,8 @@ include(LScript)
 include(Linking)
 include(Tut)
 
+include(GoogleMock)
+
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
     ${LLDATABASE_INCLUDE_DIRS}
@@ -23,67 +25,44 @@ include_directories(
     ${LLVFS_INCLUDE_DIRS}
     ${LLXML_INCLUDE_DIRS}
     ${LSCRIPT_INCLUDE_DIRS}
+    ${GOOGLEMOCK_INCLUDE_DIRS}
     )
 
 set(test_SOURCE_FILES
-    common.cpp
-    inventory.cpp
     io.cpp
 #    llapp_tut.cpp						# Temporarily removed until thread issues can be solved
-    llbase64_tut.cpp
     llblowfish_tut.cpp
     llbuffer_tut.cpp
-    lldate_tut.cpp
-    llerror_tut.cpp
-    llhost_tut.cpp
+    lldoubledispatch_tut.cpp
+    llevents_tut.cpp
     llhttpdate_tut.cpp
     llhttpclient_tut.cpp
     llhttpnode_tut.cpp
-    llinventoryparcel_tut.cpp
     lliohttpserver_tut.cpp
-    lljoint_tut.cpp
-    llmime_tut.cpp
     llmessageconfig_tut.cpp
-    llmodularmath_tut.cpp
-    llnamevalue_tut.cpp
     llpermissions_tut.cpp
     llpipeutil.cpp
-    llquaternion_tut.cpp
-    llrandom_tut.cpp
     llsaleinfo_tut.cpp
     llscriptresource_tut.cpp
     llsdmessagebuilder_tut.cpp
     llsdmessagereader_tut.cpp
     llsd_new_tut.cpp
-    llsdserialize_tut.cpp
     llsdutil_tut.cpp
     llservicebuilder_tut.cpp
     llstreamtools_tut.cpp
-    llstring_tut.cpp
     lltemplatemessagebuilder_tut.cpp
     lltimestampcache_tut.cpp
-    lltiming_tut.cpp
     lltranscode_tut.cpp
     lltut.cpp
-    lluri_tut.cpp
     lluuidhashmap_tut.cpp
-    llxfer_tut.cpp
-    math.cpp
     message_tut.cpp
-    reflection_tut.cpp
     test.cpp
-    v2math_tut.cpp
-    v3color_tut.cpp
-    v3dmath_tut.cpp
-    v3math_tut.cpp
-    v4color_tut.cpp
-    v4coloru_tut.cpp
-    v4math_tut.cpp
     )
 
 set(test_HEADER_FILES
     CMakeLists.txt
 
+    debug.h
     llpipeutil.h
     llsdtraits.h
     lltut.h
@@ -103,7 +82,7 @@ endif (NOT DARWIN)
 set_source_files_properties(${test_HEADER_FILES}
                             PROPERTIES HEADER_FILE_ONLY TRUE)
 
-list(APPEND test_SOURC_FILES ${test_HEADER_FILES})
+list(APPEND test_SOURCE_FILES ${test_HEADER_FILES})
 
 add_executable(test ${test_SOURCE_FILES})
 
@@ -116,10 +95,15 @@ target_link_libraries(test
     ${LLXML_LIBRARIES}
     ${LSCRIPT_LIBRARIES}
     ${LLCOMMON_LIBRARIES}
+    ${EXPAT_LIBRARIES}
+    ${GOOGLEMOCK_LIBRARIES}
     ${APRICONV_LIBRARIES}
     ${PTHREAD_LIBRARY}
     ${WINDOWS_LIBRARIES}
+    ${BOOST_PROGRAM_OPTIONS_LIBRARY}
+    ${BOOST_REGEX_LIBRARY}
     ${DL_LIBRARY}
+    ${GOOGLE_PERFTOOLS_LIBRARIES}
     )
 
 if (WINDOWS)
@@ -132,16 +116,23 @@ endif (WINDOWS)
 
 get_target_property(TEST_EXE test LOCATION)
 
-add_custom_command(
+IF(WINDOWS)
+  set(LD_LIBRARY_PATH ${SHARED_LIB_STAGING_DIR}/${CMAKE_CFG_INTDIR})
+ELSEIF(DARWIN)
+  set(LD_LIBRARY_PATH ${SHARED_LIB_STAGING_DIR}/${CMAKE_CFG_INTDIR}/Resources:/usr/lib)
+ELSE(WINDOWS)
+  set(LD_LIBRARY_PATH ${SHARED_LIB_STAGING_DIR}:/usr/lib)
+ENDIF(WINDOWS)
+
+LL_TEST_COMMAND("${LD_LIBRARY_PATH}"
+  "${TEST_EXE}" "--output=${CMAKE_CURRENT_BINARY_DIR}/cpp_test_results.txt" "--touch=${CMAKE_CURRENT_BINARY_DIR}/cpp_tests_ok.txt")
+ADD_CUSTOM_COMMAND(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cpp_tests_ok.txt
-  COMMAND ${TEST_EXE}
-  ARGS
-    --output=${CMAKE_CURRENT_BINARY_DIR}/cpp_test_results.txt
-    --touch=${CMAKE_CURRENT_BINARY_DIR}/cpp_tests_ok.txt
+  COMMAND ${LL_TEST_COMMAND_value}
   DEPENDS test
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "C++ unit tests"
-  )
+ )
 
 set(test_results ${CMAKE_CURRENT_BINARY_DIR}/cpp_tests_ok.txt)
 

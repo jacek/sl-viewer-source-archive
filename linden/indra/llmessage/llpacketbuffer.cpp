@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,11 +42,14 @@
 
 LLPacketBuffer::LLPacketBuffer(const LLHost &host, const char *datap, const S32 size) : mHost(host)
 {
+	mSize = 0;
+	mData[0] = '!';
+
 	if (size > NET_BUFFER_SIZE)
 	{
 		llerrs << "Sending packet > " << NET_BUFFER_SIZE << " of size " << size << llendl;
 	}
-	else // we previously relied on llerrs being fatal to not get here...
+	else
 	{
 		if (datap != NULL)
 		{

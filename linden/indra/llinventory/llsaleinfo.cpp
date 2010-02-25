@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -111,7 +111,7 @@ LLSD LLSaleInfo::asLLSD() const
 	return sd;
 }
 
-bool LLSaleInfo::fromLLSD(LLSD& sd, BOOL& has_perm_mask, U32& perm_mask)
+bool LLSaleInfo::fromLLSD(const LLSD& sd, BOOL& has_perm_mask, U32& perm_mask)
 {
 	const char *w;
 
@@ -135,38 +135,8 @@ bool LLSaleInfo::fromLLSD(LLSD& sd, BOOL& has_perm_mask, U32& perm_mask)
 	return true;
 }
 
-LLXMLNode *LLSaleInfo::exportFileXML() const
-{
-	LLXMLNode *ret = new LLXMLNode("sale_info", FALSE);
-	std::string type_str = ll_safe_string( lookup(mSaleType));
-	ret->createChild("type", TRUE)->setStringValue(1, &type_str);
-	ret->createChild("price", TRUE)->setIntValue(1, &mSalePrice);
-	return ret;
-}
-
-BOOL LLSaleInfo::importXML(LLXMLNode* node)
-{
-	BOOL success = FALSE;
-	if (node)
-	{
-		success = TRUE;
-		LLXMLNodePtr sub_node;
-		if (node->getChild("type", sub_node))
-		{
-			mSaleType = lookup(sub_node->getValue().c_str());
-		}
-		if (node->getChild("price", sub_node))
-		{
-			success &= (1 == sub_node->getIntValue(1, &mSalePrice));
-		}
-		if (!success)
-		{
-			lldebugs << "LLSaleInfo::importXML() failed for node named '" 
-				<< node->getName() << "'" << llendl;
-		}
-	}
-	return success;
-}
+// Deleted LLSaleInfo::exportFileXML() and LLSaleInfo::importXML()
+// because I can't find any non-test code references to it. 2009-05-04 JC
 
 BOOL LLSaleInfo::importFile(LLFILE* fp, BOOL& has_perm_mask, U32& perm_mask)
 {

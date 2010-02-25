@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,44 +34,29 @@
 #define LL_LLINVENTORYMODEL_H
 
 #include "llassettype.h"
+#include "llfoldertype.h"
 #include "lldarray.h"
+#include "llframetimer.h"
+#include "llhttpclient.h"
 #include "lluuid.h"
 #include "llpermissionsflags.h"
 #include "llstring.h"
-
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryObserver
-//
-// This class is designed to be a simple abstract base class which can
-// relay messages when the inventory changes.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class LLInventoryObserver;
+class LLInventoryObject;
+class LLInventoryItem;
+class LLInventoryCategory;
+class LLViewerInventoryItem;
+class LLViewerInventoryCategory;
+class LLViewerInventoryItem;
+class LLViewerInventoryCategory;
+class LLMessageSystem;
+class LLInventoryCollectFunctor;
 
-class LLInventoryObserver
-{
-public:
-	// This enumeration is a way to refer to what changed in a more
-	// human readable format. You can mask the value provided by
-	// chaged() to see if the observer is interested in the change.
-	enum 
-	{
-		NONE = 0,
-		LABEL = 1,			// name changed
-		INTERNAL = 2,		// internal change, eg, asset uuid different
-		ADD = 4,			// something added
-		REMOVE = 8,			// something deleted
-		STRUCTURE = 16,		// structural change, eg, item or folder moved
-		CALLING_CARD = 32,	// online, grant status, cancel, etc change
-		ALL = 0xffffffff
-	};
-	virtual ~LLInventoryObserver() {};
-	virtual void changed(U32 mask) = 0;
-	std::string mMessageName; // used by Agent Inventory Service only. [DEV-20328]
-};
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Class LLInventoryModel
@@ -84,38 +69,35 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-class LLInventoryObject;
-class LLInventoryItem;
-class LLInventoryCategory;
-class LLViewerInventoryItem;
-class LLViewerInventoryCategory;
-class LLViewerInventoryItem;
-class LLViewerInventoryCategory;
-class LLMessageSystem;
-class LLInventoryCollectFunctor;
-
 class LLInventoryModel
 {
 public:
-	typedef enum e_has_children
+	friend class LLInventoryModelFetchDescendentsResponder;
+
+	enum EHasChildren
 	{
 		CHILDREN_NO,
 		CHILDREN_YES,
 		CHILDREN_MAYBE
-	}EHasChildren;
+	};
 
 	// These are used a lot...
 	typedef LLDynamicArray<LLPointer<LLViewerInventoryCategory> > cat_array_t;
 	typedef LLDynamicArray<LLPointer<LLViewerInventoryItem> > item_array_t;
+	typedef std::set<LLUUID> changed_items_t;
+	
 	// construction & destruction
 	LLInventoryModel();
 	~LLInventoryModel();
-
-	class fetchInventoryResponder: public LLHTTPClient::Responder
+	
+	void cleanupInventory();
+	
+	class fetchInventoryResponder : public LLHTTPClient::Responder
 	{
 	public:
 		fetchInventoryResponder(const LLSD& request_sd) : mRequestSD(request_sd) {};
 		void result(const LLSD& content);			
+		
 		void error(U32 status, const std::string& reason);
 
 	public:
@@ -128,9 +110,11 @@ public:
 	// Accessors
 	//
 
-	// This is a convenience function to check if one object has a
-	// parent chain up to the category specified by UUID.
-	BOOL isObjectDescendentOf(const LLUUID& obj_id, const LLUUID& cat_id);
+	// Check if one object has a parent chain up to the category specified by UUID.
+	BOOL isObjectDescendentOf(const LLUUID& obj_id, const LLUUID& cat_id) const;
+
+	// Get whatever special folder this object is a child of, if any.
+	const LLViewerInventoryCategory *getFirstNondefaultParent(const LLUUID& obj_id) const;
 
 	// Get the object by id. Returns NULL if not found.
 	// * WARNING: use the pointer returned for read operations - do
@@ -167,7 +151,7 @@ public:
 									item_array_t*& items);
 	void unlockDirectDescendentArrays(const LLUUID& cat_id);
 	
-	// Starting with the object specified, add it's descendents to the
+	// Starting with the object specified, add its descendents to the
 	// array provided, but do not add the inventory object specified
 	// by id. There is no guaranteed order. Neither array will be
 	// erased before adding objects to it. Do not store a copy of the
@@ -178,17 +162,24 @@ public:
 							cat_array_t& categories,
 							item_array_t& items,
 							BOOL include_trash);
-
 	void collectDescendentsIf(const LLUUID& id,
 							  cat_array_t& categories,
 							  item_array_t& items,
 							  BOOL include_trash,
-							  LLInventoryCollectFunctor& add);
+							  LLInventoryCollectFunctor& add,
+							  BOOL follow_folder_links = FALSE);
 
-	// This method will return false if this inventory model is in an usabel state.
+	// Collect all items in inventory that are linked to item_id.
+	// Assumes item_id is itself not a linked item.
+	item_array_t collectLinkedItems(const LLUUID& item_id,
+									const LLUUID& start_folder_id = LLUUID::null);
+
+	// Get the inventoryID that this item points to, else just return item_id
+	const LLUUID& getLinkedItemID(const LLUUID& object_id) const;
+
 	// The inventory model usage is sensitive to the initial construction of the 
 	// model. 
-	bool isInventoryUsable();
+	bool isInventoryUsable() const;
 
 	//
 	// Mutators
@@ -197,7 +188,7 @@ public:
 	// Calling this method with an inventory item will either change
 	// an existing item with a matching item_id, or will add the item
 	// to the current inventory. Returns the change mask generated by
-	// the update. No notifcation will be sent to observers. This
+	// the update. No notification will be sent to observers. This
 	// method will only generate network traffic if the item had to be
 	// reparented.
 	// *NOTE: In usage, you will want to perform cache accounting
@@ -224,16 +215,21 @@ public:
 
 	// delete a particular inventory object by ID. This will purge one
 	// object from the internal data structures maintaining a
-	// cosistent internal state. No cache accounting, observer
-	// notification, or server update is performed.
+	// consistent internal state. No cache accounting, observer
+	// notification, or server update is performed.  Purges linked items.
 	void deleteObject(const LLUUID& id);
+	
+	// delete a particular inventory object by ID, and delete it from
+	// the server.  Also updates linked items.
+	void purgeObject(const LLUUID& id);
+	void updateLinkedObjectsFromPurge(const LLUUID& baseobj_id);
 
-	// This is a method which collects the descendents of the id
+	// This is a method which collects the descendants of the id
 	// provided. If the category is not found, no action is
 	// taken. This method goes through the long winded process of
 	// removing server representation of folders and items while doing
 	// cache accounting in a fairly efficient manner. This method does
-	// not notify observers (though maybe it shouldd...)
+	// not notify observers (though maybe it should...)
 	void purgeDescendentsOf(const LLUUID& id);
 
 	// This method optimally removes the referenced categories and
@@ -247,7 +243,7 @@ public:
 	// to remove it.
 	void addObserver(LLInventoryObserver* observer);
 	void removeObserver(LLInventoryObserver* observer);
-	BOOL containsObserver(LLInventoryObserver* observer);
+	BOOL containsObserver(LLInventoryObserver* observer) const;
 
 	//
 	// Misc Methods 
@@ -255,17 +251,19 @@ public:
 
 	// findCategoryUUIDForType() returns the uuid of the category that
 	// specifies 'type' as what it defaults to containing. The
-	// category is not necessarily only for that type. *NOTE: This
-	// will create a new inventory category on the fly if one does not
-	// exist.
-
+	// category is not necessarily only for that type. *NOTE: If create_folder is true, this
+	// will create a new inventory category on the fly if one does not exist. *NOTE: if find_in_library is
+	// true it will search in the user's library folder instead of "My Inventory"
 	// SDK: Added flag to specify whether the folder should be created if not found.  This fixes the horrible
 	// multiple trash can bug.
-	LLUUID findCategoryUUIDForType(LLAssetType::EType preferred_type, bool create_folder = true);
+	const LLUUID findCategoryUUIDForType(LLFolderType::EType preferred_type, bool create_folder = true, bool find_in_library = false);
 
-	// Call this method when it's time to update everyone on a new
-	// state, by default, the inventory model will not update
-	// observers automatically.
+	// This gets called by the idle loop.  It only updates if new
+	// state is detected.  Call notifyObservers() manually to update
+	// regardless of whether state change has been indicated.
+	void idleNotifyObservers();
+
+	// Call this method to explicitly update everyone on a new state.
 	// The optional argument 'service_name' is used by Agent Inventory Service [DEV-20328]
 	void notifyObservers(const std::string service_name="");
 
@@ -277,17 +275,15 @@ public:
 	// that the next notify will include that notification.
 	void addChangedMask(U32 mask, const LLUUID& referent);
 
-	const std::set<LLUUID>& getChangedIDs() { return mChangedItemIDs; }
+	const changed_items_t& getChangedIDs() const { return mChangedItemIDs; }
 
 	// This method to prepares a set of mock inventory which provides
 	// minimal functionality before the actual arrival of inventory.
 	//void mock(const LLUUID& root_id);
 
-	// make sure we have the descendents in the structure.
-	void fetchDescendentsOf(const LLUUID& folder_id);
-	
-	// Add categories to a list to be fetched in bulk.
-	static void bulkFetch(std::string url);
+	// Make sure we have the descendents in the structure.  Returns true
+	// if a fetch was performed.
+	bool fetchDescendentsOf(const LLUUID& folder_id);
 
 	// call this method to request the inventory.
 	//void requestFromServer(const LLUUID& agent_id);
@@ -297,7 +293,7 @@ public:
 
 	// Generates a string containing the path to the item specified by
 	// item_id.
-	void appendPath(const LLUUID& id, std::string& path);
+	void appendPath(const LLUUID& id, std::string& path) const;
 
 	// message handling functionality
 	static void registerCallbacks(LLMessageSystem* msg);
@@ -309,20 +305,13 @@ public:
 	// category. If you want to use the default name based on type,
 	// pass in a NULL to the 'name parameter.
 	LLUUID createNewCategory(const LLUUID& parent_id,
-							 LLAssetType::EType preferred_type,
+							 LLFolderType::EType preferred_type,
 							 const std::string& name);
 
 	// methods to load up inventory skeleton & meat. These are used
 	// during authentication. return true if everything parsed.
-	typedef std::map<std::string, std::string> response_t;
-	typedef std::vector<response_t> options_t;
-	// OGPX : Two loadSkeleton(), one for the XML-RPC logins, one for LLSD
-	//... The concept of a skeleton being different from the cap that 
-	//... we do inventory queries on should be examined, and the usage of
-	//... the skeleton in querying the wearables needs to be examined as well.
-	bool loadSkeleton(const options_t& options, const LLUUID& owner_id);
-	bool loadSkeleton(const LLSD& options, const LLUUID& owner_id); 
-	bool loadMeat(const options_t& options, const LLUUID& owner_id);
+	bool loadSkeleton(const LLSD& options, const LLUUID& owner_id);
+	bool loadMeat(const LLSD& options, const LLUUID& owner_id);
 
 	// This is a brute force method to rebuild the entire parent-child
 	// relations.
@@ -360,7 +349,7 @@ public:
 	// Call these methods when there are category updates, but call
 	// them *before* the actual update so the method can do descendent
 	// accounting correctly.
-	void accountForUpdate(const LLCategoryUpdate& update);
+	void accountForUpdate(const LLCategoryUpdate& update) const;
 	void accountForUpdate(const update_list_t& updates);
 	void accountForUpdate(const update_map_t& updates);
 
@@ -370,15 +359,64 @@ public:
 	// returns true iff category version is known and theoretical
 	// descendents == actual descendents.
 	bool isCategoryComplete(const LLUUID& cat_id) const;
+	
+	// callbacks
+	// Trigger a notification and empty the folder type (FT_TRASH or FT_LOST_AND_FOUND) if confirmed
+	void emptyFolderType(const std::string notification, LLFolderType::EType folder_type);
+	bool callbackEmptyFolderType(const LLSD& notification, const LLSD& response, LLFolderType::EType preferred_type);
 
-	// start and stop background breadth-first fetching of inventory contents
-	// this gets triggered when performing a filter-search
-	static void startBackgroundFetch(const LLUUID& cat_id = LLUUID::null); // start fetch process
+	// Utility Functions
+	void removeItem(const LLUUID& item_id);
+	
     static void findLostItems();
-	static BOOL backgroundFetchActive();
-	static bool isEverythingFetched();
-	static void backgroundFetch(void*); // background fetch idle function
-	static void incrBulkFetch(S16 fetching) {  sBulkFetchCount+=fetching; if (sBulkFetchCount<0) sBulkFetchCount=0; }
+
+	// Data about the agent's root folder and root library folder
+	// are stored here, rather than in LLAgent where it used to be, because
+	// gInventory is a singleton and represents the agent's inventory.
+	// The "library" is actually the inventory of a special agent,
+	// usually Alexandria Linden.
+	const LLUUID &getRootFolderID() const;
+	const LLUUID &getLibraryOwnerID() const;
+	const LLUUID &getLibraryRootFolderID() const;
+
+	// These are set during login with data from the server
+	void setRootFolderID(const LLUUID& id);
+	void setLibraryOwnerID(const LLUUID& id);
+	void setLibraryRootFolderID(const LLUUID& id);
+
+
+	/**
+	 * Changes items order by insertion of the item identified by src_item_id
+	 * BEFORE the item identified by dest_item_id. Both items must exist in items array.
+	 *
+	 * Sorting is stored after method is finished. Only src_item_id is moved before dest_item_id.
+	 *
+	 * @param[in, out] items - vector with items to be updated. It should be sorted in a right way
+	 * before calling this method.
+	 * @param src_item_id - LLUUID of inventory item to be moved in new position
+	 * @param dest_item_id - LLUUID of inventory item before which source item should be placed.
+	 */
+	static void updateItemsOrder(LLInventoryModel::item_array_t& items, const LLUUID& src_item_id, const LLUUID& dest_item_id);
+
+	/**
+	 * Saves current order of the passed items using inventory item sort field.
+	 *
+	 * It reset items' sort fields and saves them on server.
+	 * Is used to save order for Favorites folder.
+	 *
+	 * @param[in] items vector of items in order to be saved.
+	 */
+	void saveItemsOrder(const LLInventoryModel::item_array_t& items);
+
+	/**
+	 * Rearranges Landmarks inside Favorites folder.
+	 * Moves source landmark before target one.
+	 *
+	 * @param source_item_id - LLUUID of the source item to be moved into new position
+	 * @param target_item_id - LLUUID of the target item before which source item should be placed.
+	 */
+	void rearrangeFavoriteLandmarks(const LLUUID& source_item_id, const LLUUID& target_item_id);
+
 protected:
 
 	// Internal methods which add inventory and make sure that all of
@@ -388,9 +426,13 @@ protected:
 	void addCategory(LLViewerInventoryCategory* category);
 	void addItem(LLViewerInventoryItem* item);
 
+	// ! DEPRECRATE ! Remove this and add it into findCategoryUUIDForType,
+	// since that's the only function that uses this.  It's too confusing 
+	// having both methods.
+	// 
 	// Internal method which looks for a category with the specified
 	// preferred type. Returns LLUUID::null if not found
- 	LLUUID findCatUUID(LLAssetType::EType preferred_type);
+ 	const LLUUID &findCatUUID(LLFolderType::EType preferred_type, bool find_in_library = false) const;
 
 	// Empty the entire contents
 	void empty();
@@ -404,7 +446,8 @@ protected:
 	// file import/export.
 	static bool loadFromFile(const std::string& filename,
 							 cat_array_t& categories,
-							 item_array_t& items); 
+							 item_array_t& items,
+							 bool& is_cache_obsolete); 
 	static bool saveToFile(const std::string& filename,
 						   const cat_array_t& categories,
 						   const item_array_t& items); 
@@ -426,26 +469,17 @@ protected:
 	
 	bool messageUpdateCore(LLMessageSystem* msg, bool do_accounting);
 
+	// Updates all linked items pointing to this id.
+	void addChangedMaskForLinks(const LLUUID& object_id, U32 mask);
+
 protected:
 	cat_array_t* getUnlockedCatArray(const LLUUID& id);
 	item_array_t* getUnlockedItemArray(const LLUUID& id);
 	
-protected:
-	// Varaibles used to track what has changed since the last notify.
+private:
+	// Variables used to track what has changed since the last notify.
 	U32 mModifyMask;
-	typedef std::set<LLUUID> changed_items_t;
 	changed_items_t mChangedItemIDs;
-
-	// Information for tracking the actual inventory. We index this
-	// information in a lot of different ways so we can access
-	// the inventory using several different identifiers.
-	// mInventory member data is the 'master' list of inventory, and
-	// mCategoryMap and mItemMap store uuid->object mappings. 
-	typedef std::map<LLUUID, LLPointer<LLViewerInventoryCategory> > cat_map_t;
-	typedef std::map<LLUUID, LLPointer<LLViewerInventoryItem> > item_map_t;
-	//inv_map_t mInventory;
-	cat_map_t mCategoryMap;
-	item_map_t mItemMap;
 
 	std::map<LLUUID, bool> mCategoryLock;
 	std::map<LLUUID, bool> mItemLock;
@@ -462,26 +496,83 @@ protected:
 	typedef std::set<LLInventoryObserver*> observer_list_t;
 	observer_list_t mObservers;
 
-	// completing the fetch once per session should be sufficient
-	static BOOL sBackgroundFetchActive;
+	// Agent inventory folder information.
+	LLUUID mRootFolderID;
+	LLUUID mLibraryRootFolderID;
+	LLUUID mLibraryOwnerID;
+
 	static BOOL sTimelyFetchPending;
 	static S32  sNumFetchRetries;
 	static LLFrameTimer sFetchTimer;
 	static F32 sMinTimeBetweenFetches;
 	static F32 sMaxTimeBetweenFetches;
-	static S16 sBulkFetchCount;
 
+	// Expected inventory cache version
+	const static S32 sCurrentInvCacheVersion;
+	
 	// This flag is used to handle an invalid inventory state.
 	bool mIsAgentInvUsable;
 
+private:
+	// Information for tracking the actual inventory. We index this
+	// information in a lot of different ways so we can access
+	// the inventory using several different identifiers.
+	// mInventory member data is the 'master' list of inventory, and
+	// mCategoryMap and mItemMap store uuid->object mappings. 
+	typedef std::map<LLUUID, LLPointer<LLViewerInventoryCategory> > cat_map_t;
+	typedef std::map<LLUUID, LLPointer<LLViewerInventoryItem> > item_map_t;
+	//inv_map_t mInventory;
+	cat_map_t mCategoryMap;
+	item_map_t mItemMap;
+
+	// Flag set when notifyObservers is being called, to look for bugs
+	// where it's called recursively.
+	BOOL mIsNotifyObservers;
 public:
 	// *NOTE: DEBUG functionality
-	void dumpInventory();
-	static bool isBulkFetchProcessingComplete();
-	static void stopBackgroundFetch(); // stop fetch process
+	void dumpInventory() const;
 
-	static BOOL sFullFetchStarted;
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Bulk fetch
+public:
+	// Start and stop background breadth-first fetching of inventory contents.
+	// This gets triggered when performing a filter-search
+	void startBackgroundFetch(const LLUUID& cat_id = LLUUID::null);
+	static BOOL backgroundFetchActive();
+	static bool isEverythingFetched();
+	static void backgroundFetch(void*); // background fetch idle function
+	static void incrBulkFetch(S16 fetching) {  sBulkFetchCount+=fetching; if (sBulkFetchCount<0) sBulkFetchCount=0; }
+	static void stopBackgroundFetch(); // stop fetch process
+	static bool isBulkFetchProcessingComplete();
+
+	// Add categories to a list to be fetched in bulk.
+	static void bulkFetch(std::string url);
+
+	static bool libraryFetchStarted();
+	static bool libraryFetchCompleted();
+	static bool libraryFetchInProgress();
+	
+	static bool myInventoryFetchStarted();
+	static bool myInventoryFetchCompleted();
+	static bool myInventoryFetchInProgress();
+	
+private:
+ 	static BOOL sMyInventoryFetchStarted;
+	static BOOL sLibraryFetchStarted;
 	static BOOL sAllFoldersFetched; 
+	static void setAllFoldersFetched();
+
+	// completing the fetch once per session should be sufficient
+	static BOOL sBackgroundFetchActive;
+	static S16 sBulkFetchCount;
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Login status
+public:
+	static BOOL getIsFirstTimeInViewer2();
+private:
+	static BOOL sFirstTimeInViewer2;
 };
 
 // a special inventory model for the agent
@@ -525,6 +616,22 @@ protected:
 	LLUUID mAssetID;
 };
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Class LLLinkedItemIDMatches
+//
+// This functor finds inventory items linked to the specific inventory id.
+// Assumes the inventory id is itself not a linked item.
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class LLLinkedItemIDMatches : public LLInventoryCollectFunctor
+{
+public:
+	LLLinkedItemIDMatches(const LLUUID& item_id) : mBaseItemID(item_id) {}
+	virtual ~LLLinkedItemIDMatches() {}
+	bool operator()(LLInventoryCategory* cat, LLInventoryItem* item);
+	
+protected:
+	LLUUID mBaseItemID;
+};
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Class LLIsType
@@ -671,183 +778,34 @@ protected:
 	std::string mName;
 };
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryCompletionObserver
+// Class LLFindCOFValidItems
 //
-// Class which can be used as a base class for doing something when
-// when all observed items are locally complete. This class implements
-// the changed() method of LLInventoryObserver and declares a new
-// method named done() which is called when all watched items have
-// complete information in the inventory model.
+// Collects items that can be legitimately linked to in the COF.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class LLInventoryCompletionObserver : public LLInventoryObserver
+class LLFindCOFValidItems : public LLInventoryCollectFunctor
 {
 public:
-	LLInventoryCompletionObserver() {}
-	virtual void changed(U32 mask);
-
-	void watchItem(const LLUUID& id);
-
-protected:
-	virtual void done() = 0;
-
-	typedef std::vector<LLUUID> item_ref_t;
-	item_ref_t mComplete;
-	item_ref_t mIncomplete;
-};
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryFetchObserver
-//
-// This class is much like the LLInventoryCompletionObserver, except
-// that it handles all the the fetching necessary. Override the done()
-// method to do the thing you want.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class LLInventoryFetchObserver : public LLInventoryObserver
-{
-public:
-	LLInventoryFetchObserver() {}
-	virtual void changed(U32 mask);
-
-	typedef std::vector<LLUUID> item_ref_t;
-
-	bool isEverythingComplete() const;
-	void fetchItems(const item_ref_t& ids);
-	virtual void done() = 0;
-
-protected:
-	item_ref_t mComplete;
-	item_ref_t mIncomplete;
+	LLFindCOFValidItems() {}
+	virtual ~LLFindCOFValidItems() {}
+	virtual bool operator()(LLInventoryCategory* cat,
+							LLInventoryItem* item);
+	
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryFetchDescendentsObserver
+// Class LLFindWearables
 //
-// This class is much like the LLInventoryCompletionObserver, except
-// that it handles fetching based on category. Override the done()
-// method to do the thing you want.
+// Collects wearables based on item type.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class LLInventoryFetchDescendentsObserver : public LLInventoryObserver
+class LLFindWearables : public LLInventoryCollectFunctor
 {
 public:
-	LLInventoryFetchDescendentsObserver() {}
-	virtual void changed(U32 mask);
-
-	typedef std::vector<LLUUID> folder_ref_t;
-	void fetchDescendents(const folder_ref_t& ids);
-	bool isEverythingComplete() const;
-	virtual void done() = 0;
-
-protected:
-	bool isComplete(LLViewerInventoryCategory* cat);
-	folder_ref_t mIncompleteFolders;
-	folder_ref_t mCompleteFolders;
+	LLFindWearables() {}
+	virtual ~LLFindWearables() {}
+	virtual bool operator()(LLInventoryCategory* cat,
+							LLInventoryItem* item);
 };
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryFetchComboObserver
-//
-// This class does an appropriate combination of fetch descendents and
-// item fetches based on completion of categories and items. Much like
-// the fetch and fetch descendents, this will call done() when everything
-// has arrived.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class LLInventoryFetchComboObserver : public LLInventoryObserver
-{
-public:
-	LLInventoryFetchComboObserver() : mDone(false) {}
-	virtual void changed(U32 mask);
-
-	typedef std::vector<LLUUID> folder_ref_t;
-	typedef std::vector<LLUUID> item_ref_t;
-	void fetch(const folder_ref_t& folder_ids, const item_ref_t& item_ids);
-
-	virtual void done() = 0;
-
-protected:
-	bool mDone;
-	folder_ref_t mCompleteFolders;
-	folder_ref_t mIncompleteFolders;
-	item_ref_t mCompleteItems;
-	item_ref_t mIncompleteItems;
-};
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryExistenceObserver
-//
-// This class is used as a base class for doing somethign when all the
-// observed item ids exist in the inventory somewhere. You can derive
-// a class from this class and implement the done() method to do
-// something useful.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class LLInventoryExistenceObserver : public LLInventoryObserver
-{
-public:
-	LLInventoryExistenceObserver() {}
-	virtual void changed(U32 mask);
-
-	void watchItem(const LLUUID& id);
-
-protected:
-	virtual void done() = 0;
-
-	typedef std::vector<LLUUID> item_ref_t;
-	item_ref_t mExist;
-	item_ref_t mMIA;
-};
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryAddedObserver
-//
-// This class is used as a base class for doing something when 
-// a new item arrives in inventory.
-// It does not watch for a certain UUID, rather it acts when anything is added
-// Derive a class from this class and implement the done() method to do
-// something useful.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class LLInventoryAddedObserver : public LLInventoryObserver
-{
-public:
-	LLInventoryAddedObserver() : mAdded() {}
-	virtual void changed(U32 mask);
-
-protected:
-	virtual void done() = 0;
-
-	typedef std::vector<LLUUID> item_ref_t;
-	item_ref_t mAdded;
-};
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Class LLInventoryTransactionObserver
-//
-// Class which can be used as a base class for doing something when an
-// inventory transaction completes.
-//
-// *NOTE: This class is not quite complete. Avoid using unless you fix up it's
-// functionality gaps.
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class LLInventoryTransactionObserver : public LLInventoryObserver
-{
-public:
-	LLInventoryTransactionObserver(const LLTransactionID& transaction_id);
-	virtual void changed(U32 mask);
-
-protected:
-	typedef std::vector<LLUUID> folder_ref_t;
-	typedef std::vector<LLUUID> item_ref_t;
-	virtual void done(const folder_ref_t& folders, const item_ref_t& items) = 0;
-
-	LLTransactionID mTransactionID;
-};
-
 
 #endif // LL_LLINVENTORYMODEL_H
 

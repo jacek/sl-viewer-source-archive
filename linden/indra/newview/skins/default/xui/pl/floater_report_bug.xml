@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater name="bug_reporter" title="Zgłoś Błędy Klienta">
+<floater name="bug_reporter" title="ZGŁOŚ BŁĘDY KLIENTA">
 	<texture_picker label="" name="screenshot" />
 	<check_box label="Załącz Zdjęcie Ekranu" name="screen_check" />
 	<text name="reporter_title">
@@ -30,60 +30,24 @@
 	</text>
 	<combo_box name="category_combo"
 	     tool_tip="Wybór kategorii - wybierz kategorię, której dotyczy raport">
-		<combo_item name="Selectcategory">
-			Wybierz Kategorię
-		</combo_item>
-		<combo_item name="Building">
-			Budowanie
-		</combo_item>
-		<combo_item name="Character">
-			Awatar
-		</combo_item>
-		<combo_item name="Chat/IM">
-			Czat/IM
-		</combo_item>
-		<combo_item name="Documentation">
-			Dokumentacja
-		</combo_item>
-		<combo_item name="Exploit">
-			Eksploatacja
-		</combo_item>
-		<combo_item name="Graphics">
-			Grafika
-		</combo_item>
-		<combo_item name="Inventory">
-			Szafa
-		</combo_item>
-		<combo_item name="Lag">
-			Lag
-		</combo_item>
-		<combo_item name="MissingContent">
-			Brakujący Element
-		</combo_item>
-		<combo_item name="LindenDollars(L$)">
-			Linden Dollars (L$)
-		</combo_item>
-		<combo_item name="Permissions">
-			Prawa
-		</combo_item>
-		<combo_item name="Physics">
-			Fizyka
-		</combo_item>
-		<combo_item name="Script">
-			Skrypty
-		</combo_item>
-		<combo_item name="Sound">
-			Dźwięk
-		</combo_item>
-		<combo_item name="Stipends">
-			Uposażenie
-		</combo_item>
-		<combo_item name="Userinterface">
-			Interfejs Użytkownika
-		</combo_item>
-		<combo_item name="Miscellaneous">
-			Różne/Inne
-		</combo_item>
+		<combo_box.item name="Selectcategory" label="Wybierz Kategorię" />
+		<combo_box.item name="Building" label="Budowanie" />
+		<combo_box.item name="Character" label="Awatar" />
+		<combo_box.item name="Chat/IM" label="Czat/IM" />
+		<combo_box.item name="Documentation" label="Dokumentacja" />
+		<combo_box.item name="Exploit" label="Eksploatacja" />
+		<combo_box.item name="Graphics" label="Grafika" />
+		<combo_box.item name="Inventory" label="Szafa" />
+		<combo_box.item name="Lag" label="Lag" />
+		<combo_box.item name="MissingContent" label="Brakujący Element" />
+		<combo_box.item name="LindenDollars(L$)" label="Linden Dollars (L$)" />
+		<combo_box.item name="Permissions" label="Prawa" />
+		<combo_box.item name="Physics" label="Fizyka" />
+		<combo_box.item name="Script" label="Skrypty" />
+		<combo_box.item name="Sound" label="Dźwięk" />
+		<combo_box.item name="Stipends" label="Uposażenie" />
+		<combo_box.item name="Userinterface" label="Interfejs Użytkownika" />
+		<combo_box.item name="Miscellaneous" label="Różne/Inne" />
 	</combo_box>
 	<text name="sum_title">
 		Podsumowanie:

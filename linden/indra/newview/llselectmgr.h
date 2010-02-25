@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,10 +35,10 @@
 
 #include "llcharacter.h"
 #include "lleditmenuhandler.h"
-#include "llstring.h"
 #include "llundo.h"
 #include "lluuid.h"
-#include "llmemory.h"
+#include "llpointer.h"
+#include "llsafehandle.h"
 #include "llsaleinfo.h"
 #include "llcategory.h"
 #include "v3dmath.h"
@@ -47,14 +47,15 @@
 #include "llframetimer.h"
 #include "llbbox.h"
 #include "llpermissions.h"
-#include "llviewerobject.h"
+#include "llcontrol.h"
+#include "llviewerobject.h"	// LLObjectSelection::getSelectedTEValue template
 
 #include <deque>
-#include "boost/iterator/filter_iterator.hpp"
+#include <boost/iterator/filter_iterator.hpp>
+#include <boost/signals2.hpp>
 
 class LLMessageSystem;
-class LLViewerImage;
-class LLViewerObject;
+class LLViewerTexture;
 class LLColor4;
 class LLVector3;
 class LLSelectNode;
@@ -202,13 +203,9 @@ class LLObjectSelection : public LLRefCount
 protected:
 	~LLObjectSelection();
 
-	// List
 public:
 	typedef std::list<LLSelectNode*> list_t;
-private:
-	list_t mList;
 
-public:
 	// Iterators
 	struct is_non_null
 	{
@@ -234,11 +231,7 @@ public:
 
 	struct is_root
 	{
-		bool operator()(LLSelectNode* node)
-		{
-			LLViewerObject* object = node->getObject();
-			return (object != NULL) && !node->mIndividualSelection && (object->isRootEdit() || object->isJointChild());
-		}
+		bool operator()(LLSelectNode* node);
 	};
 	typedef boost::filter_iterator<is_root, list_t::iterator > root_iterator;
 	root_iterator root_begin() { return root_iterator(mList.begin(), mList.end()); }
@@ -246,11 +239,7 @@ public:
 	
 	struct is_valid_root
 	{
-		bool operator()(LLSelectNode* node)
-		{
-			LLViewerObject* object = node->getObject();
-			return (object != NULL) && node->mValid && !node->mIndividualSelection && (object->isRootEdit() || object->isJointChild());
-		}
+		bool operator()(LLSelectNode* node);
 	};
 	typedef boost::filter_iterator<is_root, list_t::iterator > valid_root_iterator;
 	valid_root_iterator valid_root_begin() { return valid_root_iterator(mList.begin(), mList.end()); }
@@ -258,11 +247,7 @@ public:
 	
 	struct is_root_object
 	{
-		bool operator()(LLSelectNode* node)
-		{
-			LLViewerObject* object = node->getObject();
-			return (object != NULL) && (object->isRootEdit() || object->isJointChild());
-		}
+		bool operator()(LLSelectNode* node);
 	};
 	typedef boost::filter_iterator<is_root_object, list_t::iterator > root_object_iterator;
 	root_object_iterator root_object_begin() { return root_object_iterator(mList.begin(), mList.end()); }
@@ -276,8 +261,6 @@ public:
 
 	BOOL isEmpty() const;
 
-	S32 getOwnershipCost(S32 &cost);
-
 	LLSelectNode*	getFirstNode(LLSelectedNodeFunctor* func = NULL);
 	LLSelectNode*	getFirstRootNode(LLSelectedNodeFunctor* func = NULL, BOOL non_root_ok = FALSE);
 	LLViewerObject* getFirstSelectedObject(LLSelectedNodeFunctor* func, BOOL get_parent = FALSE);
@@ -290,11 +273,14 @@ public:
 	LLViewerObject*	getFirstCopyableObject(BOOL get_parent = FALSE);
 	LLViewerObject* getFirstDeleteableObject();
 	LLViewerObject*	getFirstMoveableObject(BOOL get_parent = FALSE);
+
+	/// Return the object that lead to this selection, possible a child
 	LLViewerObject* getPrimaryObject() { return mPrimaryObject; }
 
 	// iterate through texture entries
 	template <typename T> bool getSelectedTEValue(LLSelectedTEGetFunctor<T>* func, T& res);
-		
+	template <typename T> bool isMultipleTEValue(LLSelectedTEGetFunctor<T>* func, const T& ignore_value);
+	
 	void addNode(LLSelectNode *nodep);
 	void addNodeAtEnd(LLSelectNode *nodep);
 	void moveNodeToFront(LLSelectNode *nodep);
@@ -308,6 +294,7 @@ public:
 	S32 getTECount();
 	S32 getRootObjectCount();
 
+	BOOL isMultipleTESelected();
 	BOOL contains(LLViewerObject* object);
 	BOOL contains(LLViewerObject* object, S32 te);
 
@@ -326,6 +313,7 @@ public:
 	ESelectType getSelectType() const { return mSelectType; }
 
 private:
+	list_t mList;
 	const LLObjectSelection &operator=(const LLObjectSelection &);
 
 	LLPointer<LLViewerObject> mPrimaryObject;
@@ -335,13 +323,18 @@ private:
 
 typedef LLSafeHandle<LLObjectSelection> LLObjectSelectionHandle;
 
+// Build time optimization, generate this once in .cpp file
+#ifndef LLSELECTMGR_CPP
+extern template class LLSelectMgr* LLSingleton<class LLSelectMgr>::getInstance();
+#endif
+
 class LLSelectMgr : public LLEditMenuHandler, public LLSingleton<LLSelectMgr>
 {
 public:
 	static BOOL					sRectSelectInclusive;	// do we need to surround an object to pick it?
-	static BOOL					sRenderSelectionHighlights;	// do we show selection silhouettes?
 	static BOOL					sRenderHiddenSelections;	// do we show selection silhouettes that are occluded?
 	static BOOL					sRenderLightRadius;	// do we show the radius of selected lights?
+
 	static F32					sHighlightThickness;
 	static F32					sHighlightUScale;
 	static F32					sHighlightVScale;
@@ -355,6 +348,10 @@ public:
 	static LLColor4				sHighlightChildColor;
 	static LLColor4				sHighlightInspectColor;
 	static LLColor4				sContextSilhouetteColor;
+
+	LLCachedControl<bool>					mHideSelectedObjects;
+	LLCachedControl<bool>					mAllowSelectAvatar;
+	LLCachedControl<bool>					mDebugSelectMgr;
 
 public:
 	LLSelectMgr();
@@ -394,12 +391,15 @@ public:
 	// Add
 	////////////////////////////////////////////////////////////////
 
+	// This method is meant to select an object, and then select all
+	// of the ancestors and descendants. This should be the normal behavior.
+	//
+	// *NOTE: You must hold on to the object selection handle, otherwise
+	// the objects will be automatically deselected in 1 frame.
+	LLObjectSelectionHandle selectObjectAndFamily(LLViewerObject* object, BOOL add_to_end = FALSE);
+
 	// For when you want just a child object.
 	LLObjectSelectionHandle selectObjectOnly(LLViewerObject* object, S32 face = SELECT_ALL_TES);
-
-	// This method is meant to select an object, and then select all
-	// of the ancestors and descendents. This should be the normal behavior.
-	LLObjectSelectionHandle selectObjectAndFamily(LLViewerObject* object, BOOL add_to_end = FALSE);
 
 	// Same as above, but takes a list of objects.  Used by rectangle select.
 	LLObjectSelectionHandle selectObjectAndFamily(const std::vector<LLViewerObject*>& object_list, BOOL send_to_sim = TRUE);
@@ -408,6 +408,8 @@ public:
 	LLObjectSelectionHandle selectHighlightedObjects();
 
 	LLObjectSelectionHandle setHoverObject(LLViewerObject *objectp, S32 face = -1);
+	LLSelectNode *getHoverNode();
+	LLSelectNode *getPrimaryHoverNode();
 
 	void highlightObjectOnly(LLViewerObject *objectp);
 	void highlightObjectAndFamily(LLViewerObject *objectp);
@@ -442,13 +444,10 @@ public:
 	////////////////////////////////////////////////////////////////
 	// Selection accessors
 	////////////////////////////////////////////////////////////////
-	LLObjectSelectionHandle	getHoverObjects() { return mHoverObjects; }
 	LLObjectSelectionHandle	getSelection() { return mSelectedObjects; }
 	// right now this just renders the selection with root/child colors instead of a single color
 	LLObjectSelectionHandle	getEditSelection() { convertTransient(); return mSelectedObjects; }
 	LLObjectSelectionHandle	getHighlightedObjects() { return mHighlightedObjects; }
-
-	LLSelectNode *getHoverNode();
 
 	////////////////////////////////////////////////////////////////
 	// Grid manipulation
@@ -503,7 +502,7 @@ public:
 	void selectionSetTexGen( U8 texgen );
 	void selectionSetShiny( U8 shiny );
 	void selectionSetFullbright( U8 fullbright );
-	void selectionSetMediaTypeAndURL( U8 media_type, const std::string& media_url );
+	void selectionSetMedia( U8 media_type, const LLSD &media_data );
 	void selectionSetClickAction(U8 action);
 	void selectionSetIncludeInSearch(bool include_in_search);
 	void selectionSetGlow(const F32 glow);
@@ -535,6 +534,7 @@ public:
 	// Returns TRUE if the viewer has information on all selected objects
 	BOOL selectGetAllRootsValid();
 	BOOL selectGetAllValid();
+	BOOL selectGetAllValidAndObjectsFound();
 
 	// returns TRUE if you can modify all selected objects. 
 	BOOL selectGetRootsModify();
@@ -554,7 +554,6 @@ public:
 	// the value found if available.
 	BOOL selectGetGroup(LLUUID& id); 
 	BOOL selectGetPerm(	U8 which_perm, U32* mask_on, U32* mask_off);	// TRUE if all have data, returns two masks, each indicating which bits are all on and all off
-	BOOL selectGetOwnershipCost(S32* cost);								// sum of all ownership costs
 
 	BOOL selectIsGroupOwned();											// TRUE if all root objects have valid data and are group owned.
 
@@ -667,7 +666,7 @@ private:
 	static void packDeRezHeader(void* user_data);
 	static void packObjectID(	LLSelectNode* node, void *);
 	static void packObjectIDAsParam(LLSelectNode* node, void *);
-	static void packObjectIDAndRotation(	LLSelectNode* node, void *);
+	static void packObjectIDAndRotation(LLSelectNode* node, void *);
 	static void packObjectLocalID(LLSelectNode* node, void *);
 	static void packObjectClickAction(LLSelectNode* node, void* data);
 	static void packObjectIncludeInSearch(LLSelectNode* node, void* data);
@@ -689,9 +688,15 @@ private:
 	static void packPermissionsHead(void* user_data);
 	static void packGodlikeHead(void* user_data);
 	static bool confirmDelete(const LLSD& notification, const LLSD& response, LLObjectSelectionHandle handle);
-	
+
+public:
+	// Observer/callback support for when object selection changes or
+	// properties are received/updated
+	typedef boost::signals2::signal< void ()> update_signal_t;
+	update_signal_t mUpdateSignal;
+
 private:
-	LLPointer<LLViewerImage>				mSilhouetteImagep;
+	LLPointer<LLViewerTexture>				mSilhouetteImagep;
 	LLObjectSelectionHandle					mSelectedObjects;
 	LLObjectSelectionHandle					mHoverObjects;
 	LLObjectSelectionHandle					mHighlightedObjects;
@@ -721,8 +726,10 @@ private:
 	LLAnimPauseRequest		mPauseRequest;
 };
 
-// Utilities
-void dialog_refresh_all();		// Update subscribers to the selection list
+// *DEPRECATED: For callbacks or observers, use
+// LLSelectMgr::getInstance()->mUpdateSignal.connect( callback )
+// Update subscribers to the selection list
+void dialog_refresh_all();		
 
 // Templates
 //-----------------------------------------------------------------------------
@@ -783,6 +790,53 @@ template <typename T> bool LLObjectSelection::getSelectedTEValue(LLSelectedTEGet
 		res = selected_value;
 	}
 	return identical;
+}
+
+// Templates
+//-----------------------------------------------------------------------------
+// isMultipleTEValue iterate through all TEs and test for uniqueness 
+// with certain return value ignored when performing the test. 
+// e.g. when testing if the selection has a unique non-empty homeurl :
+// you can set ignore_value = "" and it will only compare among the non-empty  
+// homeUrls and ignore the empty ones.
+//-----------------------------------------------------------------------------
+template <typename T> bool LLObjectSelection::isMultipleTEValue(LLSelectedTEGetFunctor<T>* func, const T& ignore_value)
+{
+	bool have_first = false;
+	T selected_value = T();
+	
+	// Now iterate through all TEs to test for sameness
+	bool unique = TRUE;
+	for (iterator iter = begin(); iter != end(); iter++)
+	{
+		LLSelectNode* node = *iter;
+		LLViewerObject* object = node->getObject();
+		for (S32 te = 0; te < object->getNumTEs(); ++te)
+		{
+			if (!node->isTESelected(te))
+			{
+				continue;
+			}
+			T value = func->get(object, te);
+			if(value == ignore_value)
+			{
+				continue;
+			}
+			if (!have_first)
+			{
+				have_first = true;
+			}
+			else
+			{
+				if (value !=selected_value  )
+				{
+					unique = false;
+					return !unique;
+				}
+			}
+		}
+	}
+	return !unique;
 }
 
 

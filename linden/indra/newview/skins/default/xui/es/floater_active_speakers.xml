@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="active_speakers" title="Participantes activos">
+<floater name="active_speakers" title="PARTICIPANTES ACTIVOS">
 	<panel name="active_speakers_panel">
 		<scroll_list name="speakers_list">
 			<column label="Nombre" name="speaker_name"/>

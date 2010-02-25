@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,7 +52,6 @@
 #include "llviewerobject.h"
 #include "llviewercamera.h"
 #include "pipeline.h"
-#include "llagent.h"
 #include "lldrawpool.h"
 
 #include "llvosky.h"
@@ -66,6 +65,9 @@ F32 elevation_from_vector(const LLVector3 &v);
 
 LLSky				gSky;
 // ---------------- LLSky ----------------
+
+const F32 LLSky::NIGHTTIME_ELEVATION = -8.0f; // degrees
+const F32 LLSky::NIGHTTIME_ELEVATION_COS = (F32)sin(NIGHTTIME_ELEVATION*DEG_TO_RAD);
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

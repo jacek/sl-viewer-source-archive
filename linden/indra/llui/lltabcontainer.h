@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,8 +36,10 @@
 #include "llpanel.h"
 #include "lltextbox.h"
 #include "llframetimer.h"
+#include "lliconctrl.h"
+#include "llbutton.h"
 
-extern const S32 TABCNTR_HEADER_HEIGHT;
+class LLTabTuple;
 
 class LLTabContainer : public LLPanel
 {
@@ -56,8 +58,70 @@ public:
 		RIGHT_OF_CURRENT
 	} eInsertionPoint;
 
-	LLTabContainer( const std::string& name, const LLRect& rect, TabPosition pos,
-					BOOL bordered, BOOL is_vertical);
+	struct TabPositions : public LLInitParam::TypeValuesHelper<LLTabContainer::TabPosition, TabPositions>
+	{
+		static void declareValues();
+	};
+
+	struct TabParams : public LLInitParam::Block<TabParams>
+	{
+		Optional<LLUIImage*>				tab_top_image_unselected,
+											tab_top_image_selected,
+											tab_bottom_image_unselected,
+											tab_bottom_image_selected,
+											tab_left_image_unselected,
+											tab_left_image_selected;		
+		TabParams();
+	};
+
+	struct Params
+	:	public LLInitParam::Block<Params, LLPanel::Params>
+	{
+		Optional<TabPosition, TabPositions>	tab_position;
+		Optional<S32>						tab_width,
+											tab_min_width,
+											tab_max_width,
+											tab_height,
+											label_pad_bottom,
+											label_pad_left;
+
+		Optional<bool>						hide_tabs;
+		Optional<S32>						tab_padding_right;
+
+		Optional<TabParams>					first_tab,
+											middle_tab,
+											last_tab;
+
+		/**
+		 * Tab label horizontal alignment
+		 */
+		Optional<LLFontGL::HAlign>			font_halign;
+
+		/**
+		 * Tab label ellipses
+		 */
+		Optional<bool>						use_ellipses;
+
+		/**
+		 * Use LLCustomButtonIconCtrl or LLButton in LLTabTuple
+		 */
+		Optional<bool>						use_custom_icon_ctrl;
+
+		/**
+		 *  Paddings for LLIconCtrl in case of LLCustomButtonIconCtrl usage(use_custom_icon_ctrl = true)
+		 */
+		Optional<S32>						tab_icon_ctrl_pad;
+
+		Params();
+	};
+
+protected:
+	LLTabContainer(const Params&);
+	friend class LLUICtrlFactory;
+
+public:
+	//LLTabContainer( const std::string& name, const LLRect& rect, TabPosition pos,
+	//				BOOL bordered, BOOL is_vertical);
 
 	/*virtual*/ ~LLTabContainer();
 
@@ -69,22 +133,40 @@ public:
 	/*virtual*/ BOOL handleMouseDown( S32 x, S32 y, MASK mask );
 	/*virtual*/ BOOL handleHover( S32 x, S32 y, MASK mask );
 	/*virtual*/ BOOL handleMouseUp( S32 x, S32 y, MASK mask );
-	/*virtual*/ BOOL handleToolTip(S32 x, S32 y, std::string& msg, LLRect* sticky_rect );
+	/*virtual*/ BOOL handleToolTip(S32 x, S32 y, MASK mask);
 	/*virtual*/ BOOL handleKeyHere(KEY key, MASK mask);
 	/*virtual*/ BOOL handleDragAndDrop(S32 x, S32 y, MASK mask,	BOOL drop,
 									   EDragAndDropType type, void* cargo_data,
 									   EAcceptance* accept, std::string& tooltip);
-	/*virtual*/ LLXMLNodePtr getXML(bool save_children = true) const;
-	/*virtual*/ LLView* getChildView(const std::string& name, BOOL recurse = TRUE, BOOL create_if_missing = TRUE) const;
+	/*virtual*/ LLView* getChildView(const std::string& name, BOOL recurse = TRUE) const;
+	/*virtual*/ LLView* findChildView(const std::string& name, BOOL recurse = TRUE) const;
+	/*virtual*/ void initFromParams(const LLPanel::Params& p);
+	/*virtual*/ bool addChild(LLView* view, S32 tab_group = 0);
+	/*virtual*/ BOOL postBuild();
 
-	void 		addTabPanel(LLPanel* child, 
-							const std::string& label, 
-							BOOL select = FALSE,  
-							void (*on_tab_clicked)(void*, bool) = NULL, 
-							void* userdata = NULL,
-							S32 indent = 0,
-							BOOL placeholder = FALSE,
-							eInsertionPoint insertion_point = END);
+	struct TabPanelParams : public LLInitParam::Block<TabPanelParams>
+	{
+		Mandatory<LLPanel*>			panel;
+		
+		Optional<std::string>		label;
+		Optional<bool>				select_tab,
+									is_placeholder;
+		Optional<S32>				indent;
+		Optional<eInsertionPoint>	insert_at;
+		Optional<void*>				user_data;
+
+		TabPanelParams()
+		:	panel("panel", NULL),
+			label("label"),
+			select_tab("select_tab"),
+			is_placeholder("is_placeholder"),
+			indent("indent"),
+			insert_at("insert_at", END)
+		{}
+	};
+
+	void		addTabPanel(LLPanel* panel);
+	void		addTabPanel(const TabPanelParams& panel);
 	void 		addPlaceholder(LLPanel* child, const std::string& label);
 	void 		removeTabPanel( LLPanel* child );
 	void 		lockTabs(S32 num_tabs = 0);
@@ -108,21 +190,18 @@ public:
 	BOOL 		selectTabPanel( LLPanel* child );
 	BOOL 		selectTab(S32 which);
 	BOOL 		selectTabByName(const std::string& title);
-	BOOL		setTab(S32 which);
 
 	BOOL        getTabPanelFlashing(LLPanel* child);
 	void		setTabPanelFlashing(LLPanel* child, BOOL state);
 	void 		setTabImage(LLPanel* child, std::string img_name, const LLColor4& color = LLColor4::white);
+	void 		setTabImage(LLPanel* child, const LLUUID& img_id, const LLColor4& color = LLColor4::white);
+	void		setTabImage(LLPanel* child, LLIconCtrl* icon);
 	void		setTitle( const std::string& title );
 	const std::string getPanelTitle(S32 index);
 
 	void		setTopBorderHeight(S32 height);
 	S32			getTopBorderHeight() const;
 	
-	void 		setTabChangeCallback(LLPanel* tab, void (*on_tab_clicked)(void*,bool));
-	void		setTabPrecommitChangeCallback(LLPanel* tab, void (*on_precommit)(void*, bool));
-	void 		setTabUserData(LLPanel* tab, void* userdata);
-
 	void 		setRightTabBtnOffset( S32 offset );
 	void 		setPanelTitle(S32 index, const std::string& title);
 
@@ -134,51 +213,20 @@ public:
 
 	void		startDragAndDropDelayTimer() { mDragAndDropDelayTimer.start(); }
 	
-	static void	onCloseBtn(void* userdata);
-	static void	onTabBtn(void* userdata);
-	static void	onNextBtn(void* userdata);
-	static void	onNextBtnHeld(void* userdata);
-	static void	onPrevBtn(void* userdata);
-	static void	onPrevBtnHeld(void* userdata);
-	static void onJumpFirstBtn( void* userdata );
-	static void onJumpLastBtn( void* userdata );
-
-	static LLView* fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory *factory);
+	void onTabBtn( const LLSD& data, LLPanel* panel );
+	void onNextBtn(const LLSD& data);
+	void onNextBtnHeld(const LLSD& data);
+	void onPrevBtn(const LLSD& data);
+	void onPrevBtnHeld(const LLSD& data);
+	void onJumpFirstBtn( const LLSD& data );
+	void onJumpLastBtn( const LLSD& data );
 
 private:
-	// Structure used to map tab buttons to and from tab panels
-	struct LLTabTuple
-	{
-		LLTabTuple( LLTabContainer* c, LLPanel* p, LLButton* b,
-					void (*cb)(void*,bool), void* userdata, LLTextBox* placeholder = NULL, 
-					void (*pcb)(void*,bool) = NULL)
-			:
-			mTabContainer(c),
-			mTabPanel(p),
-			mButton(b),
-			mOnChangeCallback( cb ),
-			mPrecommitChangeCallback( pcb ),
-			mUserData( userdata ),
-			mOldState(FALSE),
-			mPlaceholderText(placeholder),
-			mPadding(0)
-			{}
-
-		LLTabContainer*  mTabContainer;
-		LLPanel*		 mTabPanel;
-		LLButton*		 mButton;
-		void			 (*mOnChangeCallback)(void*, bool);
-		void			 (*mPrecommitChangeCallback)(void*,bool);		// Precommit callback gets called before tab is changed and 
-																		// can prevent it from being changed. onChangeCallback is called
-																		// immediately after tab is actually changed - Nyx
-		void*			 mUserData;
-		BOOL			 mOldState;
-		LLTextBox*		 mPlaceholderText;
-		S32				 mPadding;
-	};
 
 	void initButtons();
 	
+	BOOL		setTab(S32 which);
+
 	LLTabTuple* getTab(S32 index) 		{ return mTabList[index]; }
 	LLTabTuple* getTabByPanel(LLPanel* child);
 	void insertTuple(LLTabTuple * tuple, eInsertionPoint insertion_point);
@@ -201,13 +249,16 @@ private:
 	void updateMaxScrollPos();
 	void commitHoveredButton(S32 x, S32 y);
 
+	// updates tab button images given the tuple, tab position and the corresponding params
+	void update_images(LLTabTuple* tuple, TabParams params, LLTabContainer::TabPosition pos);
+	void reshapeTuple(LLTabTuple* tuple);
+
 	// Variables
 	
 	typedef std::vector<LLTabTuple*> tuple_list_t;
 	tuple_list_t					mTabList;
 	
 	S32								mCurrentTabIdx;
-	S32								mNextTabIdx;
 	BOOL							mTabsHidden;
 
 	BOOL							mScrolled;
@@ -215,9 +266,6 @@ private:
 	S32								mScrollPos;
 	S32								mScrollPosPixels;
 	S32								mMaxScrollPos;
-
-	void							(*mCloseCallback)(void*);
-	void*							mCallbackUserdata;
 
 	LLTextBox*						mTitleBox;
 
@@ -238,9 +286,25 @@ private:
 
 	S32								mMaxTabWidth;
 	S32								mTotalTabWidth;
+	S32								mTabHeight;
+
+	// Padding under the text labels of tab buttons
+	S32								mLabelPadBottom;
+	// Padding to the left of text labels of tab buttons
+	S32								mLabelPadLeft;
 
 	LLFrameTimer					mDragAndDropDelayTimer;
-};
+	
+	LLFontGL::HAlign                mFontHalign;
+	const LLFontGL*					mFont;
 
+	TabParams						mFirstTabParams;
+	TabParams						mMiddleTabParams;
+	TabParams						mLastTabParams;
+
+	bool							mCustomIconCtrlUsed;
+	S32								mTabIconCtrlPad;
+	bool							mUseTabEllipses;
+};
 
 #endif  // LL_TABCONTAINER_H

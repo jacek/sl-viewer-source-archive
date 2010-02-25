@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -46,6 +46,7 @@
 LLViewerVisualParamInfo::LLViewerVisualParamInfo()
 	:
 	mWearableType( WT_INVALID ),
+	mCrossWearable(FALSE),
 	mCamDist( 0.5f ),
 	mCamAngle( 0.f ),
 	mCamElevation( 0.f ),
@@ -76,13 +77,19 @@ BOOL LLViewerVisualParamInfo::parseXml(LLXmlTreeNode *node)
 	static LLStdStringHandle wearable_string = LLXmlTree::addAttributeString("wearable");
 	if( node->getFastAttributeString( wearable_string, wearable) )
 	{
-		mWearableType = LLWearable::typeNameToType( wearable );
+		mWearableType = LLWearableDictionary::typeNameToType( wearable );
 	}
 
 	static LLStdStringHandle edit_group_string = LLXmlTree::addAttributeString("edit_group");
 	if (!node->getFastAttributeString( edit_group_string, mEditGroup))
 	{
 		mEditGroup = "";
+	}
+
+	static LLStdStringHandle cross_wearable_string = LLXmlTree::addAttributeString("cross_wearable");
+	if (!node->getFastAttributeBOOL(cross_wearable_string, mCrossWearable))
+	{
+		mCrossWearable = FALSE;
 	}
 
 	// Optional camera offsets from the current joint center.  Used for generating "hints" (thumbnails).
@@ -112,18 +119,21 @@ BOOL LLViewerVisualParamInfo::parseXml(LLXmlTreeNode *node)
 	return TRUE;
 }
 
+/*virtual*/ void LLViewerVisualParamInfo::toStream(std::ostream &out)
+{
+	LLVisualParamInfo::toStream(out);
+
+	out << mWearableType << "\t";
+	out << mEditGroup << "\t";
+	out << mEditGroupDisplayOrder << "\t";
+}
+
 //-----------------------------------------------------------------------------
 // LLViewerVisualParam()
 //-----------------------------------------------------------------------------
 LLViewerVisualParam::LLViewerVisualParam()
 {
 }
-
-/*
-//=============================================================================
-// These virtual functions should always be overridden,
-// but are included here for use as templates
-//=============================================================================
 
 //-----------------------------------------------------------------------------
 // setInfo()
@@ -139,6 +149,12 @@ BOOL LLViewerVisualParam::setInfo(LLViewerVisualParamInfo *info)
 	setWeight(getDefaultWeight(), FALSE );
 	return TRUE;
 }
+
+/*
+//=============================================================================
+// These virtual functions should always be overridden,
+// but are included here for use as templates
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 // parseData()

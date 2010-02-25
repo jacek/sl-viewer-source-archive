@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,39 +40,28 @@
 
 #include "llfloater.h"
 #include "lllogchat.h"
-class LLButton;
+
 class LLChat;
-class LLComboBox;
-class LLLineEditor;
-class LLViewerTextEditor;
-class LLMessageSystem;
-class LLUUID;
-class LLCheckBoxCtrl;
 class LLPanelActiveSpeakers;
 class LLLogChat;
 
-class LLFloaterChat
-	:	public LLFloater, public LLUISingleton<LLFloaterChat, LLFloaterChat>
+class LLFloaterChat : public LLFloater
 {
 public:
 	LLFloaterChat(const LLSD& seed);
 	~LLFloaterChat();
 
-	virtual void setVisible( BOOL b );
 	virtual void draw();
 	virtual BOOL postBuild();
-	virtual void onClose(bool app_quitting);
-	virtual void onVisibilityChange(BOOL cur_visibility);
-	virtual void setMinimized(BOOL);
+
 	void updateConsoleVisibility();
-	void updateSettings();
 
 	static void setHistoryCursorAndScrollToEnd();
-	
+
+	//  *TODO:Skinning - move these to LLChat (or LLViewerChat?)
 	// Add chat to console and history list.
 	// Color based on source, type, distance.
-	static void addChat(const LLChat& chat, BOOL from_im = FALSE, BOOL local_agent = FALSE);
-	
+	static void addChat(const LLChat& chat, BOOL local_agent = FALSE);
 	// Add chat to history alone.
 	static void addChatHistory(const LLChat& chat, bool log_to_file = true);
 	
@@ -80,18 +69,14 @@ public:
 
 	static void onClickMute(void *data);
 	static void onClickToggleShowMute(LLUICtrl* caller, void *data);
-	static void onClickToggleTranslateChat(LLUICtrl* caller, void *data);
 	static void onClickToggleActiveSpeakers(void* userdata);
-	static void chatFromLogFile(LLLogChat::ELogLineType type,std::string line, void* userdata);
+	static void chatFromLogFile(LLLogChat::ELogLineType type, const LLSD& line, void* userdata);
 	static void loadHistory();
 	static void* createSpeakersPanel(void* data);
 	static void* createChatPanel(void* data);
-
-	// visibility policy for LLUISingleton
-	static bool visible(LLFloater* instance, const LLSD& key);
-	static void show(LLFloater* instance, const LLSD& key);
-	static void hide(LLFloater* instance, const LLSD& key);
-
+	
+	static LLFloaterChat* getInstance(); // *TODO:Skinning Deprecate
+	
 	LLPanelActiveSpeakers* mPanel;
 	BOOL mScrolledToEnd;
 };

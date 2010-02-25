@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Place" title="Lieu">
+<panel label="Endroit" name="Place" title="Lieu">
+	<panel.string name="traffic_text">
+		Trafic : [TRAFFIC].
+	</panel.string>
+	<panel.string name="area_text">
+		Surface : [AREA] m².
+	</panel.string>
+	<panel.string name="forsale_text">
+		En vente pour [PRICE] L$.
+	</panel.string>
+	<panel.string name="auction_text">
+		Enchère : [ID]
+	</panel.string>
+	<panel.string name="server_update_text">
+		Les informations sur le lieu ne sont pas disponibles sans mise à jour du serveur.
+	</panel.string>
+	<panel.string name="server_error_text">
+		Aucune information sur ce lieu n&apos;est disponible actuellement, veuillez réessayer ultérieurement.
+	</panel.string>
+	<panel.string name="server_forbidden_text">
+		Les informations sur ce lieu ne sont pas disponibles car l&apos;accès y est restreint. Veuillez vérifier vos droits avec le propriétaire de la parcelle.
+	</panel.string>
 	<text name="name_label">
 		Nom :
 	</text>
@@ -11,33 +32,12 @@
 	<text name="land_type_label">
 		Type de terrain :
 	</text>
-	<text left="113" name="land_type_display" width="338" />
+	<text left="113" name="land_type_display" width="338"/>
 	<text name="location_label">
 		Lieu :
 	</text>
 	<text left="113" name="location_editor" width="338"/>
 	<button label="Téléporter" name="teleport_btn"/>
-	<button label="Voir sur la carte" name="map_btn"/>
+	<button label="Carte" name="map_btn"/>
 	<button label="Enchères..." name="auction_btn"/>
-	<string name="traffic_text">
-		Trafic : [TRAFFIC]. 
-	</string>
-	<string name="area_text">
-		Surface : [AREA] m². 
-	</string>
-	<string name="forsale_text">
-		En vente pour [PRICE] L$.
-	</string>
-	<string name="auction_text">
-		Enchère : [ID]
-	</string>
-	<string name="server_update_text">
-		Les informations sur le lieu ne sont pas disponibles sans mise à jour du serveur.
-	</string>
-	<string name="server_error_text">
-		Aucune information sur ce lieu n&apos;est disponible actuellement, veuillez réessayer ultérieurement.
-	</string>
-	<string name="server_forbidden_text">
-		Les informations sur ce lieu ne sont pas disponibles car l&apos;accès y est restreint. Veuillez vérifier vos droits avec le propriétaire de la parcelle.
-	</string>
 </panel>

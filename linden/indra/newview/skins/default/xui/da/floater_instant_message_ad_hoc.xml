@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater label="(ukendt)" name="im_floater" title="(unknown)">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater label="(ukendt)" name="im_floater" title="(UKENDT)">
 	<string name="ringing">
 		Tilslutter til stemme chat...
 	</string>
@@ -26,12 +26,11 @@
 	</string>
 	<layout_stack name="panels">
 		<layout_panel name="im_contents_panel">
-			<button label="Opkald" name="start_call_btn" />
-			<button label="Læg på" name="end_call_btn" />
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn"
-			     tool_tip="Tryk her for at se/skjule liste med aktive deltagere i denne samtale." />
-			<line_editor label="Tryk her for privat samtale (IM)" name="chat_editor" />
-			<button label="Send" name="send_btn" />
+			<button label="Opkald" name="start_call_btn"/>
+			<button label="Læg på" name="end_call_btn"/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Klik for at skifte mellem liste med aktive deltager i denne samtale (IM)"/>
+			<line_editor label="Tryk her for privat samtale (IM)" name="chat_editor"/>
+			<button label="Send" name="send_btn"/>
 		</layout_panel>
 	</layout_stack>
 	<string name="live_help_dialog">

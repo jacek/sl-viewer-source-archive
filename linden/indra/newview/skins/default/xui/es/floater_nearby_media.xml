@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MEDIA CERCANOS">
+	<string name="media_item_count_format">
+		(%ld ítems media)
+	</string>
+	<string name="default_location_text">
+		Desconocido
+	</string>
+	<string name="empty_item_text">
+		&lt;vacío&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;No  hay media&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Activar/Desactivar los media de la parcela
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? ítems media)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Activar/Desactivar los media cercanos"/>
+		</panel>
+		<panel>
+			<button name="parcel_media_enable_btn" tool_tip="Activar/Desactivar los media de la parcela"/>
+			<text name="parcel_media_name">
+				&lt;No  hay media&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Ejecuta los media de la parcela"/>
+			<button name="parcel_media_pause_btn" tool_tip="Pausa los media de la parcela"/>
+			<button name="parcel_media_stop_btn" tool_tip="Para los media de la parcela"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Hace oír el audio de la parcela"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Pausa el audio de la parcela"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Para el audio de la parcela"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="On/Off" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Nombre" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Ejecución automática de los media" name="media_auto_play_btn" tool_tip="Ejecución automática de los media" value="true"/>
+		</panel>
+	</panel>
+</floater>

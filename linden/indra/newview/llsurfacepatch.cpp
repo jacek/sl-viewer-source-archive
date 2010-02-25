@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -60,6 +60,7 @@ LLSurfacePatch::LLSurfacePatch() :
 	mHeightsGenerated(FALSE),
 	mDataOffset(0),
 	mDataZ(NULL),
+	mDataNorm(NULL),
 	mVObjp(NULL),
 	mOriginRegion(0.f, 0.f, 0.f),
 	mCenterRegion(0.f, 0.f, 0.f),
@@ -355,12 +356,14 @@ void LLSurfacePatch::calcNormal(const U32 x, const U32 y, const U32 stride)
 	normal %= c2;
 	normal.normVec();
 
+	llassert(mDataNorm);
 	*(mDataNorm + surface_stride * y + x) = normal;
 }
 
 const LLVector3 &LLSurfacePatch::getNormal(const U32 x, const U32 y) const
 {
 	U32 surface_stride = mSurfacep->getGridsPerEdge();
+	llassert(mDataNorm);
 	return *(mDataNorm + surface_stride * y + x);
 }
 
@@ -402,6 +405,7 @@ void LLSurfacePatch::updateVerticalStats()
 	U32 i, j, k;
 	F32 z, total;
 
+	llassert(mDataZ);
 	z = *(mDataZ);
 
 	mMinZ = z;
@@ -712,17 +716,7 @@ BOOL LLSurfacePatch::updateTexture()
 				if (mVObjp)
 				{
 					mVObjp->dirtyGeom();
-				}
-				updateCompositionStats();
-				F32 tex_patch_size = meters_per_grid*grids_per_patch_edge;
-				if (comp->generateTexture((F32)origin_region[VX], (F32)origin_region[VY],
-										  tex_patch_size, tex_patch_size))
-				{
-					mSTexUpdate = FALSE;
-
-					// Also generate the water texture
-					mSurfacep->generateWaterTexture((F32)origin_region.mdV[VX], (F32)origin_region.mdV[VY],
-													tex_patch_size, tex_patch_size);
+					gPipeline.markGLRebuild(mVObjp);
 					return TRUE;
 				}
 			}
@@ -735,6 +729,28 @@ BOOL LLSurfacePatch::updateTexture()
 	}
 }
 
+void LLSurfacePatch::updateGL()
+{
+	F32 meters_per_grid = getSurface()->getMetersPerGrid();
+	F32 grids_per_patch_edge = (F32)getSurface()->getGridsPerPatchEdge();
+
+	LLViewerRegion *regionp = getSurface()->getRegion();
+	LLVector3d origin_region = getOriginGlobal() - getSurface()->getOriginGlobal();
+
+	LLVLComposition* comp = regionp->getComposition();
+	
+	updateCompositionStats();
+	F32 tex_patch_size = meters_per_grid*grids_per_patch_edge;
+	if (comp->generateTexture((F32)origin_region[VX], (F32)origin_region[VY],
+							  tex_patch_size, tex_patch_size))
+	{
+		mSTexUpdate = FALSE;
+
+		// Also generate the water texture
+		mSurfacep->generateWaterTexture((F32)origin_region.mdV[VX], (F32)origin_region.mdV[VY],
+										tex_patch_size, tex_patch_size);
+	}
+}
 
 void LLSurfacePatch::dirtyZ()
 {

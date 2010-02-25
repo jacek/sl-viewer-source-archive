@@ -11,29 +11,23 @@
 			<text name="find">
 				検索：
 			</text>
-			<line_editor label="検索" name="search_editor" tool_tip="Second Lifeを検索"/>
+			<line_editor label="検索" name="search_editor" tool_tip="[SECOND_LIFE]を検索"/>
 			<button label="戻る" name="back_btn"/>
 			<button label="進む" name="forward_btn"/>
 			<button label="検索" name="search_btn"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					全カテゴリー
-				</combo_item>
-				<combo_item name="Events">
-					イベント
-				</combo_item>
-				<combo_item name="Groups">
-					グループ
-				</combo_item>
-				<combo_item name="People">
-					人々
-				</combo_item>
-				<combo_item name="Places">
-					場所
-				</combo_item>
-				<combo_item name="Wiki">
-					Wiki
-				</combo_item>
+				<combo_box.item name="item0" label="全カテゴリー"
+				/>
+				<combo_box.item name="item1" label="イベント"
+				/>
+				<combo_box.item name="item2" label="グループ"
+				/>
+				<combo_box.item name="item3" label="人々"
+				/>
+				<combo_box.item name="item4" label="場所"
+				/>
+				<combo_box.item name="item5" label="Wiki"
+				/>
 			</combo_box>
 			<check_box left="440" label="PGコンテンツ" name="incpg"/>
 			<check_box left="440" label="Matureコンテンツ" name="incmature"/>
@@ -63,36 +57,26 @@
 			<check_box left="440" label="Matureコンテンツ" name="incmature"/>
 			<check_box left="440" label="Adultコンテンツ" name="incadult"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					全カテゴリー
-				</combo_item>
-				<combo_item name="Shopping">
-					ショッピング
-				</combo_item>
-				<combo_item name="LandRental">
-					借地
-				</combo_item>
-				<combo_item name="PropertyRental">
-					貸物件
-				</combo_item>
-				<combo_item name="SpecialAttraction">
-					特別なアトラクション
-				</combo_item>
-				<combo_item name="NewProducts">
-					新製品
-				</combo_item>
-				<combo_item name="Employment">
-					雇用
-				</combo_item>
-				<combo_item name="Wanted">
-					求人
-				</combo_item>
-				<combo_item name="Service">
-					サービス
-				</combo_item>
-				<combo_item name="Personal">
-					個人
-				</combo_item>
+				<combo_box.item name="item0" label="全カテゴリー"
+				/>
+				<combo_box.item name="item1" label="ショッピング"
+				/>
+				<combo_box.item name="item2" label="借地"
+				/>
+				<combo_box.item name="item3" label="貸物件"
+				/>
+				<combo_box.item name="item4" label="特別なアトラクション"
+				/>
+				<combo_box.item name="item5" label="新製品"
+				/>
+				<combo_box.item name="item6" label="雇用"
+				/>
+				<combo_box.item name="item7" label="求人"
+				/>
+				<combo_box.item name="item8" label="サービス"
+				/>
+				<combo_box.item name="item9" label="個人"
+				/>
 			</combo_box>
 			<button label="閲覧" label_selected="閲覧" name="Browse"/>
 			<button label="検索" label_selected="検索" name="Search"/>
@@ -118,12 +102,8 @@
 				検索：
 			</text>
 			<radio_group name="date_mode">
-				<radio_item name="current">
-					進行中と近日予定
-				</radio_item>
-				<radio_item name="date">
-					日付
-				</radio_item>
+				<radio_item name="current" label="進行中と近日予定"/>
+				<radio_item name="date" label="日付"/>
 			</radio_group>
 			<button label="&lt;&lt; " label_selected="&lt;&lt; " name="&lt;&lt;" tool_tip="1日前に戻る"/>
 			<text name="date_text">
@@ -135,42 +115,30 @@
 				カテゴリー：
 			</text>
 			<combo_box name="category combo" width="206">
-				<combo_item name="All">
-					全カテゴリ
-				</combo_item>
-				<combo_item name="Discussion">
-					ディスカッション
-				</combo_item>
-				<combo_item name="Sports">
-					スポーツ
-				</combo_item>
-				<combo_item name="LiveMusic">
-					生演奏
-				</combo_item>
-				<combo_item name="Commercial">
-					商業目的
-				</combo_item>
-				<combo_item name="Nightlife/Entertainment">
-					夜遊び／エンターテインメント
-				</combo_item>
-				<combo_item name="Games/Contests">
-					ゲーム／コンテスト
-				</combo_item>
-				<combo_item name="Pageants">
-					ショー
-				</combo_item>
-				<combo_item name="Education">
-					教育
-				</combo_item>
-				<combo_item name="ArtsandCulture">
-					アートとカルチャー
-				</combo_item>
-				<combo_item name="Charity/SupportGroups">
-					チャリティ／サポート・グループ
-				</combo_item>
-				<combo_item name="Miscellaneous">
-					その他
-				</combo_item>
+				<combo_box.item name="item0" label="全カテゴリ"
+				/>
+				<combo_box.item name="item18" label="ディスカッション"
+				/>
+				<combo_box.item name="item19" label="スポーツ"
+				/>
+				<combo_box.item name="item20" label="生演奏"
+				/>
+				<combo_box.item name="item22" label="商業目的"
+				/>
+				<combo_box.item name="item23" label="夜遊び／エンターテインメント"
+				/>
+				<combo_box.item name="item24" label="ゲーム／コンテスト"
+				/>
+				<combo_box.item name="item25" label="ショー"
+				/>
+				<combo_box.item name="item26" label="教育"
+				/>
+				<combo_box.item name="item27" label="アートとカルチャー"
+				/>
+				<combo_box.item name="item28" label="チャリティ／サポート・グループ"
+				/>
+				<combo_box.item name="item29" label="その他"
+				/>
 			</combo_box>
 			<check_box left="440" label="PGコンテンツ" name="incpg"/>
 			<check_box left="440" label="Matureコンテンツ" name="incmature"/>
@@ -222,18 +190,14 @@
 			<check_box left="440" label="Matureコンテンツ" name="incmature"/>
 			<check_box left="440" label="Adultコンテンツ" name="incadult"/>
 			<combo_box bottom="-64" left="224" name="type" width="168">
-				<combo_item name="AllTypes">
-					全種類
-				</combo_item>
-				<combo_item name="Auction">
-					オークション
-				</combo_item>
-				<combo_item name="MainlandSales">
-					売り出し – メインランド
-				</combo_item>
-				<combo_item name="EstateSales">
-					売り出し – 不動産
-				</combo_item>
+				<combo_box.item name="AllTypes" label="全種類"
+				/>
+				<combo_box.item name="Auction" label="オークション"
+				/>
+				<combo_box.item name="MainlandSales" label="売り出し – メインランド"
+				/>
+				<combo_box.item name="EstateSales" label="売り出し – 不動産"
+				/>
 			</combo_box>
 			<check_box label="価格 &#8804; " name="pricecheck"/>
 			<text name="pricecheck_symbol">
@@ -272,83 +236,58 @@
 			<check_box left="440" label="Matureコンテンツ" name="incmature"/>
 			<check_box left="440" label="Adultコンテンツ" name="incadult"/>
 			<combo_box name="Category">
-				<combo_item name="AnyCategory">
-					全カテゴリー
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Linden所在地
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					アート&amp;カルチャー
-				</combo_item>
-				<combo_item name="Business">
-					ビジネス
-				</combo_item>
-				<combo_item name="Educational">
-					教育的
-				</combo_item>
-				<combo_item name="Gaming">
-					ゲーム
-				</combo_item>
-				<combo_item name="Hangout">
-					たまり場
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					新住人に好意的
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					公園と自然
-				</combo_item>
-				<combo_item name="Residential">
-					住宅用
-				</combo_item>
-				<combo_item name="Shopping">
-					ショッピング
-				</combo_item>
-				<combo_item name="Other">
-					その他
-				</combo_item>
+				<combo_box.item name="item0" label="全カテゴリー"
+				/>
+				<combo_box.item name="item1" label="Linden所在地"
+				/>
+				<combo_box.item name="item3" label="アート&amp;カルチャー"
+				/>
+				<combo_box.item name="item4" label="ビジネス"
+				/>
+				<combo_box.item name="item5" label="教育的"
+				/>
+				<combo_box.item name="item6" label="ゲーム"
+				/>
+				<combo_box.item name="item7" label="たまり場"
+				/>
+				<combo_box.item name="item8" label="新住人に好意的"
+				/>
+				<combo_box.item name="item9" label="公園と自然"
+				/>
+				<combo_box.item name="item10" label="住宅用"
+				/>
+				<combo_box.item name="item11" label="ショッピング"
+				/>
+				<combo_box.item name="item12" label="その他"
+				/>
 			</combo_box>
 			<combo_box name="Category_Adult">
-				<combo_item name="AnyCategory">
-					全カテゴリ
-				</combo_item>
-				<combo_item name="LindenLocation">
-					Linden所在地
-				</combo_item>
-				<combo_item name="Adult">
-					Adult
-				</combo_item>
-				<combo_item name="Arts&amp;Culture">
-					アートとカルチャー
-				</combo_item>
-				<combo_item name="Business">
-					ビジネス
-				</combo_item>
-				<combo_item name="Educational">
-					教育的
-				</combo_item>
-				<combo_item name="Gaming">
-					ゲーム
-				</combo_item>
-				<combo_item name="Hangout">
-					たまり場
-				</combo_item>
-				<combo_item name="NewcomerFriendly">
-					新住人に好意的
-				</combo_item>
-				<combo_item name="Parks&amp;Nature">
-					公園と自然
-				</combo_item>
-				<combo_item name="Residential">
-					住宅用
-				</combo_item>
-				<combo_item name="Shopping">
-					ショッピング
-				</combo_item>
-				<combo_item name="Other">
-					その他
-				</combo_item>
+				<combo_box.item name="AnyCategory" label="全カテゴリ"
+				/>
+				<combo_box.item name="LindenLocation" label="Linden所在地"
+				/>
+				<combo_box.item name="Adult" label="Adult"
+				/>
+				<combo_box.item name="Arts&amp;Culture" label="アートとカルチャー"
+				/>
+				<combo_box.item name="Business" label="ビジネス"
+				/>
+				<combo_box.item name="Educational" label="教育的"
+				/>
+				<combo_box.item name="Gaming" label="ゲーム"
+				/>
+				<combo_box.item name="Hangout" label="たまり場"
+				/>
+				<combo_box.item name="NewcomerFriendly" label="新住人に好意的"
+				/>
+				<combo_box.item name="Parks&amp;Nature" label="公園と自然"
+				/>
+				<combo_box.item name="Residential" label="住宅用"
+				/>
+				<combo_box.item name="Shopping" label="ショッピング"
+				/>
+				<combo_box.item name="Other" label="その他"
+				/>
 			</combo_box>
 			<button label="検索" label_selected="検索" name="Search"/>
 			<scroll_list name="results">
@@ -389,7 +328,7 @@
 			<text name="find">
 				検索：
 			</text>
-			<line_editor label="検索" name="search_editor" tool_tip="Second Lifeを検索"/>
+			<line_editor label="検索" name="search_editor" tool_tip="[SECOND_LIFE]を検索"/>
 			<button label="戻る" name="back_btn"/>
 			<button label="進む" name="forward_btn"/>
 			<button label="検索" name="search_btn"/>

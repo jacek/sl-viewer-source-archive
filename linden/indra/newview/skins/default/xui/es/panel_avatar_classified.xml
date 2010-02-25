@@ -1,37 +1,32 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Classified" title="Clasificados">
-	<line_editor name="given_name_editor" tool_tip="El nombre debe empezar o con un número o con una letra, no con un signo de puntuación."/>
-	<line_editor name="location_editor" tool_tip="Marque como localización de este anuncio su posición actual."/>
+<panel label="Clasificado" name="Classified" title="Clasificados">
+	<panel.string name="ad_placed_paid">
+		Anuncio colocado: [DATE]; pagados [AMT] L$ para su listado.
+	</panel.string>
+	<panel.string name="update_txt">
+		Actualizar
+	</panel.string>
+	<panel.string name="publish_txt">
+		Publicar...
+	</panel.string>
+	<line_editor name="given_name_editor" tool_tip="El nombre debe empezar con una letra o un número, no con signos de puntuación"/>
+	<line_editor name="location_editor" tool_tip="Marca tu posición actual como localización de este clasificado"/>
 	<button label="Definir la localización" name="set_location_btn" width="135"/>
-	<button label="Teleportar" name="classified_teleport_btn" width="85" left_delta="135"/>
-	<button label="Mapa" name="classified_map_btn" width="75" left_delta="85"/>
+	<button label="Teleportar" left_delta="135" name="classified_teleport_btn" width="85"/>
+	<button label="Mapa" left_delta="85" name="classified_map_btn" width="75"/>
 	<combo_box label="" name="classified_category_combo"/>
 	<combo_box label="" name="classified_mature_check" width="140">
-		<combo_item name="select_mature">
-			- Elegir Calificación -
-		</combo_item>
-		<combo_item name="mature">
-			Contenido &apos;Mature&apos;
-		</combo_item>
-		<combo_item name="pg">
-			Contenido &apos;PG&apos;
-		</combo_item>
+		<combo_box.item label="- Elegir una -" name="select_mature"/>
+		<combo_box.item label="Contenido &apos;Mature&apos;" name="mature"/>
+		<combo_box.item label="Contenido &apos;PG&apos;" name="pg"/>
 	</combo_box>
-	<text name="classified_info_text" tool_tip="Cuando más pague por su anuncio, más alto aparecerá en la lista." bottom_delta="-24">
+	<text bottom_delta="-24" name="classified_info_text" tool_tip="Cuanto más pagues por tu anuncio, más arriba en la lista aparecerá">
 		Anuncio colocado: aun sin publicar
 	</text>
-	<text name="click_through_text" tool_tip="Número total de pulsaciones en cada botón desde que se colocó el anuncio." bottom_delta="-15">
+	<text bottom_delta="-15" name="click_through_text" tool_tip="Número total de veces que se ha pulsado cada botón desde que se colocó este clasificado">
 		Pulsaciones:
 	</text>
 	<button label="Publicar..." name="classified_update_btn"/>
-	<check_box label="Renovar automáticamente &#10;cada semana" name="auto_renew_check"/>
-	<string name="ad_placed_paid">
-		Anuncio colocado: [DATE]; pagados [AMT] L$ para su listado.
-	</string>
-	<string name="update_txt">
-		Actualizar
-	</string>
-	<string name="publish_txt">
-		Publicar...
-	</string>
+	<check_box label="Renovar automáticamente 
+cada semana" name="auto_renew_check"/>
 </panel>

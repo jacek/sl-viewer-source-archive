@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,9 +52,6 @@ public:
 
 	LLVector3			getCenter() const				{ return (mMax - mMin) * 0.5f + mMin; }
 	LLVector3			getExtent() const				{ return mMax - mMin; }
-
-	BOOL				containsPoint(const LLVector3& p) const;
-	BOOL				intersects(const LLBBoxLocal& b) const;
 
 	void				addPoint(const LLVector3& p);
 	void				addBBox(const LLBBoxLocal& b) {	addPoint( b.mMin );	addPoint( b.mMax ); }

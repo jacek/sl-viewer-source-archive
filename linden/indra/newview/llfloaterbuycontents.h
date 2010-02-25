@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -52,22 +52,21 @@ class LLFloaterBuyContents
 public:
 	static void show(const LLSaleInfo& sale_info);
 
-protected:
-	LLFloaterBuyContents();
+	LLFloaterBuyContents(const LLSD& key);
 	~LLFloaterBuyContents();
-
+	/*virtual*/	BOOL	postBuild();
+	
+protected:
 	void requestObjectInventories();
 	/*virtual*/ void inventoryChanged(LLViewerObject* obj,
 								 InventoryObjectList* inv,
 								 S32 serial_num,
 								 void* data);
-
-	static void onClickBuy(void*);
-	static void onClickCancel(void*);
+	
+	void onClickBuy();
+	void onClickCancel();
 
 protected:
-	static LLFloaterBuyContents* sInstance;
-
 	LLSafeHandle<LLObjectSelection> mObjectSelection;
 	LLSaleInfo mSaleInfo;
 };

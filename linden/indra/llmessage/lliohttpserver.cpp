@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -74,7 +74,12 @@ class LLHTTPPipe : public LLIOPipe
 {
 public:
 	LLHTTPPipe(const LLHTTPNode& node)
-		: mNode(node), mResponse(NULL), mState(STATE_INVOKE), mChainLock(0), mStatusCode(0)
+		: mNode(node),
+		  mResponse(NULL),
+		  mState(STATE_INVOKE),
+		  mChainLock(0),
+		  mLockedPump(NULL),
+		  mStatusCode(0)
 		{ }
 	virtual ~LLHTTPPipe()
 	{
@@ -105,12 +110,13 @@ private:
 		// from LLHTTPNode::Response
 		virtual void result(const LLSD&);
 		virtual void extendedResult(S32 code, const std::string& body, const LLSD& headers);
+		
 		virtual void status(S32 code, const std::string& message);
 
 		void nullPipe();
 
 	private:
-		Response() {;} // Must be accessed through LLPointer.
+		Response() : mPipe(NULL) {} // Must be accessed through LLPointer.
 		LLHTTPPipe* mPipe;
 	};
 	friend class Response;
@@ -402,7 +408,7 @@ void LLHTTPPipe::unlockChain()
 class LLHTTPResponseHeader : public LLIOPipe
 {
 public:
-	LLHTTPResponseHeader() {}
+	LLHTTPResponseHeader() : mCode(0) {}
 	virtual ~LLHTTPResponseHeader() {}
 
 protected:
@@ -520,7 +526,7 @@ protected:
 	 * seek orfor string assignment.
 	 * @returns Returns true if a line was found.
 	 */
-	bool readLine(
+	bool readHeaderLine(
 		const LLChannelDescriptors& channels,
 		buffer_ptr_t buffer,
 		U8* dest,
@@ -591,7 +597,7 @@ LLHTTPResponder::~LLHTTPResponder()
 	//lldebugs << "destroying LLHTTPResponder" << llendl;
 }
 
-bool LLHTTPResponder::readLine(
+bool LLHTTPResponder::readHeaderLine(
 	const LLChannelDescriptors& channels,
 	buffer_ptr_t buffer,
 	U8* dest,
@@ -669,7 +675,7 @@ LLIOPipe::EStatus LLHTTPResponder::process_impl(
 #endif
 		
 		PUMP_DEBUG;
-		if(readLine(channels, buffer, (U8*)buf, len))
+		if(readHeaderLine(channels, buffer, (U8*)buf, len))
 		{
 			bool read_next_line = false;
 			bool parse_all = true;
@@ -733,7 +739,13 @@ LLIOPipe::EStatus LLHTTPResponder::process_impl(
 					if(read_next_line)
 					{
 						len = HEADER_BUFFER_SIZE;	
-						readLine(channels, buffer, (U8*)buf, len);
+						if (!readHeaderLine(channels, buffer, (U8*)buf, len))
+						{
+							// Failed to read the header line, probably too long.
+							// readHeaderLine already marked the channel/buffer as bad.
+							keep_parsing = false;
+							break;
+						}
 					}
 					if(0 == len)
 					{

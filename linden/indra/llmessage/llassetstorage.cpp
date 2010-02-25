@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -1028,12 +1028,12 @@ LLSD LLAssetStorage::getPendingDetails(LLAssetStorage::ERequestType rt,
 {
 	const request_list_t* requests = getRequestList(rt);
 	LLSD sd;
-	sd["requests"] = getPendingDetails(requests, asset_type, detail_prefix);
+	sd["requests"] = getPendingDetailsImpl(requests, asset_type, detail_prefix);
 	return sd;
 }
 
 // virtual
-LLSD LLAssetStorage::getPendingDetails(const LLAssetStorage::request_list_t* requests,
+LLSD LLAssetStorage::getPendingDetailsImpl(const LLAssetStorage::request_list_t* requests,
 										LLAssetType::EType asset_type,
 										const std::string& detail_prefix) const
 {
@@ -1116,11 +1116,11 @@ LLSD LLAssetStorage::getPendingRequest(LLAssetStorage::ERequestType rt,
 										const LLUUID& asset_id) const
 {
 	const request_list_t* requests = getRequestList(rt);
-	return getPendingRequest(requests, asset_type, asset_id);
+	return getPendingRequestImpl(requests, asset_type, asset_id);
 }
 
 // virtual
-LLSD LLAssetStorage::getPendingRequest(const LLAssetStorage::request_list_t* requests,
+LLSD LLAssetStorage::getPendingRequestImpl(const LLAssetStorage::request_list_t* requests,
 										LLAssetType::EType asset_type,
 										const LLUUID& asset_id) const
 {
@@ -1139,7 +1139,7 @@ bool LLAssetStorage::deletePendingRequest(LLAssetStorage::ERequestType rt,
 											const LLUUID& asset_id)
 {
 	request_list_t* requests = getRequestList(rt);
-	if (deletePendingRequest(requests, asset_type, asset_id))
+	if (deletePendingRequestImpl(requests, asset_type, asset_id))
 	{
 		llinfos << "Asset " << getRequestName(rt) << " request for "
 				<< asset_id << "." << LLAssetType::lookup(asset_type)
@@ -1150,7 +1150,7 @@ bool LLAssetStorage::deletePendingRequest(LLAssetStorage::ERequestType rt,
 }
 
 // virtual
-bool LLAssetStorage::deletePendingRequest(LLAssetStorage::request_list_t* requests,
+bool LLAssetStorage::deletePendingRequestImpl(LLAssetStorage::request_list_t* requests,
 											LLAssetType::EType asset_type,
 											const LLUUID& asset_id)
 {

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,7 +43,8 @@ public:
 	LLDir_Mac();
 	virtual ~LLDir_Mac();
 
-	virtual void initAppDirs(const std::string &app_name);
+	/*virtual*/ void initAppDirs(const std::string &app_name,
+		const std::string& app_read_only_data_dir);
 public:	
 	virtual S32 deleteFilesInDir(const std::string &dirname, const std::string &mask);
 	virtual std::string getCurPath();

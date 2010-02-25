@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater label="(desconocido)" name="im_floater" title="(desconocido)">
+<floater label="(desconocido)" name="im_floater" title="(DESCONOCIDO)">
 	<string name="ringing">
 		Llamando...
 	</string>
@@ -37,7 +37,7 @@
 	<button label="Llamar" name="start_call_btn"/>
 	<button label="Colgar" name="end_call_btn"/>
 	<panel name="speaker_controls">
-		<button label="" name="mute_btn" tool_tip="Silenciar la voz"/>
+		<button label="" name="mute_btn" tool_tip="Ignorar la voz"/>
 	</panel>
 	<line_editor label="Pulse aquí para enviar un mensaje instantáneo" name="chat_editor"/>
 	<button label="Enviar" name="send_btn"/>

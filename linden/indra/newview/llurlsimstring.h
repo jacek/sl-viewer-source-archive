@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -47,6 +47,9 @@ public:
 		//   //Ahern/123/45/
 		//   Ahern
 
+	static void setStringRaw(const std::string& raw_url_path);
+		//   Sets the sim name/x/y/z based on a raw url
+
 	static bool parse();
 		// Returns true if we have an URL fragment in the static instance
 		// (and it parsed correctly, which is basically always because
@@ -71,8 +74,6 @@ private:
 
 public:
 	static LLURLSimString sInstance;
-	static std::string sLocationStringHome;
-	static std::string sLocationStringLast;
 
 public:
 	std::string mSimString; // "name/x/y/z"

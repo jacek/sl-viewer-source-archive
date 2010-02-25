@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,6 +39,7 @@
 #include "lldir.h"
 #include "llframetimer.h"
 #include "lltrans.h"
+#include "llwindow.h"	// beforeDialog()
 
 #if LL_SDL
 #include "llwindowsdl.h" // for some X/GTK utils to help with filepickers
@@ -67,7 +68,7 @@ LLFilePicker LLFilePicker::sInstance;
 //
 LLFilePicker::LLFilePicker()
 	: mCurrentFile(0),
-	  mLocked(FALSE)
+	  mLocked(false)
 
 {
 	reset();
@@ -91,6 +92,7 @@ LLFilePicker::LLFilePicker()
 	mOFN.lCustData = 0L;
 	mOFN.lpfnHook = NULL;
 	mOFN.lpTemplateName = NULL;
+	mFilesW[0] = '\0';
 #endif
 
 #if LL_DARWIN
@@ -119,7 +121,7 @@ const std::string LLFilePicker::getNextFile()
 {
 	if (mCurrentFile >= getFileCount())
 	{
-		mLocked = FALSE;
+		mLocked = false;
 		return std::string();
 	}
 	else
@@ -132,7 +134,7 @@ const std::string LLFilePicker::getCurFile()
 {
 	if (mCurrentFile >= getFileCount())
 	{
-		mLocked = FALSE;
+		mLocked = false;
 		return std::string();
 	}
 	else
@@ -143,7 +145,7 @@ const std::string LLFilePicker::getCurFile()
 
 void LLFilePicker::reset()
 {
-	mLocked = FALSE;
+	mLocked = false;
 	mFiles.clear();
 	mCurrentFile = 0;
 }
@@ -275,7 +277,7 @@ BOOL LLFilePicker::getMultipleOpenFiles(ELoadFilter filter)
 		}
 		else
 		{
-			mLocked = TRUE;
+			mLocked = true;
 			WCHAR* tptrw = mFilesW;
 			std::string dirname;
 			while(1)
@@ -818,6 +820,13 @@ BOOL LLFilePicker::getOpenFile(ELoadFilter filter)
 	reset();
 	
 	mNavOptions.optionFlags &= ~kNavAllowMultipleFiles;
+
+	if(filter == FFLOAD_ALL)	// allow application bundles etc. to be traversed; important for DEV-16869, but generally useful
+	{
+		// mNavOptions.optionFlags |= kNavAllowOpenPackages;
+		mNavOptions.optionFlags |= kNavSupportPackages;
+	}
+	
 	// Modal, so pause agent
 	send_agent_pause();
 	{
@@ -858,7 +867,7 @@ BOOL LLFilePicker::getMultipleOpenFiles(ELoadFilter filter)
 		if (getFileCount())
 			success = true;
 		if (getFileCount() > 1)
-			mLocked = TRUE;
+			mLocked = true;
 	}
 
 	// Account for the fact that the app has been stalled.

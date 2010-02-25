@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,7 +37,6 @@
 
 #include "v3dmath.h"
 #include "lluuid.h"
-#include "lluserauth.h"
 
 class LLMessageSystem;
 
@@ -46,7 +45,7 @@ class LLClassifiedInfo
 public:
 	LLClassifiedInfo() {}
 
-	static void loadCategories(LLUserAuth::options_t event_options);
+	static void loadCategories(const LLSD& options);
 
 	typedef std::map<U32, std::string> cat_map;
 	static	cat_map sCategories;

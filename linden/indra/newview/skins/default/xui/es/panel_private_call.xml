@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- All our XML is utf-8 encoded. -->
+<panel name="private_call" title="private_call">
+	<panel name="pc_header" title="pc_header">
+		<text name="user_name">
+			LLAMADA PRIVADA
+		</text>
+	</panel>
+	<panel name="control_panel" title="control_panel">
+		<button label="Colgar" name="end_call_btn"/>
+		<text name="user_name">
+			Tú
+		</text>
+		<slider name="volume_slider" tool_tip="Volumen general"/>
+	</panel>
+</panel>

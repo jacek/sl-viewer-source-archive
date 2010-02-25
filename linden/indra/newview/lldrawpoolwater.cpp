@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,8 +45,7 @@
 #include "lldrawable.h"
 #include "llface.h"
 #include "llsky.h"
-#include "llviewercamera.h" // to get OGL_TO_CFR_ROTATION
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "llvosky.h"
 #include "llvowater.h"
@@ -70,17 +69,17 @@ LLVector3 LLDrawPoolWater::sLightDir;
 LLDrawPoolWater::LLDrawPoolWater() :
 	LLFacePool(POOL_WATER)
 {
-	mHBTex[0] = gImageList.getImage(gSunTextureID, TRUE, TRUE);
-	gGL.getTexUnit(0)->bind(mHBTex[0].get());
+	mHBTex[0] = LLViewerTextureManager::getFetchedTexture(gSunTextureID, TRUE, LLViewerTexture::BOOST_UI);
+	gGL.getTexUnit(0)->bind(mHBTex[0]) ;
 	mHBTex[0]->setAddressMode(LLTexUnit::TAM_CLAMP);
 
-	mHBTex[1] = gImageList.getImage(gMoonTextureID, TRUE, TRUE);
-	gGL.getTexUnit(0)->bind(mHBTex[1].get());
+	mHBTex[1] = LLViewerTextureManager::getFetchedTexture(gMoonTextureID, TRUE, LLViewerTexture::BOOST_UI);
+	gGL.getTexUnit(0)->bind(mHBTex[1]);
 	mHBTex[1]->setAddressMode(LLTexUnit::TAM_CLAMP);
 
-	mWaterImagep = gImageList.getImage(WATER_TEST);
+	mWaterImagep = LLViewerTextureManager::getFetchedTexture(WATER_TEST);
 	mWaterImagep->setNoDelete() ;
-	mWaterNormp = gImageList.getImage(DEFAULT_WATER_NORMAL);
+	mWaterNormp = LLViewerTextureManager::getFetchedTexture(DEFAULT_WATER_NORMAL);
 	mWaterNormp->setNoDelete() ;
 
 	restoreGL();
@@ -137,9 +136,22 @@ void LLDrawPoolWater::endPostDeferredPass(S32 pass)
 	deferred_render = FALSE;
 }
 
+//===============================
+//DEFERRED IMPLEMENTATION
+//===============================
+void LLDrawPoolWater::renderDeferred(S32 pass)
+{
+	LLFastTimer t(FTM_RENDER_WATER);
+	deferred_render = TRUE;
+	shade();
+	deferred_render = FALSE;
+}
+
+//=========================================
+
 void LLDrawPoolWater::render(S32 pass)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_RENDER_WATER);
+	LLFastTimer ftm(FTM_RENDER_WATER);
 	if (mDrawFace.empty() || LLDrawable::getCurrentFrame() <= 1)
 	{
 		return;
@@ -185,7 +197,7 @@ void LLDrawPoolWater::render(S32 pass)
 	mWaterImagep->addTextureStats(1024.f*1024.f);
 	gGL.getTexUnit(1)->activate();
 	gGL.getTexUnit(1)->enable(LLTexUnit::TT_TEXTURE);
-	gGL.getTexUnit(1)->bind(mWaterImagep.get());
+	gGL.getTexUnit(1)->bind(mWaterImagep) ;
 
 	LLVector3 camera_up = LLViewerCamera::getInstance()->getUpAxis();
 	F32 up_dot = camera_up * LLVector3::z_axis;
@@ -330,7 +342,7 @@ void LLDrawPoolWater::renderReflection(LLFace* face)
 
 	LLGLSNoFog noFog;
 
-	gGL.getTexUnit(0)->bind(mHBTex[dr].get());
+	gGL.getTexUnit(0)->bind(mHBTex[dr]);
 
 	LLOverrideFaceColor override(this, face->getFaceColor().mV);
 	face->renderIndexed();
@@ -338,7 +350,10 @@ void LLDrawPoolWater::renderReflection(LLFace* face)
 
 void LLDrawPoolWater::shade()
 {
-	gGL.setColorMask(true, true);
+	if (!deferred_render)
+	{
+		gGL.setColorMask(true, true);
+	}
 
 	LLVOSky *voskyp = gSky.mVOSkyp;
 
@@ -354,7 +369,7 @@ void LLDrawPoolWater::shade()
 	LLVector3 light_dir;
 	LLColor3 light_color;
 
-	if (gSky.getSunDirection().mV[2] > NIGHTTIME_ELEVATION_COS) 	 
+	if (gSky.getSunDirection().mV[2] > LLSky::NIGHTTIME_ELEVATION_COS) 	 
     { 	 
         light_dir  = gSky.getSunDirection(); 	 
         light_dir.normVec(); 	
@@ -401,6 +416,15 @@ void LLDrawPoolWater::shade()
 		shader = &gWaterProgram;
 	}
 
+	if (deferred_render)
+	{
+		gPipeline.bindDeferredShader(*shader);
+	}
+	else
+	{
+		shader->bind();
+	}
+
 	sTime = (F32)LLFrameTimer::getElapsedSeconds()*0.5f;
 	
 	S32 reftex = shader->enableTexture(LLViewerShaderMgr::WATER_REFTEX);
@@ -420,11 +444,11 @@ void LLDrawPoolWater::shade()
 	// change mWaterNormp if needed
 	if (mWaterNormp->getID() != param_mgr->getNormalMapID())
 	{
-		mWaterNormp = gImageList.getImage(param_mgr->getNormalMapID());
+		mWaterNormp = LLViewerTextureManager::getFetchedTexture(param_mgr->getNormalMapID());
 	}
 
 	mWaterNormp->addTextureStats(1024.f*1024.f);
-	gGL.getTexUnit(bumpTex)->bind(mWaterNormp.get());
+	gGL.getTexUnit(bumpTex)->bind(mWaterNormp) ;
 	if (gSavedSettings.getBOOL("RenderWaterMipNormal"))
 	{
 		mWaterNormp->setFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
@@ -436,15 +460,6 @@ void LLDrawPoolWater::shade()
 	
 	S32 screentex = shader->enableTexture(LLViewerShaderMgr::WATER_SCREENTEX);	
 		
-	if (deferred_render)
-	{
-		gPipeline.bindDeferredShader(*shader);
-	}
-	else
-	{
-		shader->bind();
-	}
-	
 	if (screentex > -1)
 	{
 		shader->uniform4fv(LLViewerShaderMgr::WATER_FOGCOLOR, 1, sWaterFogColor.mV);
@@ -548,8 +563,15 @@ void LLDrawPoolWater::shade()
 			{ //smash background faces to far clip plane
 				if (water->getIsEdgePatch())
 				{
-					LLGLClampToFarClip far_clip(glh_get_current_projection());
-					face->renderIndexed();
+					if (deferred_render)
+					{
+						face->renderIndexed();
+					}
+					else
+					{
+						LLGLClampToFarClip far_clip(glh_get_current_projection());
+						face->renderIndexed();
+					}
 				}
 				else
 				{
@@ -578,7 +600,10 @@ void LLDrawPoolWater::shade()
 
 	gGL.getTexUnit(0)->activate();
 	gGL.getTexUnit(0)->enable(LLTexUnit::TT_TEXTURE);
-	gGL.setColorMask(true, false);
+	if (!deferred_render)
+	{
+		gGL.setColorMask(true, false);
+	}
 
 }
 
@@ -588,20 +613,9 @@ void LLDrawPoolWater::renderForSelect()
 	return;
 }
 
-
-void LLDrawPoolWater::renderFaceSelected(LLFace *facep, 
-									LLImageGL *image, 
-									const LLColor4 &color,
-									const S32 index_offset, const S32 index_count)
+LLViewerTexture *LLDrawPoolWater::getDebugTexture()
 {
-	// Can't select water
-	return;
-}
-
-
-LLViewerImage *LLDrawPoolWater::getDebugTexture()
-{
-	return LLViewerImage::sSmokeImagep;
+	return LLViewerFetchedTexture::sSmokeImagep;
 }
 
 LLColor3 LLDrawPoolWater::getDebugColor() const

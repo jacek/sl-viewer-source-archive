@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,14 +35,7 @@
 
 class LLUUID;
 
-void handle_track_avatar(const LLUUID& agent_id, const std::string& name);
-void handle_pay_by_id(const LLUUID& agent_id);
 void handle_mouselook(void*);
-void handle_map(void*);
-void handle_mini_map(void*);
-void handle_find(void*);
-void handle_events(void*);
-void handle_inventory(void*);
 void handle_chat(void*);
 void handle_return_key(void*);
 void handle_slash_key(void*);

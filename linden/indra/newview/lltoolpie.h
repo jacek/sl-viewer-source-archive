@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -42,9 +42,12 @@ class LLObjectSelection;
 
 class LLToolPie : public LLTool, public LLSingleton<LLToolPie>
 {
+	LOG_CLASS(LLToolPie);
 public:
 	LLToolPie( );
 
+	// Virtual functions inherited from LLMouseHandler
+	virtual BOOL		handleAnyMouseClick(S32 x, S32 y, MASK mask, EClickType clicktype, BOOL down);
 	virtual BOOL		handleMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL		handleRightMouseDown(S32 x, S32 y, MASK mask);
 	virtual BOOL		handleMouseUp(S32 x, S32 y, MASK mask);
@@ -52,6 +55,7 @@ public:
 	virtual BOOL		handleHover(S32 x, S32 y, MASK mask);
 	virtual BOOL		handleDoubleClick(S32 x, S32 y, MASK mask);
 	virtual BOOL		handleScrollWheel(S32 x, S32 y, S32 clicks);
+	virtual BOOL		handleToolTip(S32 x, S32 y, MASK mask);
 
 	virtual void		render();
 
@@ -67,26 +71,38 @@ public:
 	LLObjectSelection*	getLeftClickSelection() { return (LLObjectSelection*)mLeftClickSelection; }
 	void 				resetSelection();
 	
-	static void			leftMouseCallback(const LLPickInfo& pick_info);
-	static void			rightMouseCallback(const LLPickInfo& pick_info);
-
 	static void			selectionPropertiesReceived();
 
+	static void			showAvatarInspector(const LLUUID& avatar_id);
+	static void			showObjectInspector(const LLUUID& object_id);
+	static void			showObjectInspector(const LLUUID& object_id, const S32& object_face);
+	static void			playCurrentMedia(const LLPickInfo& info);
+	static void			VisitHomePage(const LLPickInfo& info);
+	
+private:
+	BOOL outsideSlop		(S32 x, S32 y, S32 start_x, S32 start_y);
+	BOOL pickLeftMouseDownCallback();
+	BOOL pickRightMouseDownCallback();
+	BOOL useClickAction		(MASK mask, LLViewerObject* object,LLViewerObject* parent);
+	
+	void showVisualContextMenuEffect();
+
+	bool handleMediaClick(const LLPickInfo& info);
+	bool handleMediaHover(const LLPickInfo& info);
+	bool handleMediaMouseUp(); 
+	BOOL handleTooltipLand(std::string line, std::string tooltip_msg);
+	BOOL handleTooltipObject( LLViewerObject* hover_object, std::string line, std::string tooltip_msg);
 
 private:
-	BOOL outsideSlop(S32 x, S32 y, S32 start_x, S32 start_y);
-	BOOL pickAndShowMenu(BOOL edit_menu);
-	BOOL useClickAction(BOOL always_show, MASK mask, LLViewerObject* object,
-						LLViewerObject* parent);
-
-private:
-	BOOL				mPieMouseButtonDown;
 	BOOL				mGrabMouseButtonDown;
 	BOOL				mMouseOutsideSlop;				// for this drag, has mouse moved outside slop region
+	LLUUID				mMediaMouseCaptureID;
 	LLPickInfo			mPick;
+	LLPickInfo			mHoverPick;
 	LLPointer<LLViewerObject> mClickActionObject;
 	U8					mClickAction;
 	LLSafeHandle<LLObjectSelection> mLeftClickSelection;
+
 };
 
 

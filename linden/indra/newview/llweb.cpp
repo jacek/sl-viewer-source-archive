@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,16 +35,49 @@
 
 #include "llweb.h"
 
+// Library includes
+#include "llwindow.h"	// spawnWebBrowser()
+
+#include "llagent.h"
+#include "llappviewer.h"
+#include "llfloatermediabrowser.h"
+#include "llfloaterreg.h"
+#include "lllogininstance.h"
+#include "llparcel.h"
+#include "llsd.h"
+#include "lltoastalertpanel.h"
+#include "llui.h"
+#include "lluri.h"
+#include "llversioninfo.h"
+#include "llviewercontrol.h"
+#include "llviewernetwork.h"
+#include "llviewerparcelmgr.h"
+#include "llviewerregion.h"
 #include "llviewerwindow.h"
 
-#include "llviewercontrol.h"
-#include "llfloatermediabrowser.h"
+class URLLoader : public LLToastAlertPanel::URLLoader
+{
+	virtual void load(const std::string& url , bool force_open_externally)
+	{
+		if (force_open_externally)
+		{
+			LLWeb::loadURLExternal(url);
+		}
+		else
+		{
+			LLWeb::loadURL(url);
+		}
+	}
+};
+static URLLoader sAlertURLLoader;
+
 
 // static
 void LLWeb::initClass()
 {
-	LLAlertDialog::setURLLoader(&sAlertURLLoader);
+	LLToastAlertPanel::setURLLoader(&sAlertURLLoader);
 }
+
 
 // static
 void LLWeb::loadURL(const std::string& url)
@@ -55,8 +88,15 @@ void LLWeb::loadURL(const std::string& url)
 	}
 	else
 	{
-		LLFloaterMediaBrowser::showInstance(url);
+		loadURLInternal(url);
 	}
+}
+
+
+// static
+void LLWeb::loadURLInternal(const std::string &url)
+{
+	LLFloaterReg::showInstance("media_browser", url);
 }
 
 
@@ -94,11 +134,53 @@ std::string LLWeb::escapeURL(const std::string& url)
 	return escaped_url;
 }
 
-// virtual
-void LLWeb::URLLoader::load(const std::string& url)
+//static
+std::string LLWeb::expandURLSubstitutions(const std::string &url,
+										  const LLSD &default_subs)
 {
-	loadURL(url);
-}
+	LLSD substitution = default_subs;
+	substitution["VERSION"] = LLVersionInfo::getVersion();
+	substitution["VERSION_MAJOR"] = LLVersionInfo::getMajor();
+	substitution["VERSION_MINOR"] = LLVersionInfo::getMinor();
+	substitution["VERSION_PATCH"] = LLVersionInfo::getPatch();
+	substitution["VERSION_BUILD"] = LLVersionInfo::getBuild();
+	substitution["CHANNEL"] = LLVersionInfo::getChannel();
+	substitution["GRID"] = LLViewerLogin::getInstance()->getGridLabel();
+	substitution["OS"] = LLAppViewer::instance()->getOSInfo().getOSStringSimple();
+	substitution["SESSION_ID"] = gAgent.getSessionID();
+	substitution["FIRST_LOGIN"] = gAgent.isFirstLogin();
 
-// static
-LLWeb::URLLoader LLWeb::sAlertURLLoader;
+	// work out the current language
+	std::string lang = LLUI::getLanguage();
+	if (lang == "en-us")
+	{
+		// *HACK: the correct fix is to change English.lproj/language.txt,
+		// but we're late in the release cycle and this is a less risky fix
+		lang = "en";
+	}
+	substitution["LANGUAGE"] = lang;
+
+	// find the region ID
+	LLUUID region_id;
+	LLViewerRegion *region = gAgent.getRegion();
+	if (region)
+	{
+		region_id = region->getRegionID();
+	}
+	substitution["REGION_ID"] = region_id;
+
+	// find the parcel local ID
+	S32 parcel_id = 0;
+	LLParcel* parcel = LLViewerParcelMgr::getInstance()->getAgentParcel();
+	if (parcel)
+	{
+		parcel_id = parcel->getLocalID();
+	}
+	substitution["PARCEL_ID"] = llformat("%d", parcel_id);
+
+	// expand all of the substitution strings and escape the url
+	std::string expanded_url = url;
+	LLStringUtil::format(expanded_url, substitution);
+
+	return LLWeb::escapeURL(expanded_url);
+}

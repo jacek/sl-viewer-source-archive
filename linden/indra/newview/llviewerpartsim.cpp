@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -71,9 +71,9 @@ const F32 LLViewerPartSim::PART_ADAPT_RATE_MULT_RECIP = 1.0f/PART_ADAPT_RATE_MUL
 
 U32 LLViewerPart::sNextPartID = 1;
 
-F32 calc_desired_size(LLVector3 pos, LLVector2 scale)
+F32 calc_desired_size(LLViewerCamera* camera, LLVector3 pos, LLVector2 scale)
 {
-	F32 desired_size = (pos-LLViewerCamera::getInstance()->getOrigin()).magVec();
+	F32 desired_size = (pos - camera->getOrigin()).magVec();
 	desired_size /= 4;
 	return llclamp(desired_size, scale.magVec()*0.5f, PART_SIM_BOX_SIDE*2);
 }
@@ -81,6 +81,7 @@ F32 calc_desired_size(LLVector3 pos, LLVector2 scale)
 LLViewerPart::LLViewerPart() :
 	mPartID(0),
 	mLastUpdateTime(0.f),
+	mSkipOffset(0.f),
 	mVPCallback(NULL),
 	mImagep(NULL)
 {
@@ -98,7 +99,7 @@ LLViewerPart::~LLViewerPart()
 	--LLViewerPartSim::sParticleCount2 ;
 }
 
-void LLViewerPart::init(LLPointer<LLViewerPartSource> sourcep, LLViewerImage *imagep, LLVPCallback cb)
+void LLViewerPart::init(LLPointer<LLViewerPartSource> sourcep, LLViewerTexture *imagep, LLVPCallback cb)
 {
 	LLMemType mt(LLMemType::MTYPE_PARTICLES);
 	mPartID = LLViewerPart::sNextPartID;
@@ -273,6 +274,7 @@ void LLViewerPartGroup::updateParticles(const F32 lastdt)
 
 	LLViewerPartSim::checkParticleCount(mParticles.size());
 
+	LLViewerCamera* camera = LLViewerCamera::getInstance();
 	LLViewerRegion *regionp = getRegion();
 	S32 end = (S32) mParticles.size();
 	for (S32 i = 0 ; i < (S32)mParticles.size();)
@@ -394,7 +396,7 @@ void LLViewerPartGroup::updateParticles(const F32 lastdt)
 		}
 		else 
 		{
-			F32 desired_size = calc_desired_size(part->mPosAgent, part->mScale);
+			F32 desired_size = calc_desired_size(camera, part->mPosAgent, part->mScale);
 			if (!posInGroup(part->mPosAgent, desired_size))
 			{
 				// Transfer particles between groups
@@ -557,7 +559,8 @@ LLViewerPartGroup *LLViewerPartSim::put(LLViewerPart* part)
 	}
 	else
 	{	
-		F32 desired_size = calc_desired_size(part->mPosAgent, part->mScale);
+		LLViewerCamera* camera = LLViewerCamera::getInstance();
+		F32 desired_size = calc_desired_size(camera, part->mPosAgent, part->mScale);
 
 		S32 count = (S32) mViewerPartGroups.size();
 		for (S32 i = 0; i < count; i++)
@@ -631,6 +634,8 @@ void LLViewerPartSim::shift(const LLVector3 &offset)
 	}
 }
 
+static LLFastTimer::DeclareTimer FTM_SIMULATE_PARTICLES("Simulate Particles");
+
 void LLViewerPartSim::updateSimulation()
 {
 	LLMemType mt(LLMemType::MTYPE_PARTICLES);
@@ -644,7 +649,7 @@ void LLViewerPartSim::updateSimulation()
 		return;
 	}
 
-	LLFastTimer ftm(LLFastTimer::FTM_SIMULATE_PARTICLES);
+	LLFastTimer ftm(FTM_SIMULATE_PARTICLES);
 
 	// Start at a random particle system so the same
 	// particle system doesn't always get first pick at the

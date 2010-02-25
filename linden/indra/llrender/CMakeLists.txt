@@ -3,11 +3,13 @@
 project(llrender)
 
 include(00-Common)
+include(FindOpenGL)
 include(FreeType)
 include(LLCommon)
 include(LLImage)
 include(LLMath)
 include(LLRender)
+include(LLVFS)
 include(LLWindow)
 include(LLXML)
 include(LLVFS)
@@ -18,6 +20,7 @@ include_directories(
     ${LLIMAGE_INCLUDE_DIRS}
     ${LLMATH_INCLUDE_DIRS}
     ${LLRENDER_INCLUDE_DIRS}
+    ${LLVFS_INCLUDE_DIRS}
     ${LLWINDOW_INCLUDE_DIRS}
     ${LLXML_INCLUDE_DIRS}
     ${LLVFS_INCLUDE_DIRS}
@@ -25,7 +28,7 @@ include_directories(
 
 set(llrender_SOURCE_FILES
     llcubemap.cpp
-    llfont.cpp
+    llfontfreetype.cpp
     llfontgl.cpp
     llfontbitmapcache.cpp
     llfontregistry.cpp
@@ -35,6 +38,7 @@ set(llrender_SOURCE_FILES
     llpostprocess.cpp
     llrendersphere.cpp
     llshadermgr.cpp
+    lltexture.cpp
     llvertexbuffer.cpp
     )
     
@@ -43,7 +47,7 @@ set(llrender_HEADER_FILES
 
     llcubemap.h
     llfontgl.h
-    llfont.h
+    llfontfreetype.h
     llfontbitmapcache.h
     llfontregistry.h
     llgl.h
@@ -57,6 +61,7 @@ set(llrender_HEADER_FILES
     llrender.h
     llrendersphere.h
     llshadermgr.h
+    lltexture.h
     llvertexbuffer.h
     )
 
@@ -81,7 +86,6 @@ if (SERVER AND NOT WINDOWS AND NOT DARWIN)
     ${llrender_SOURCE_FILES}
     ${server_SOURCE_FILES}
     )
-  add_dependencies(llrenderheadless prepare)
 else (SERVER AND NOT WINDOWS AND NOT DARWIN)
   list(APPEND llrender_SOURCE_FILES
       llgl.cpp
@@ -90,4 +94,9 @@ else (SERVER AND NOT WINDOWS AND NOT DARWIN)
       )
 endif (SERVER AND NOT WINDOWS AND NOT DARWIN)
 add_library (llrender ${llrender_SOURCE_FILES})
-add_dependencies(llrender prepare)
+# Libraries on which this library depends, needed for Linux builds
+# Sort by high-level to low-level
+target_link_libraries(llrender 
+    llimage 
+    ${FREETYPE_LIBRARIES}
+    ${OPENGL_LIBRARIES})

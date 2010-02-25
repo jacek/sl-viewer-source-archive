@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -37,6 +37,8 @@
 #include "llstring.h"
 #include "llvisualparam.h"
 
+class LLWearable;
+
 //-----------------------------------------------------------------------------
 // LLViewerVisualParamInfo
 //-----------------------------------------------------------------------------
@@ -49,8 +51,11 @@ public:
 	
 	/*virtual*/ BOOL parseXml(LLXmlTreeNode* node);
 
+	/*virtual*/ void toStream(std::ostream &out);
+
 protected:
 	S32			mWearableType;
+	BOOL		mCrossWearable;
 	std::string	mEditGroup;
 	F32			mCamDist;
 	F32			mCamAngle;		// degrees
@@ -77,6 +82,8 @@ public:
 	LLViewerVisualParamInfo 	*getInfo() const { return (LLViewerVisualParamInfo*)mInfo; };
 	//   This sets mInfo and calls initialization functions
 	BOOL						setInfo(LLViewerVisualParamInfo *info);
+
+	virtual LLViewerVisualParam* cloneParam(LLWearable* wearable) const = 0;
 	
 	// LLVisualParam Virtual functions
 	///*virtual*/ BOOL			parseData(LLXmlTreeNode* node);
@@ -90,7 +97,7 @@ public:
 	virtual const LLVector3*	getNextDistortion(U32 *index, LLPolyMesh **mesh) = 0;
 	
 	// interface methods
-	F32					getDisplayOrder()			{ return getInfo()->mEditGroupDisplayOrder; }
+	F32					getDisplayOrder() const		{ return getInfo()->mEditGroupDisplayOrder; }
 	S32					getWearableType() const		{ return getInfo()->mWearableType; }
 	const std::string&	getEditGroup() const		{ return getInfo()->mEditGroup; }
 
@@ -102,6 +109,9 @@ public:
 	BOOL				getShowSimple() const		{ return getInfo()->mShowSimple; }
 	F32					getSimpleMin() const		{ return getInfo()->mSimpleMin; }
 	F32					getSimpleMax() const		{ return getInfo()->mSimpleMax; }
+
+	BOOL				getCrossWearable() const 	{ return getInfo()->mCrossWearable; }
+
 };
 
 #endif // LL_LLViewerVisualParam_H

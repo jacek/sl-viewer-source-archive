@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -91,6 +91,15 @@ public:
 		AUDIO_TYPE_COUNT   = 4 // last
 	};
 	
+	enum LLAudioPlayState
+	{
+		// isInternetStreamPlaying() returns an *int*, with
+		// 0 = stopped, 1 = playing, 2 = paused.
+		AUDIO_STOPPED = 0,
+		AUDIO_PLAYING = 1,
+		AUDIO_PAUSED = 2
+	};
+	
 	LLAudioEngine();
 	virtual ~LLAudioEngine();
 
@@ -115,8 +124,8 @@ public:
 	// Use these for temporarily muting the audio system.
 	// Does not change buffers, initialization, etc. but
 	// stops playing new sounds.
-	void setMuted(bool muted);
-	bool getMuted() const { return mMuted; }
+	virtual void setMuted(bool muted);
+	virtual bool getMuted() const { return mMuted; }
 #ifdef USE_PLUGIN_MEDIA
 	LLPluginClassMedia* initializeMedia(const std::string& media_type);
 #endif
@@ -156,7 +165,7 @@ public:
 	void stopInternetStream();
 	void pauseInternetStream(int pause);
 	void updateInternetStream(); // expected to be called often
-	int isInternetStreamPlaying();
+	LLAudioPlayState isInternetStreamPlaying();
 	// use a value from 0.0 to 1.0, inclusive
 	void setInternetStreamGain(F32 vol);
 	std::string getInternetStreamURL();
@@ -236,7 +245,6 @@ protected:
 	LLAudioBuffer *mBuffers[MAX_BUFFERS];
 	
 	F32 mMasterGain;
-	F32 mInternalGain;			// Actual gain set; either mMasterGain or 0 when mMuted is true.
 	F32 mSecondaryGain[AUDIO_TYPE_COUNT];
 
 	F32 mNextWindUpdate;
@@ -301,8 +309,7 @@ public:
 	virtual void setGain(const F32 gain)							{ mGain = llclamp(gain, 0.f, 1.f); }
 
 	const LLUUID &getID() const		{ return mID; }
-	bool isDone() const;
-	bool isMuted() const { return mSourceMuted; }
+	bool isDone();
 
 	LLAudioData *getCurrentData();
 	LLAudioData *getQueuedData();
@@ -324,7 +331,6 @@ protected:
 	LLUUID			mOwnerID;	// owner of the object playing the sound
 	F32				mPriority;
 	F32				mGain;
-	bool			mSourceMuted;
 	bool			mAmbient;
 	bool			mLoop;
 	bool			mSyncMaster;

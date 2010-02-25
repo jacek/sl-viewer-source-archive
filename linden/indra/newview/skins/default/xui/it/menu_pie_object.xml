@@ -1,30 +1,28 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<pie_menu name="Object Pie">
-	<menu_item_call label="Apri" name="Open"/>
-	<menu_item_call label="Crea" name="Create"/>
+<context_menu name="Object Pie">
 	<menu_item_call label="Tocca" name="Object Touch">
-		<on_enable userdata="Tocca" name="EnableTouch"/>
+		<menu_item_call.on_enable name="EnableTouch" userdata="Tocca"/>
 	</menu_item_call>
+	<menu_item_call label="Modifica" name="Edit..."/>
+	<menu_item_call label="Costruisci" name="Build"/>
+	<menu_item_call label="Apri" name="Open"/>
 	<menu_item_call label="Siedi qui" name="Object Sit">
-		<on_enable userdata="Siedi qui,Alzati" name="EnableSitOrStand"/>
+		<menu_item_call.on_enable name="EnableSitOrStand" userdata="Siedi qui,Alzati"/>
 	</menu_item_call>
-	<menu_item_call label="Prendi" name="Pie Object Take">
-		<on_enable userdata="Compra,Prendi" name="EnableBuyOrTake"/>
-	</menu_item_call>
-	<menu_item_call label="Paga..." name="Pay..."/>
-	<pie_menu label="Altro &gt;" name="More &gt;">
-		<menu_item_call label="Cancella" name="Delete"/>
+	<menu_item_call label="Profilo oggetto" name="Object Inspect"/>
+	<context_menu label="Metti &gt;" name="Put On">
 		<menu_item_call label="Indossa" name="Wear"/>
-		<menu_item_call label="Prendine una copia" name="Take Copy"/>
-		<pie_menu label="Indossa HUD &gt;" name="Object Attach HUD"/>
-		<pie_menu label="Attacca &gt;" name="Object Attach"/>
-		<menu_item_call label="Restituisci..." name="Return..."/>
-		<pie_menu label="Altro &gt;" name="Rate Menu">
-			<menu_item_call label="Denuncia..." name="Report Abuse..."/>
-			<menu_item_call label="Muta" name="Object Mute"/>
-			<menu_item_call label="Ispeziona" name="Object Inspect"/>
-		</pie_menu>
-		<menu_item_call label="Compra..." name="Buy..."/>
-	</pie_menu>
-	<menu_item_call label="Modifica..." name="Edit..."/>
-</pie_menu>
+		<context_menu label="Attacca &gt;" name="Object Attach"/>
+		<context_menu label="Attacca HUD &gt;" name="Object Attach HUD"/>
+	</context_menu>
+	<context_menu label="Cancella &gt;" name="Remove">
+		<menu_item_call label="Cancella" name="Delete"/>
+		<menu_item_call label="Prendi" name="Pie Object Take"/>
+		<menu_item_call label="Denuncia abuso" name="Report Abuse..."/>
+		<menu_item_call label="Blocca" name="Object Mute"/>
+		<menu_item_call label="Restituisci" name="Return..."/>
+	</context_menu>
+	<menu_item_call label="Prendi copia" name="Take Copy"/>
+	<menu_item_call label="Paga" name="Pay..."/>
+	<menu_item_call label="Compra" name="Buy..."/>
+</context_menu>

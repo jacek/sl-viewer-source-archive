@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,10 +38,13 @@
 #include "apr_time.h"
 
 #include <time.h>
+#include <locale.h>
+#include <string>
 #include <iomanip>
 #include <sstream>
 
 #include "lltimer.h"
+#include "llstring.h"
 
 static const F64 DATE_EPOCH = 0.0;
 
@@ -88,45 +91,37 @@ std::string LLDate::asString() const
 //        is one of the standards used and the prefered format
 std::string LLDate::asRFC1123() const
 {
-    std::ostringstream stream;
-    toHTTPDateStream(stream);
-    return stream.str();
+	return toHTTPDateString (std::string ("%A, %d %b %Y %H:%M:%S GMT"));
 }
 
-void LLDate::toHTTPDateStream(std::ostream& s) const
+LLFastTimer::DeclareTimer FT_DATE_FORMAT("Date Format");
+
+std::string LLDate::toHTTPDateString (std::string fmt) const
 {
-    // http://apr.apache.org/docs/apr/0.9/group__apr__time.html
-    apr_time_t time = (apr_time_t)(mSecondsSinceEpoch * LL_APR_USEC_PER_SEC);
+	LLFastTimer ft1(FT_DATE_FORMAT);
+	
+	time_t locSeconds = (time_t) mSecondsSinceEpoch;
+	struct tm * gmt = gmtime (&locSeconds);
+	return toHTTPDateString(gmt, fmt);
+}
 
-    apr_time_exp_t exp_time ; //Apache time module
+std::string LLDate::toHTTPDateString (tm * gmt, std::string fmt)
+{
+	LLFastTimer ft1(FT_DATE_FORMAT);
 
-    if (apr_time_exp_gmt(&exp_time, time) != APR_SUCCESS)
-    {
-        // Return Epoch UTC date
-        s << "Thursday, 01 Jan 1970 00:00:00 GMT" ;
-        return;
-    }
+	// avoid calling setlocale() unnecessarily - it's expensive.
+	static std::string prev_locale = "";
+	std::string this_locale = LLStringUtil::getLocale();
+	if (this_locale != prev_locale)
+	{
+		setlocale(LC_TIME, this_locale.c_str());
+		prev_locale = this_locale;
+	}
 
-    s << std::dec << std::setfill('0');
-#if( LL_WINDOWS || __GNUC__ > 2)
-    s << std::right ;
-#else
-    s.setf(ios::right);
-#endif    
-    std::string day = weekdays[exp_time.tm_wday];
-    std::string month = months[exp_time.tm_mon];
-
-    s << std::setw(day.length()) << (day)
-      << ", " << std::setw(2) << (exp_time.tm_mday)
-      << ' ' << std::setw(month.length()) << (month)
-      << ' ' << std::setw(4) << (exp_time.tm_year + 1900)
-	  << ' ' << std::setw(2) << (exp_time.tm_hour)
-	  << ':' << std::setw(2) << (exp_time.tm_min)
-	  << ':' << std::setw(2) << (exp_time.tm_sec)
-      << " GMT";
-
-    // RFC 1123 date does not use microseconds
-    //llinfos << "Date in RFC 1123 format is " << s << llendl;
+	// use strftime() as it appears to be faster than std::time_put
+	char buffer[128];
+	strftime(buffer, 128, fmt.c_str(), gmt);
+	return std::string(buffer);
 }
 
 void LLDate::toStream(std::ostream& s) const
@@ -157,7 +152,39 @@ void LLDate::toStream(std::ostream& s) const
 		s << '.' << std::setw(2)
 		  << (int)(exp_time.tm_usec / (LL_APR_USEC_PER_SEC / 100));
 	}
-	s << 'Z';
+	s << 'Z'
+	  << std::setfill(' ');
+}
+
+bool LLDate::split(S32 *year, S32 *month, S32 *day, S32 *hour, S32 *min, S32 *sec) const
+{
+	apr_time_t time = (apr_time_t)(mSecondsSinceEpoch * LL_APR_USEC_PER_SEC);
+	
+	apr_time_exp_t exp_time;
+	if (apr_time_exp_gmt(&exp_time, time) != APR_SUCCESS)
+	{
+		return false;
+	}
+
+	if (year)
+		*year = exp_time.tm_year + 1900;
+
+	if (month)
+		*month = exp_time.tm_mon + 1;
+
+	if (day)
+		*day = exp_time.tm_mday;
+
+	if (hour)
+		*hour = exp_time.tm_hour;
+
+	if (min)
+		*min = exp_time.tm_min;
+
+	if (sec)
+		*sec = exp_time.tm_sec;
+
+	return true;
 }
 
 bool LLDate::fromString(const std::string& iso8601_date)
@@ -225,6 +252,36 @@ bool LLDate::fromStream(std::istream& s)
 	if (c != 'Z') { return false; }
 
 	mSecondsSinceEpoch = seconds_since_epoch;
+	return true;
+}
+
+bool LLDate::fromYMDHMS(S32 year, S32 month, S32 day, S32 hour, S32 min, S32 sec)
+{
+	struct apr_time_exp_t exp_time;
+	
+	exp_time.tm_year = year - 1900;
+	exp_time.tm_mon = month - 1;
+	exp_time.tm_mday = day;
+	exp_time.tm_hour = hour;
+	exp_time.tm_min = min;
+	exp_time.tm_sec = sec;
+
+	// zero out the unused fields
+	exp_time.tm_usec = 0;
+	exp_time.tm_wday = 0;
+	exp_time.tm_yday = 0;
+	exp_time.tm_isdst = 0;
+	exp_time.tm_gmtoff = 0;
+
+	// generate a time_t from that
+	apr_time_t time;
+	if (apr_time_exp_gmt_get(&time, &exp_time) != APR_SUCCESS)
+	{
+		return false;
+	}
+	
+	mSecondsSinceEpoch = time / LL_APR_USEC_PER_SEC;
+
 	return true;
 }
 

@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -51,6 +51,7 @@ static const U32 HTTP_STATUS_PIPE_ERROR = 499;
  * String constants
  */
 const std::string CONTEXT_DEST_URI_SD_LABEL("dest_uri");
+const std::string CONTEXT_TRANSFERED_BYTES("transfered_bytes");
 
 
 static size_t headerCallback(void* data, size_t size, size_t nmemb, void* user);
@@ -98,6 +99,26 @@ LLURLRequestDetail::~LLURLRequestDetail()
  * class LLURLRequest
  */
 
+// static
+std::string LLURLRequest::actionAsVerb(LLURLRequest::ERequestAction action)
+{
+	static const std::string VERBS[] =
+	{
+		"(invalid)",
+		"HEAD",
+		"GET",
+		"PUT",
+		"POST",
+		"DELETE",
+		"MOVE"
+	};
+	if(((S32)action <=0) || ((S32)action >= REQUEST_ACTION_COUNT))
+	{
+		return VERBS[0];
+	}
+	return VERBS[action];
+}
+
 LLURLRequest::LLURLRequest(LLURLRequest::ERequestAction action) :
 	mAction(action)
 {
@@ -142,6 +163,7 @@ void LLURLRequest::setBodyLimit(U32 size)
 void LLURLRequest::checkRootCertificate(bool check)
 {
 	mDetail->mCurlRequest->setopt(CURLOPT_SSL_VERIFYPEER, (check? TRUE : FALSE));
+	mDetail->mCurlRequest->setopt(CURLOPT_SSL_VERIFYHOST, (check? 2 : 0));
 	mDetail->mCurlRequest->setoptString(CURLOPT_ENCODING, "");
 }
 
@@ -227,7 +249,29 @@ LLIOPipe::EStatus LLURLRequest::process_impl(
 	PUMP_DEBUG;
 	LLMemType m1(LLMemType::MTYPE_IO_URL_REQUEST);
 	//llinfos << "LLURLRequest::process_impl()" << llendl;
-	if(!buffer) return STATUS_ERROR;
+	if (!buffer) return STATUS_ERROR;
+	
+	// we're still waiting or prcessing, check how many
+	// bytes we have accumulated.
+	const S32 MIN_ACCUMULATION = 100000;
+	if(pump && (mDetail->mByteAccumulator > MIN_ACCUMULATION))
+	{
+		 // This is a pretty sloppy calculation, but this
+		 // tries to make the gross assumption that if data
+		 // is coming in at 56kb/s, then this transfer will
+		 // probably succeed. So, if we're accumlated
+		 // 100,000 bytes (MIN_ACCUMULATION) then let's
+		 // give this client another 2s to complete.
+		 const F32 TIMEOUT_ADJUSTMENT = 2.0f;
+		 mDetail->mByteAccumulator = 0;
+		 pump->adjustTimeoutSeconds(TIMEOUT_ADJUSTMENT);
+		 lldebugs << "LLURLRequest adjustTimeoutSeconds for request: " << mDetail->mURL << llendl;
+		 if (mState == STATE_INITIALIZED)
+		 {
+			  llinfos << "LLURLRequest adjustTimeoutSeconds called during upload" << llendl;
+		 }
+	}
+
 	switch(mState)
 	{
 	case STATE_INITIALIZED:
@@ -266,27 +310,14 @@ LLIOPipe::EStatus LLURLRequest::process_impl(
 			bool newmsg = mDetail->mCurlRequest->getResult(&result);
 			if(!newmsg)
 			{
-				// we're still waiting or prcessing, check how many
-				// bytes we have accumulated.
-				const S32 MIN_ACCUMULATION = 100000;
-				if(pump && (mDetail->mByteAccumulator > MIN_ACCUMULATION))
-				{
-					// This is a pretty sloppy calculation, but this
-					// tries to make the gross assumption that if data
-					// is coming in at 56kb/s, then this transfer will
-					// probably succeed. So, if we're accumlated
-					// 100,000 bytes (MIN_ACCUMULATION) then let's
-					// give this client another 2s to complete.
-					const F32 TIMEOUT_ADJUSTMENT = 2.0f;
-					mDetail->mByteAccumulator = 0;
-					pump->adjustTimeoutSeconds(TIMEOUT_ADJUSTMENT);
-				}
-
 				// keep processing
 				break;
 			}
 
 			mState = STATE_HAVE_RESPONSE;
+			context[CONTEXT_REQUEST][CONTEXT_TRANSFERED_BYTES] = mRequestTransferedBytes;
+			context[CONTEXT_RESPONSE][CONTEXT_TRANSFERED_BYTES] = mResponseTransferedBytes;
+			lldebugs << this << "Setting context to " << context << llendl;
 			switch(result)
 			{
 				case CURLE_OK:
@@ -333,10 +364,16 @@ LLIOPipe::EStatus LLURLRequest::process_impl(
 		// we already stuffed everything into channel in in the curl
 		// callback, so we are done.
 		eos = true;
+		context[CONTEXT_REQUEST][CONTEXT_TRANSFERED_BYTES] = mRequestTransferedBytes;
+		context[CONTEXT_RESPONSE][CONTEXT_TRANSFERED_BYTES] = mResponseTransferedBytes;
+		lldebugs << this << "Setting context to " << context << llendl;
 		return STATUS_DONE;
 
 	default:
 		PUMP_DEBUG;
+		context[CONTEXT_REQUEST][CONTEXT_TRANSFERED_BYTES] = mRequestTransferedBytes;
+		context[CONTEXT_RESPONSE][CONTEXT_TRANSFERED_BYTES] = mResponseTransferedBytes;
+		lldebugs << this << "Setting context to " << context << llendl;
 		return STATUS_ERROR;
 	}
 }
@@ -349,6 +386,8 @@ void LLURLRequest::initialize()
 	mDetail->mCurlRequest->setopt(CURLOPT_NOSIGNAL, 1);
 	mDetail->mCurlRequest->setWriteCallback(&downCallback, (void*)this);
 	mDetail->mCurlRequest->setReadCallback(&upCallback, (void*)this);
+	mRequestTransferedBytes = 0;
+	mResponseTransferedBytes = 0;
 }
 
 bool LLURLRequest::configure()
@@ -451,6 +490,7 @@ size_t LLURLRequest::downCallback(
 		req->mDetail->mChannels.out(),
 		(U8*)data,
 		bytes);
+	req->mResponseTransferedBytes += bytes;
 	req->mDetail->mByteAccumulator += bytes;
 	return bytes;
 }
@@ -474,6 +514,7 @@ size_t LLURLRequest::upCallback(
 		req->mDetail->mLastRead,
 		(U8*)data,
 		bytes);
+	req->mRequestTransferedBytes += bytes;
 	return bytes;
 }
 

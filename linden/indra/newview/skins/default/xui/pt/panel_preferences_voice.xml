@@ -5,12 +5,8 @@
 	</text_editor>
 	<check_box label="Habilitar bate-papo de Voz" name="enable_voice_check"/>
 	<radio_group name="ear_location">
-		<radio_item name="0">
-			Ouvir o bate-papo de voz pela posição de câmera.
-		</radio_item>
-		<radio_item name="1">
-			Ouvir o bate-papo de voz pela posição do avatar.
-		</radio_item>
+		<radio_item name="0" label="Ouvir o bate-papo de voz pela posição de câmera." />
+		<radio_item name="1" label="Ouvir o bate-papo de voz pela posição do avatar." />
 	</radio_group>
 	<text name="push_to_talk_heading">
 		Pressione para falar

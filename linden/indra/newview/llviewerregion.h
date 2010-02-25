@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,6 +49,9 @@
 #include "lldatapacker.h"
 #include "llvocache.h"
 #include "llweb.h"
+#include "llcapabilityprovider.h"
+#include "llcapabilitylistener.h"
+#include "m4math.h"					// LLMatrix4
 
 // Surface id's
 #define LAND  1
@@ -66,8 +69,9 @@ class LLSurface;
 class LLVOCache;
 class LLVOCacheEntry;
 class LLSpatialPartition;
+class LLEventPump;
 
-class LLViewerRegion 
+class LLViewerRegion: public LLCapabilityProvider // implements this interface
 {
 public:
 	//MUST MATCH THE ORDER OF DECLARATION IN CONSTRUCTOR
@@ -226,11 +230,19 @@ public:
 	// Get/set named capability URLs for this region.
 	void setSeedCapability(const std::string& url);
 	void setCapability(const std::string& name, const std::string& url);
-	std::string getCapability(const std::string& name) const;
+	// implements LLCapabilityProvider
+    virtual std::string getCapability(const std::string& name) const;
 	static bool isSpecialCapabilityName(const std::string &name);
 	void logActiveCapabilities() const;
 
-	const LLHost	&getHost() const			{ return mHost; }
+    /// Capability-request exception
+    typedef LLCapabilityListener::ArgError ArgError;
+    /// Get LLEventPump on which we listen for capability requests
+    /// (https://wiki.lindenlab.com/wiki/Viewer:Messaging/Messaging_Notes#Capabilities)
+    LLEventPump& getCapAPI() { return mCapabilityListener.getCapAPI(); }
+
+    /// implements LLCapabilityProvider
+	virtual LLHost	getHost() const				{ return mHost; }
 	const U64 		&getHandle() const 			{ return mHandle; }
 
 	LLSurface		&getLand() const			{ return *mLandp; }
@@ -274,9 +286,8 @@ public:
 	void calculateCameraDistance();
 
 	friend std::ostream& operator<<(std::ostream &s, const LLViewerRegion &region);
-
-	// used by LCD to get details for debug screen
-	U32 getNetDetailsForLCD();
+    /// implements LLCapabilityProvider
+    virtual std::string getDescription() const;
 
 	LLSpatialPartition* getSpatialPartition(U32 type);
 public:
@@ -394,6 +405,11 @@ private:
 	
 	LLEventPoll* mEventPoll;
 
+    /// Post an event to this LLCapabilityListener to invoke a capability message on
+    /// this LLViewerRegion's server
+    /// (https://wiki.lindenlab.com/wiki/Viewer:Messaging/Messaging_Notes#Capabilities)
+    LLCapabilityListener mCapabilityListener;
+
 private:
 	bool	mAlive;					// can become false if circuit disconnects
 
@@ -461,5 +477,3 @@ inline BOOL LLViewerRegion::getReleaseNotesRequested() const
 }
 
 #endif
-
-

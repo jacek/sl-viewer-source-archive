@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,7 @@
 #include "stdtypes.h"
 #include "v3color.h"
 #include "v4coloru.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 #include "llviewerobject.h"
 #include "llframetimer.h"
 
@@ -122,7 +122,7 @@ class LLSkyTex
 private:
 	static S32		sResolution;
 	static S32		sComponents;
-	LLPointer<LLImageGL> mImageGL[2];
+	LLPointer<LLViewerTexture> mTexture[2];
 	LLPointer<LLImageRaw> mImageRaw[2];
 	LLColor4		*mSkyData;
 	LLVector3		*mSkyDirs;			// Cache of sky direction vectors
@@ -147,7 +147,7 @@ protected:
 
 	static S32 getResolution()						{ return sResolution; }
 	static S32 getCurrent()						{ return sCurrent; }
-	static S32 stepCurrent()					{ sCurrent++; sCurrent&=1; return sCurrent; }
+	static S32 stepCurrent()					{ return (sCurrent = (sCurrent + 1) % 2); }
 	static S32 getNext()						{ return ((sCurrent+1) % 2); }
 	static S32 getWhich(const BOOL curr)		{ return curr ? sCurrent : getNext(); }
 
@@ -567,9 +567,9 @@ public:
 	BOOL isReflFace(const LLFace* face) const			{ return face == mFace[FACE_REFLECTION]; }
 	LLFace* getReflFace() const							{ return mFace[FACE_REFLECTION]; }
 
-	LLViewerImage*	getSunTex() const					{ return mSunTexturep; }
-	LLViewerImage*	getMoonTex() const					{ return mMoonTexturep; }
-	LLViewerImage*	getBloomTex() const					{ return mBloomTexturep; }
+	LLViewerTexture*	getSunTex() const					{ return mSunTexturep; }
+	LLViewerTexture*	getMoonTex() const					{ return mMoonTexturep; }
+	LLViewerTexture*	getBloomTex() const					{ return mBloomTexturep; }
 	void forceSkyUpdate(void)							{ mForceUpdate = TRUE; }
 
 public:
@@ -579,9 +579,9 @@ public:
 protected:
 	~LLVOSky();
 
-	LLPointer<LLViewerImage> mSunTexturep;
-	LLPointer<LLViewerImage> mMoonTexturep;
-	LLPointer<LLViewerImage> mBloomTexturep;
+	LLPointer<LLViewerFetchedTexture> mSunTexturep;
+	LLPointer<LLViewerFetchedTexture> mMoonTexturep;
+	LLPointer<LLViewerFetchedTexture> mBloomTexturep;
 
 	static S32			sResolution;
 	static S32			sTileResX;
@@ -613,7 +613,7 @@ protected:
 	LLColor3			mLastTotalAmbient;
 	F32					mAmbientScale;
 	LLColor3			mNightColorShift;
-	F32					sInterpVal;
+	F32					mInterpVal;
 
 	LLColor4			mFogColor;
 	LLColor4			mGLFogCol;
@@ -636,8 +636,8 @@ protected:
 public:
 	//by bao
 	//fake vertex buffer updating
-	//to guaranttee at least updating one VBO buffer every frame
-	//to walk around the bug caused by ATI card --> DEV-3855
+	//to guarantee at least updating one VBO buffer every frame
+	//to work around the bug caused by ATI card --> DEV-3855
 	//
 	void createDummyVertexBuffer() ;
 	void updateDummyVertexBuffer() ;

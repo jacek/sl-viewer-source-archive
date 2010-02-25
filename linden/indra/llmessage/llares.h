@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,7 +36,13 @@
 #define LL_LLARES_H
 
 #ifdef LL_WINDOWS
+// ares.h is broken on windows in that it depends on types defined in ws2tcpip.h
+// we need to include them first to work around it, but the headers issue warnings
+# pragma warning(push)
+# pragma warning(disable:4996)
+# include <winsock2.h>
 # include <ws2tcpip.h>
+# pragma warning(pop)
 #endif
 
 #ifdef LL_STANDALONE
@@ -45,10 +51,14 @@
 # include <ares/ares.h>
 #endif
 
-#include "llmemory.h"
+#include "llpointer.h"
+#include "llrefcount.h"
 #include "lluri.h"
 
+#include <boost/shared_ptr.hpp>
+
 class LLQueryResponder;
+class LLAresListener;
 
 /**
  * @brief Supported DNS RR types.
@@ -443,6 +453,9 @@ public:
 protected:
 	ares_channel chan_;
 	bool mInitSuccess;
+    // boost::scoped_ptr would actually fit the requirement better, but it
+    // can't handle incomplete types as boost::shared_ptr can.
+    boost::shared_ptr<LLAresListener> mListener;
 };
 	
 /**

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,7 +41,7 @@
 #include "llstrider.h"
 #include "v2math.h"
 #include "v3math.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 class LLFace;
 class LLDrawPool;
@@ -187,7 +187,7 @@ public:
 	
 	//LLTreeParams mParams;
 	U8 mSpecies;
-	LLPointer<LLViewerImage> mTreeImagep;
+	LLPointer<LLViewerTexture> mTreeImagep;
 	LLMatrix4 mTrunkFlareFrames[MAX_FLARE];
 	F32 mSegSplitsError[3];
 	U32 mRandOffset[MAX_LEVELS];

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,9 +39,10 @@
 #include <map>
 #include <list>
 #include <deque>
+#include "llpointer.h"
 
 class LLTextSegment;
-
+typedef LLPointer<LLTextSegment> LLTextSegmentPtr;
 
 class LLKeywordToken
 {
@@ -84,15 +85,40 @@ public:
 	BOOL		loadFromFile(const std::string& filename);
 	BOOL		isLoaded() const	{ return mLoaded; }
 
-	void		findSegments(std::vector<LLTextSegment *> *seg_list, const LLWString& text, const LLColor4 &defaultColor );
+	void		findSegments(std::vector<LLTextSegmentPtr> *seg_list, const LLWString& text, const LLColor4 &defaultColor, class LLTextEditor& editor );
 
 	// Add the token as described
 	void addToken(LLKeywordToken::TOKEN_TYPE type,
 					const std::string& key,
 					const LLColor3& color,
 					const std::string& tool_tip = LLStringUtil::null);
+	
+	// This class is here as a performance optimization.
+	// The word token map used to be defined as std::map<LLWString, LLKeywordToken*>.
+	// This worked, but caused a performance bottleneck due to memory allocation and string copies
+	//  because it's not possible to search such a map without creating an LLWString.
+	// Using this class as the map index instead allows us to search using segments of an existing
+	//  text run without copying them first, which greatly reduces overhead in LLKeywords::findSegments().
+	class WStringMapIndex
+	{
+	public:
+		// copy constructor
+		WStringMapIndex(const WStringMapIndex& other);
+		// constructor from a string (copies the string's data into the new object)
+		WStringMapIndex(const LLWString& str);
+		// constructor from pointer and length
+		// NOTE: does NOT copy data, caller must ensure that the lifetime of the pointer exceeds that of the new object!
+		WStringMapIndex(const llwchar *start, size_t length);
+		~WStringMapIndex();
+		bool operator<(const WStringMapIndex &other) const;
+	private:
+		void copyData(const llwchar *start, size_t length);
+		const llwchar *mData;
+		size_t mLength;
+		bool mOwner;
+	};
 
-	typedef std::map<LLWString, LLKeywordToken*> word_token_map_t;
+	typedef std::map<WStringMapIndex, LLKeywordToken*> word_token_map_t;
 	typedef word_token_map_t::const_iterator keyword_iterator_t;
 	keyword_iterator_t begin() const { return mWordTokenMap.begin(); }
 	keyword_iterator_t end() const { return mWordTokenMap.end(); }
@@ -103,7 +129,7 @@ public:
 
 private:
 	LLColor3	readColor(const std::string& s);
-	void		insertSegment(std::vector<LLTextSegment *> *seg_list, LLTextSegment* new_segment, S32 text_len, const LLColor4 &defaultColor);
+	void		insertSegment(std::vector<LLTextSegmentPtr> *seg_list, LLTextSegmentPtr new_segment, S32 text_len, const LLColor4 &defaultColor, class LLTextEditor& editor);
 
 	BOOL		mLoaded;
 	word_token_map_t mWordTokenMap;

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -49,9 +49,6 @@ public:
 	static LLSD getURLHistory(const std::string& collection);
 
 	static void addURL(const std::string& collection, const std::string& url);
-	// OGPX appends url to a collection if it doesn't already exist in the collection. 
-	// this is used in the collection of region URIs that are saved per region
-	static BOOL appendToURLCollection(const std::string& collection, const std::string& url); 
 	static void removeURL(const std::string& collection, const std::string& url);
 	static void clear(const std::string& collection);
 

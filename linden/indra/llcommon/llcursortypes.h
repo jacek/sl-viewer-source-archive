@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -32,8 +32,6 @@
 
 #ifndef LL_LLCURSORTYPES_H
 #define LL_LLCURSORTYPES_H
-
-#include "linden_common.h"
 
 // If you add types here, add them in LLCursor::getCursorFromString
 enum ECursorType {
@@ -66,10 +64,6 @@ enum ECursorType {
 	UI_CURSOR_TOOLPAN,
 	UI_CURSOR_TOOLZOOMIN,
 	UI_CURSOR_TOOLPICKOBJECT3,
-	UI_CURSOR_TOOLSIT,
-	UI_CURSOR_TOOLBUY,
-	UI_CURSOR_TOOLPAY,
-	UI_CURSOR_TOOLOPEN,
 	UI_CURSOR_TOOLPLAY,
 	UI_CURSOR_TOOLPAUSE,
 	UI_CURSOR_TOOLMEDIAOPEN,
@@ -77,6 +71,6 @@ enum ECursorType {
 	UI_CURSOR_COUNT			// Number of elements in this enum (NOT a cursor)
 };
 
-ECursorType getCursorFromString(const std::string& cursor_string);
+LL_COMMON_API ECursorType getCursorFromString(const std::string& cursor_string);
 
 #endif // LL_LLCURSORTYPES_H

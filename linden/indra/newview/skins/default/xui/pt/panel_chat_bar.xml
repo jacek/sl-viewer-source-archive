@@ -3,15 +3,15 @@
 	<button label="Conversa local" label_selected="Histórico" name="History" tool_tip="Clique aqui para ver o que foi dito"/>
 	<line_editor label="Clique aqui para iniciar a conversa" name="Chat Editor" tool_tip="Pressione Enter para falar, Ctrl-Enter para gritar"/>
 	<flyout_button label="Falar" label_selected="Dizer" name="Say" tool_tip="Enter">
-		<flyout_button_item name="shout_item">
-			Gritar
-		</flyout_button_item>
-		<flyout_button_item name="say_item">
-			Falar
-		</flyout_button_item>
-		<flyout_button_item name="whisper_item">
-			Sussurrar
-		</flyout_button_item>
+    <flyout_button.item name="shout_item">
+      Gritar
+    </flyout_button.item>
+    <flyout_button.item name="say_item">
+      Falar
+    </flyout_button.item>
+    <flyout_button.item name="whisper_item">
+      Sussurrar
+    </flyout_button.item>
 	</flyout_button>
 	<combo_box label="Gestos" name="Gesture"/>
 	<string name="gesture_label">

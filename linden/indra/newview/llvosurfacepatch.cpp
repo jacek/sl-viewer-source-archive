@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -176,12 +176,21 @@ LLDrawable *LLVOSurfacePatch::createDrawable(LLPipeline *pipeline)
 	return mDrawable;
 }
 
+static LLFastTimer::DeclareTimer FTM_UPDATE_TERRAIN("Update Terrain");
+
+void LLVOSurfacePatch::updateGL()
+{
+	if (mPatchp)
+	{
+		mPatchp->updateGL();
+	}
+}
 
 BOOL LLVOSurfacePatch::updateGeometry(LLDrawable *drawable)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_UPDATE_TERRAIN);
+	LLFastTimer ftm(FTM_UPDATE_TERRAIN);
 
-	dirtySpatialGroup();
+	dirtySpatialGroup(TRUE);
 	
 	S32 min_comp, max_comp, range;
 	min_comp = lltrunc(mPatchp->getMinComposition());
@@ -1013,12 +1022,10 @@ U32 LLVOSurfacePatch::getPartitionType() const
 }
 
 LLTerrainPartition::LLTerrainPartition()
-: LLSpatialPartition(LLDrawPoolTerrain::VERTEX_DATA_MASK)
+: LLSpatialPartition(LLDrawPoolTerrain::VERTEX_DATA_MASK, FALSE, GL_DYNAMIC_DRAW_ARB)
 {
 	mOcclusionEnabled = FALSE;
-	mRenderByGroup = FALSE;
 	mInfiniteFarClip = TRUE;
-	mBufferUsage = GL_DYNAMIC_DRAW_ARB;
 	mDrawableType = LLPipeline::RENDER_TYPE_TERRAIN;
 	mPartitionType = LLViewerRegion::PARTITION_TERRAIN;
 }
@@ -1028,9 +1035,10 @@ LLVertexBuffer* LLTerrainPartition::createVertexBuffer(U32 type_mask, U32 usage)
 	return new LLVertexBufferTerrain();
 }
 
+static LLFastTimer::DeclareTimer FTM_REBUILD_TERRAIN_VB("Terrain VB");
 void LLTerrainPartition::getGeometry(LLSpatialGroup* group)
 {
-	LLFastTimer ftm(LLFastTimer::FTM_REBUILD_TERRAIN_VB);
+	LLFastTimer ftm(FTM_REBUILD_TERRAIN_VB);
 
 	LLVertexBuffer* buffer = group->mVertexBuffer;
 

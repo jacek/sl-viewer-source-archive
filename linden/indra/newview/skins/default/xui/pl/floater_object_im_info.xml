@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="object im info" title="Info o Obiekcie">
+<floater name="object im info" title="INFO O OBIEKCIE">
 	<text name="LabelItemNameTitle">
 		Obiekt:
 	</text>

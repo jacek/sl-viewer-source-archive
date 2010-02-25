@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -43,6 +43,8 @@ const S32 LLVFile::READ			= 0x00000001;
 const S32 LLVFile::WRITE		= 0x00000002;
 const S32 LLVFile::READ_WRITE	= 0x00000003;  // LLVFile::READ & LLVFile::WRITE
 const S32 LLVFile::APPEND		= 0x00000006;  // 0x00000004 & LLVFile::WRITE
+
+static LLFastTimer::DeclareTimer FTM_VFILE_WAIT("VFile Wait");
 
 //----------------------------------------------------------------------------
 LLVFSThread* LLVFile::sVFSThread = NULL;
@@ -318,7 +320,7 @@ BOOL LLVFile::setMaxSize(S32 size)
 
 	if (!mVFS->checkAvailable(size))
 	{
-		LLFastTimer t(LLFastTimer::FTM_VFILE_WAIT);
+		LLFastTimer t(FTM_VFILE_WAIT);
 		S32 count = 0;
 		while (sVFSThread->getPending() > 1000)
 		{
@@ -426,7 +428,7 @@ bool LLVFile::isLocked(EVFSLock lock)
 
 void LLVFile::waitForLock(EVFSLock lock)
 {
-	LLFastTimer t(LLFastTimer::FTM_VFILE_WAIT);
+	LLFastTimer t(FTM_VFILE_WAIT);
 	// spin until the lock clears
 	while (isLocked(lock))
 	{

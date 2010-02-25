@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<panel name="Event" title="Event">
+<panel label="Event" name="Event" title="Event">
+	<panel.string name="none">
+		gratis
+	</panel.string>
+	<panel.string name="notify">
+		Giv besked
+	</panel.string>
+	<panel.string name="dont_notify">
+		Giv ikke besked
+	</panel.string>
 	<text name="event_name_label">
 		Navn:
 	</text>
@@ -55,16 +64,7 @@
 		Beskrivelse:
 	</text>
 	<button label="Teleport" name="teleport_btn"/>
-	<button label="Vis på kort" name="map_btn" width="150"/>
+	<button label="Kort" name="map_btn" width="150"/>
 	<button label="Giv besked" name="notify_btn"/>
 	<button label="Opret et arrangement..." name="create_event_btn" width="150"/>
-	<string name="none">
-		gratis
-	</string>
-	<string name="notify">
-		Giv besked
-	</string>
-	<string name="dont_notify">
-		Giv ikke besked
-	</string>
 </panel>

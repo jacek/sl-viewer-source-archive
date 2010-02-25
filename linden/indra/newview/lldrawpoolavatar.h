@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -39,8 +39,6 @@ class LLVOAvatar;
 
 class LLDrawPoolAvatar : public LLFacePool
 {
-protected:
-	S32					mNumFaces;
 public:
 	enum
 	{
@@ -105,7 +103,7 @@ public:
 	void endDeferredRigid();
 	void endDeferredSkinned();
 		
-	/*virtual*/ LLViewerImage *getDebugTexture();
+	/*virtual*/ LLViewerTexture *getDebugTexture();
 	/*virtual*/ LLColor3 getDebugColor() const; // For AGP debug display
 
 	void renderAvatars(LLVOAvatar *single_avatar, S32 pass = -1); // renders only one avatar if single_avatar is not null.

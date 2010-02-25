@@ -6,7 +6,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -48,7 +48,7 @@ class LLRunnable;
  * which are scheduled to run on a repeating or one time basis.
  * @see LLRunnable
  */
-class LLRunner
+class LL_COMMON_API LLRunner
 {
 public:
 	/**
@@ -149,7 +149,7 @@ protected:
  * something useful.
  * @see LLRunner
  */
-class LLRunnable
+class LL_COMMON_API LLRunnable
 {
 public:
 	LLRunnable();

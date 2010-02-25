@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -35,31 +35,33 @@
 #define LL_LLWEB_H
 
 #include <string>
-#include "llalertdialog.h"
 
+///
+/// The LLWeb class provides various static methods to display the
+/// contents of a Url in a web browser. Variations are provided to 
+/// let you specifically use the Second Life internal browser, the
+/// operating system's default browser, or to respect the user's
+/// setting for which of these two they prefer to use with SL.
+///
 class LLWeb
 {
 public:
 	static void initClass();
 	
-	// Loads unescaped url in either internal web browser or external
-	// browser, depending on user settings.
+	/// Load the given url in the user's preferred web browser
 	static void loadURL(const std::string& url);
-	
+	/// Load the given url in the user's preferred web browser	
 	static void loadURL(const char* url) { loadURL( ll_safe_string(url) ); }
-
-	// Loads unescaped url in external browser.
+	/// Load the given url in the Second Life internal web browser
+	static void loadURLInternal(const std::string &url);
+	/// Load the given url in the operating system's web browser
 	static void loadURLExternal(const std::string& url);
 
-	// Returns escaped (eg, " " to "%20") url
+	/// Returns escaped url (eg, " " to "%20") - used by all loadURL methods
 	static std::string escapeURL(const std::string& url);
-
-	class URLLoader : public LLAlertDialog::URLLoader
-	{
-		virtual void load(const std::string& url);
-	};
-
-	static URLLoader sAlertURLLoader;
+	/// Expands various strings like [LANG], [VERSION], etc. in a URL
+	static std::string expandURLSubstitutions(const std::string &url,
+											  const LLSD &default_subs);
 };
 
 #endif

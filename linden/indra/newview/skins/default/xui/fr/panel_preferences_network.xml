@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Réseau" name="network">
-	<text length="1" name="text_box" type="string">
+	<text name="text_box">
 		Bande passante maximale :
 	</text>
-	<text length="1" name="text_box2" type="string">
+	<text name="text_box2">
 		kbps (kilobits par seconde)
 	</text>
 	<text name="cache_size_label_l" width="210">
 		Taille de la mémoire cache :
 	</text>
-	<text length="1" name="text_box5" type="string">
+	<text name="text_box5">
 		Mo
 	</text>
 	<button label="Vider la mémoire cache" label_selected="Vider le cache" name="clear_cache" width="150"/>

@@ -2,9 +2,10 @@
  * @file llpluginprocessparent.cpp
  * @brief LLPluginProcessParent handles the parent side of the external-process plugin API.
  *
+ * @cond
  * $LicenseInfo:firstyear=2008&license=viewergpl$
  * 
- * Copyright (c) 2008-2009, Linden Research, Inc.
+ * Copyright (c) 2008-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -28,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * @endcond
  */
 
 #include "linden_common.h"
@@ -37,12 +39,6 @@
 #include "llpluginmessageclasses.h"
 
 #include "llapr.h"
-
-// If we don't receive a heartbeat in this many seconds, we declare the plugin locked up.
-static const F32 PLUGIN_LOCKED_UP_SECONDS = 10.0f;
-
-// Somewhat longer timeout for initial launch.
-static const F32 PLUGIN_LAUNCH_SECONDS = 20.0f;
 
 //virtual 
 LLPluginProcessParentOwner::~LLPluginProcessParentOwner()
@@ -55,7 +51,16 @@ LLPluginProcessParent::LLPluginProcessParent(LLPluginProcessParentOwner *owner)
 	mOwner = owner;
 	mBoundPort = 0;
 	mState = STATE_UNINITIALIZED;
+	mSleepTime = 0.0;
+	mCPUUsage = 0.0;
 	mDisableTimeout = false;
+	mDebug = false;
+
+	mPluginLaunchTimeout = 60.0f;
+	mPluginLockupTimeout = 15.0f;
+	
+	// Don't start the timer here -- start it when we actually launch the plugin process.
+	mHeartbeat.stop();
 }
 
 LLPluginProcessParent::~LLPluginProcessParent()
@@ -72,8 +77,10 @@ LLPluginProcessParent::~LLPluginProcessParent()
 		// and remove it from our map
 		mSharedMemoryRegions.erase(iter);
 	}
-
-	mProcess.kill();
+	
+	// orphaning the process means it won't be killed when the LLProcessLauncher is destructed.
+	// This is what we want -- it should exit cleanly once it notices the sockets have been closed.
+	mProcess.orphan();
 	killSockets();
 }
 
@@ -84,10 +91,21 @@ void LLPluginProcessParent::killSockets(void)
 	mSocket.reset();
 }
 
-void LLPluginProcessParent::init(const std::string &launcher_filename, const std::string &plugin_filename)
+void LLPluginProcessParent::errorState(void)
+{
+	if(mState < STATE_RUNNING)
+		setState(STATE_LAUNCH_FAILURE);
+	else
+		setState(STATE_ERROR);
+}
+
+void LLPluginProcessParent::init(const std::string &launcher_filename, const std::string &plugin_filename, bool debug, const std::string &user_data_path)
 {	
 	mProcess.setExecutable(launcher_filename);
 	mPluginFile = plugin_filename;
+	mCPUUsage = 0.0f;
+	mDebug = debug;
+	mUserDataPath = user_data_path;
 	
 	setState(STATE_INITIALIZED);
 }
@@ -132,7 +150,7 @@ bool LLPluginProcessParent::accept()
 		ll_apr_warn_status(status);
 		
 		// Some other error.
-		setState(STATE_ERROR);
+		errorState();
 	}
 	
 	return result;	
@@ -150,15 +168,15 @@ void LLPluginProcessParent::idle(void)
 			if(!mMessagePipe->pump())
 			{
 //				LL_WARNS("Plugin") << "Message pipe hit an error state" << LL_ENDL;
-				setState(STATE_ERROR);
+				errorState();
 			}
 		}
 
-		if((mSocketError != APR_SUCCESS) && (mState < STATE_ERROR))
+		if((mSocketError != APR_SUCCESS) && (mState <= STATE_RUNNING))
 		{
 			// The socket is in an error state -- the plugin is gone.
 			LL_WARNS("Plugin") << "Socket hit an error state (" << mSocketError << ")" << LL_ENDL;
-			setState(STATE_ERROR);
+			errorState();
 		}	
 		
 		// If a state needs to go directly to another state (as a performance enhancement), it can set idle_again to true after calling setState().
@@ -191,7 +209,7 @@ void LLPluginProcessParent::idle(void)
 				if(ll_apr_warn_status(status))
 				{
 					killSockets();
-					setState(STATE_ERROR);
+					errorState();
 					break;
 				}
 
@@ -202,7 +220,7 @@ void LLPluginProcessParent::idle(void)
 				if(ll_apr_warn_status(status))
 				{
 					killSockets();
-					setState(STATE_ERROR);
+					errorState();
 					break;
 				}
 
@@ -212,7 +230,7 @@ void LLPluginProcessParent::idle(void)
 					if(ll_apr_warn_status(apr_socket_addr_get(&bound_addr, APR_LOCAL, mListenSocket->getSocket())))
 					{
 						killSockets();
-						setState(STATE_ERROR);
+						errorState();
 						break;
 					}
 					mBoundPort = bound_addr->port;	
@@ -222,7 +240,7 @@ void LLPluginProcessParent::idle(void)
 						LL_WARNS("Plugin") << "Bound port number unknown, bailing out." << LL_ENDL;
 						
 						killSockets();
-						setState(STATE_ERROR);
+						errorState();
 						break;
 					}
 				}
@@ -234,7 +252,7 @@ void LLPluginProcessParent::idle(void)
 				if(ll_apr_warn_status(status))
 				{
 					killSockets();
-					setState(STATE_ERROR);
+					errorState();
 					break;
 				}
 
@@ -242,7 +260,7 @@ void LLPluginProcessParent::idle(void)
 				if(ll_apr_warn_status(status))
 				{
 					killSockets();
-					setState(STATE_ERROR);
+					errorState();
 					break;
 				}
 				
@@ -255,7 +273,7 @@ void LLPluginProcessParent::idle(void)
 				if(ll_apr_warn_status(status))
 				{
 					killSockets();
-					setState(STATE_ERROR);
+					errorState();
 					break;
 				}
 				
@@ -274,13 +292,38 @@ void LLPluginProcessParent::idle(void)
 				mProcess.addArgument(stream.str());
 				if(mProcess.launch() != 0)
 				{
-					setState(STATE_ERROR);
+					errorState();
 				}
 				else
 				{
+					if(mDebug)
+					{
+						#if LL_DARWIN
+						// If we're set to debug, start up a gdb instance in a new terminal window and have it attach to the plugin process and continue.
+						
+						// The command we're constructing would look like this on the command line:
+						// osascript -e 'tell application "Terminal"' -e 'set win to do script "gdb -pid 12345"' -e 'do script "continue" in win' -e 'end tell'
+
+						std::stringstream cmd;
+						
+						mDebugger.setExecutable("/usr/bin/osascript");
+						mDebugger.addArgument("-e");
+						mDebugger.addArgument("tell application \"Terminal\"");
+						mDebugger.addArgument("-e");
+						cmd << "set win to do script \"gdb -pid " << mProcess.getProcessID() << "\"";
+						mDebugger.addArgument(cmd.str());
+						mDebugger.addArgument("-e");
+						mDebugger.addArgument("do script \"continue\" in win");
+						mDebugger.addArgument("-e");
+						mDebugger.addArgument("end tell");
+						mDebugger.launch();
+
+						#endif
+					}
+					
 					// This will allow us to time out if the process never starts.
 					mHeartbeat.start();
-					mHeartbeat.setTimerExpirySec(PLUGIN_LAUNCH_SECONDS);
+					mHeartbeat.setTimerExpirySec(mPluginLaunchTimeout);
 					setState(STATE_LAUNCHED);
 				}
 			}
@@ -290,7 +333,7 @@ void LLPluginProcessParent::idle(void)
 				// waiting for the plugin to connect
 				if(pluginLockedUpOrQuit())
 				{
-					setState(STATE_ERROR);
+					errorState();
 				}
 				else
 				{
@@ -309,7 +352,7 @@ void LLPluginProcessParent::idle(void)
 
 				if(pluginLockedUpOrQuit())
 				{
-					setState(STATE_ERROR);
+					errorState();
 				}
 			break;
 
@@ -320,6 +363,7 @@ void LLPluginProcessParent::idle(void)
 				{
 					LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_INTERNAL, "load_plugin");
 					message.setValue("file", mPluginFile);
+					message.setValue("user_data_path", mUserDataPath);
 					sendMessage(message);
 				}
 
@@ -330,14 +374,14 @@ void LLPluginProcessParent::idle(void)
 				// The load_plugin_response message will kick us from here into STATE_RUNNING
 				if(pluginLockedUpOrQuit())
 				{
-					setState(STATE_ERROR);
+					errorState();
 				}
 			break;
 			
 			case STATE_RUNNING:
 				if(pluginLockedUpOrQuit())
 				{
-					setState(STATE_ERROR);
+					errorState();
 				}
 			break;
 			
@@ -349,8 +393,16 @@ void LLPluginProcessParent::idle(void)
 				else if(pluginLockedUp())
 				{
 					LL_WARNS("Plugin") << "timeout in exiting state, bailing out" << llendl;
-					setState(STATE_ERROR);
+					errorState();
 				}
+			break;
+
+			case STATE_LAUNCH_FAILURE:
+				if(mOwner != NULL)
+				{
+					mOwner->pluginLaunchFailed();
+				}
+				setState(STATE_CLEANUP);
 			break;
 
 			case STATE_ERROR:
@@ -362,7 +414,8 @@ void LLPluginProcessParent::idle(void)
 			break;
 			
 			case STATE_CLEANUP:
-				mProcess.kill();
+				// Don't do a kill here anymore -- closing the sockets is the new 'kill'.
+				mProcess.orphan();
 				killSockets();
 				setState(STATE_DONE);
 			break;
@@ -467,7 +520,7 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 			else
 			{
 				LL_WARNS("Plugin") << "received hello message in wrong state -- bailing out" << LL_ENDL;
-				setState(STATE_ERROR);
+				errorState();
 			}
 			
 		}
@@ -477,6 +530,9 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 			{
 				// Plugin has been loaded. 
 				
+				mPluginVersionString = message.getValue("plugin_version");
+				LL_INFOS("Plugin") << "plugin version string: " << mPluginVersionString << LL_ENDL;
+
 				// Check which message classes/versions the plugin supports.
 				// TODO: check against current versions
 				// TODO: kill plugin on major mismatches?
@@ -487,8 +543,6 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 					LL_INFOS("Plugin") << "message class: " << iter->first << " -> version: " << iter->second.asString() << LL_ENDL;
 				}
 				
-				mPluginVersionString = message.getValue("plugin_version");
-				
 				// Send initial sleep time
 				setSleepTime(mSleepTime, true);			
 
@@ -497,13 +551,18 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 			else
 			{
 				LL_WARNS("Plugin") << "received load_plugin_response message in wrong state -- bailing out" << LL_ENDL;
-				setState(STATE_ERROR);
+				errorState();
 			}
 		}
 		else if(message_name == "heartbeat")
 		{
 			// this resets our timer.
-			mHeartbeat.setTimerExpirySec(PLUGIN_LOCKED_UP_SECONDS);
+			mHeartbeat.setTimerExpirySec(mPluginLockupTimeout);
+
+			mCPUUsage = message.getValueReal("cpu_usage");
+
+			LL_DEBUGS("Plugin") << "cpu usage reported as " << mCPUUsage << LL_ENDL;
+			
 		}
 		else if(message_name == "shm_add_response")
 		{
@@ -634,7 +693,7 @@ bool LLPluginProcessParent::pluginLockedUpOrQuit()
 {
 	bool result = false;
 	
-	if(!mDisableTimeout)
+	if(!mDisableTimeout && !mDebug)
 	{
 		if(!mProcess.isRunning())
 		{
@@ -653,7 +712,7 @@ bool LLPluginProcessParent::pluginLockedUpOrQuit()
 
 bool LLPluginProcessParent::pluginLockedUp()
 {
-	// If the timer has expired, the plugin has locked up.
-	return mHeartbeat.hasExpired();
+	// If the timer is running and has expired, the plugin has locked up.
+	return (mHeartbeat.getStarted() && mHeartbeat.hasExpired());
 }
 

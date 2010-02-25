@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -33,7 +33,7 @@
 #ifndef LL_NOTECARD_H
 #define LL_NOTECARD_H
 
-#include "llmemory.h"
+#include "llpointer.h"
 #include "llinventory.h"
 
 class LLNotecard

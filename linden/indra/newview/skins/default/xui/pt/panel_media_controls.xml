@@ -8,8 +8,8 @@
 	<button label="" name="media_play" tool_tip="Executar/pausar o fluxo de música"/>
 	<button label="" name="media_pause" tool_tip="Pausar o fluxo de mídia"/>
 	<button label="" name="media_stop" tool_tip="Parar o fluxo de mídia"/>
-	<volume_slider name="volume_slider" tool_tip="Volume Mestre"/>
-	<button label="" name="mute_master" tool_tip="Emudecedor Mestre"/>
+	<volume_slider name="volume_slider" tool_tip="Volume principal"/>
+	<button label="" name="mute_master" tool_tip="Silenciar tudo"/>
 	<button label="" name="expand" tool_tip="Ajustar níveis de volume individuais"/>
 	<string name="play_label">
 		Executar

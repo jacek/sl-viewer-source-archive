@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,10 +38,10 @@
 //
 // LLWindowHeadless
 //
-LLWindowHeadless::LLWindowHeadless(const std::string& title, const std::string& name, S32 x, S32 y, S32 width, S32 height,
-							 U32 flags,  BOOL fullscreen, BOOL clearBg,
+LLWindowHeadless::LLWindowHeadless(LLWindowCallbacks* callbacks, const std::string& title, const std::string& name, S32 x, S32 y, S32 width, S32 height,
+							 U32 flags,  BOOL fullscreen, BOOL clear_background,
 							 BOOL disable_vsync, BOOL use_gl, BOOL ignore_pixel_depth)
-	: LLWindow(fullscreen, flags)
+	: LLWindow(callbacks, fullscreen, flags)
 {
 }
 

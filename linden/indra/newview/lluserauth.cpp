@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -38,12 +38,9 @@
 #include <iterator>
 
 #include "lldir.h"
-#include "llversionviewer.h"
 #include "llappviewer.h"
-#include "llviewerbuild.h"
 #include "llviewercontrol.h"
 #include "llxmlrpctransaction.h"
-#include "llsdutil.h"
 
 // NOTE: MUST include these after otherincludes since queue gets redefined!?!!
 #include <curl/curl.h>
@@ -71,8 +68,7 @@ static const char* PLATFORM_STRING = "Sol";
 
 LLUserAuth::LLUserAuth() :
 	mTransaction(NULL),
-	mLastTransferRateBPS(0),
-	mResult(LLSD())
+	mLastTransferRateBPS(0)
 {
 	mAuthResponse = E_NO_RESPONSE_YET;
 }
@@ -88,7 +84,6 @@ void LLUserAuth::reset()
 	mTransaction = NULL;
 	mResponses.clear();
 	mOptions.clear();
-	mResult.clear();
 }
 
 

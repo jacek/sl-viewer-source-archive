@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2003&license=viewergpl$
  * 
- * Copyright (c) 2003-2009, Linden Research, Inc.
+ * Copyright (c) 2003-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -44,10 +44,17 @@ class LLNameBox
 :	public LLTextBox
 {
 public:
-	LLNameBox(const std::string& name, const LLRect& rect, const LLUUID& name_id = LLUUID::null, BOOL is_group = FALSE, const LLFontGL* font = NULL, BOOL mouse_opaque = TRUE );
-		// By default, follows top and left and is mouse-opaque.
-		// If no text, text = name.
-		// If no font, uses default system font.
+	struct Params : public LLInitParam::Block<Params, LLTextBox::Params>
+	{
+		Optional<bool>		is_group;
+		Optional<bool>		link;
+
+		Params()
+		:	is_group("is_group", false)
+		,	link("link", false)
+		{}
+	};
+
 	virtual ~LLNameBox();
 
 	void setNameID(const LLUUID& name_id, BOOL is_group);
@@ -57,11 +64,19 @@ public:
 	static void refreshAll(const LLUUID& id, const std::string& firstname,
 						   const std::string& lastname, BOOL is_group);
 
+protected:
+	LLNameBox (const Params&);
+
+	friend class LLUICtrlFactory;
 private:
+	void setName(const std::string& name, BOOL is_group);
+
 	static std::set<LLNameBox*> sInstances;
 
 private:
 	LLUUID mNameID;
+	BOOL mLink;
+	std::string mInitialValue;
 
 };
 

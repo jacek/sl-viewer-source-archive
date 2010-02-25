@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Se info" name="look_info">
+	<panel.string name="not_available">
+		(N\A)
+	</panel.string>
+	<panel.string name="unknown">
+		(ukendt)
+	</panel.string>
+	<panel label="Sæt" name="look_management_panel">
+		<accordion name="look_management_accordion">
+			<accordion_tab name="look_group" title="Sæt gruppe">
+				<panel name="look_info_group_bar">
+					<text name="curr_look_name">
+						Se: [LOOK]
+					</text>
+					<button label="Tag på" name="wear_look_btn"/>
+					<scroll_list name="look_items_list">
+						<scroll_list.columns label="Se genstand" name="look_item"/>
+						<scroll_list.columns label="Sorter sæt indhold" name="look_item_sort"/>
+					</scroll_list>
+					<button label="-" name="remove_from_look_btn"/>
+				</panel>
+			</accordion_tab>
+			<accordion_tab name="inventory_group" title="Min beholdning">
+				<panel name="lower_look_accordion">
+					<panel name="inventory_bar">
+						<text name="inventory_info_text">
+							Min beholdning
+						</text>
+						<combo_box name="inventory_filter" tool_tip="Vis kun de udvalgte beholdningstyper"/>
+					</panel>
+					<panel name="look_item_filter_bar">
+						<filter_editor label="Filtrer sætindhold" name="look_item_filter"/>
+					</panel>
+				</panel>
+			</accordion_tab>
+		</accordion>
+	</panel>
+	<panel name="button_bar">
+		<button label="Tilføj" name="add_item_btn"/>
+		<button label="Fjern" name="remove_item_btn"/>
+		<button label="OP" name="up_btn"/>
+		<button label="NED" name="down_btn"/>
+	</panel>
+</panel>

@@ -3,7 +3,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -31,10 +31,12 @@
 
 #include "linden_common.h"
 
-#include "lldir.h"
 #include "llimagetga.h"
+
+#include "lldir.h"
 #include "llerror.h"
 #include "llmath.h"
+#include "llpointer.h"
 
 // For expanding 5-bit pixel values to 8-bit with best rounding
 // static

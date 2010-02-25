@@ -5,7 +5,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -36,57 +36,44 @@
 #include "lltoolbar.h"
 
 #include "imageids.h"
+#include "llfloaterreg.h"
 #include "llfontgl.h"
+#include "llflyoutbutton.h"
 #include "llrect.h"
 #include "llparcel.h"
 
 #include "llagent.h"
+#include "llagentwearables.h"
 #include "llbutton.h"
 #include "llfocusmgr.h"
 #include "llviewercontrol.h"
 #include "llmenucommands.h"
 #include "llimview.h"
 #include "lluiconstants.h"
-#include "llvoavatar.h"
+#include "llvoavatarself.h"
 #include "lltooldraganddrop.h"
-#include "llinventoryview.h"
+#include "llfloaterinventory.h"
 #include "llfloaterchatterbox.h"
-#include "llfloaterfriends.h"
 #include "llfloatersnapshot.h"
+#include "llinventorypanel.h"
 #include "lltoolmgr.h"
 #include "llui.h"
 #include "llviewermenu.h"
-#include "llfirstuse.h"
+//#include "llfirstuse.h"
+#include "llpanelblockedlist.h"
+#include "llscrolllistctrl.h"
+#include "llscrolllistitem.h"
+#include "llscrolllistcell.h"
 #include "llviewerparcelmgr.h"
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 #include "lltoolgrab.h"
 #include "llcombobox.h"
-#include "llfloaterchat.h"
-#include "llfloatermute.h"
-#include "llimpanel.h"
-#include "llscrolllistctrl.h"
+#include "lllayoutstack.h"
 
 #if LL_DARWIN
 
 	#include "llresizehandle.h"
-
-	// This class draws like an LLResizeHandle but has no interactivity.
-	// It's just there to provide a cue to the user that the lower right corner of the window functions as a resize handle.
-	class LLFakeResizeHandle : public LLResizeHandle
-	{
-	public:
-		LLFakeResizeHandle(const std::string& name, const LLRect& rect, S32 min_width, S32 min_height, ECorner corner = RIGHT_BOTTOM )
-		: LLResizeHandle(name, rect, min_width, min_height, corner )
-		{
-			
-		}
-
-		virtual BOOL	handleHover(S32 x, S32 y, MASK mask)   { return FALSE; };
-		virtual BOOL	handleMouseDown(S32 x, S32 y, MASK mask)  { return FALSE; };
-		virtual BOOL	handleMouseUp(S32 x, S32 y, MASK mask)   { return FALSE; };
-
-	};
 
 #endif // LL_DARWIN
 
@@ -95,7 +82,6 @@
 //
 
 LLToolBar *gToolBar = NULL;
-S32 TOOL_BAR_HEIGHT = 20;
 
 //
 // Statics
@@ -107,51 +93,23 @@ F32	LLToolBar::sInventoryAutoOpenTime = 1.f;
 //
 
 LLToolBar::LLToolBar()
-:	LLPanel()
+	: LLPanel(),
+
+	mInventoryAutoOpen(FALSE),
+	mNumUnreadIMs(0)	
 #if LL_DARWIN
 	, mResizeHandle(NULL)
 #endif // LL_DARWIN
 {
 	setIsChrome(TRUE);
 	setFocusRoot(TRUE);
+	
+	mCommitCallbackRegistrar.add("HandleCommunicate", &LLToolBar::onClickCommunicate);
 }
 
 
 BOOL LLToolBar::postBuild()
 {
-	childSetCommitCallback("communicate_btn", onClickCommunicate, this);
-	childSetControlName("communicate_btn", "ShowCommunicate");
-
-	childSetAction("chat_btn", onClickChat, this);
-	childSetControlName("chat_btn", "ChatVisible");
-
-	childSetAction("appearance_btn", onClickAppearance, this);
-	childSetControlName("appearance_btn", "");
-
-	childSetAction("fly_btn", onClickFly, this);
-	childSetControlName("fly_btn", "FlyBtnState");
-
-	childSetAction("sit_btn", onClickSit, this);
-	childSetControlName("sit_btn", "SitBtnState");
-
-	childSetAction("snapshot_btn", onClickSnapshot, this);
-	childSetControlName("snapshot_btn", "");
-
-	childSetAction("directory_btn", onClickDirectory, this);
-	childSetControlName("directory_btn", "ShowDirectory");
-
-	childSetAction("build_btn", onClickBuild, this);
-	childSetControlName("build_btn", "BuildBtnState");
-
-	childSetAction("radar_btn", onClickRadar, this);
-	childSetControlName("radar_btn", "ShowMiniMap");
-
-	childSetAction("map_btn", onClickMap, this);
-	childSetControlName("map_btn", "ShowWorldMap");
-
-	childSetAction("inventory_btn", onClickInventory, this);
-	childSetControlName("inventory_btn", "ShowInventory");
-
 	for (child_list_const_iter_t child_iter = getChildList()->begin();
 		 child_iter != getChildList()->end(); ++child_iter)
 	{
@@ -167,8 +125,14 @@ BOOL LLToolBar::postBuild()
 	if(mResizeHandle == NULL)
 	{
 		LLRect rect(0, 0, RESIZE_HANDLE_WIDTH, RESIZE_HANDLE_HEIGHT);
-		mResizeHandle = new LLFakeResizeHandle(std::string(""), rect, RESIZE_HANDLE_WIDTH, RESIZE_HANDLE_HEIGHT);
-		this->addChildAtEnd(mResizeHandle);
+		LLResizeHandle::Params p;
+		p.name("");
+		p.rect(rect);
+		p.min_width(RESIZE_HANDLE_WIDTH);
+		p.min_height(RESIZE_HANDLE_HEIGHT);
+		p.enabled(false);
+		mResizeHandle = LLUICtrlFactory::create<LLResizeHandle>(p);
+		addChildInBack(mResizeHandle);
 		LLLayoutStack* toolbar_stack = getChild<LLLayoutStack>("toolbar_stack");
 		toolbar_stack->reshape(toolbar_stack->getRect().getWidth() - RESIZE_HANDLE_WIDTH, toolbar_stack->getRect().getHeight());
 	}
@@ -194,20 +158,22 @@ BOOL LLToolBar::handleDragAndDrop(S32 x, S32 y, MASK mask, BOOL drop,
 	LLButton* inventory_btn = getChild<LLButton>("inventory_btn");
 	if (!inventory_btn) return FALSE;
 
-	LLInventoryView* active_inventory = LLInventoryView::getActiveInventory();
-
-	if(active_inventory && active_inventory->getVisible())
+	LLRect button_screen_rect;
+	inventory_btn->localRectToScreen(inventory_btn->getRect(),&button_screen_rect);
+	
+	const LLInventoryPanel *active_panel = LLInventoryPanel::getActiveInventoryPanel();
+	if(active_panel)
 	{
 		mInventoryAutoOpen = FALSE;
 	}
-	else if (inventory_btn->getRect().pointInRect(x, y))
+	else if (button_screen_rect.pointInRect(x, y))
 	{
 		if (mInventoryAutoOpen)
 		{
-			if (!(active_inventory && active_inventory->getVisible()) && 
-			mInventoryAutoOpenTimer.getElapsedTimeF32() > sInventoryAutoOpenTime)
+			if (!active_panel && 
+				mInventoryAutoOpenTimer.getElapsedTimeF32() > sInventoryAutoOpenTime)
 			{
-				LLInventoryView::showAgentInventory();
+				LLFloaterInventory::showAgentInventory();
 			}
 		}
 		else
@@ -240,7 +206,7 @@ void LLToolBar::layoutButtons()
 {
 #if LL_DARWIN
 	const S32 FUDGE_WIDTH_OF_SCREEN = 4;                                    
-	S32 width = gViewerWindow->getWindowWidth() + FUDGE_WIDTH_OF_SCREEN;   
+	S32 width = gViewerWindow->getWindowWidthScaled() + FUDGE_WIDTH_OF_SCREEN;   
 	S32 pad = 2;
 
 	// this function may be called before postBuild(), in which case mResizeHandle won't have been set up yet.
@@ -284,25 +250,6 @@ void LLToolBar::refresh()
 	BOOL mouselook = gAgent.cameraMouselook();
 	setVisible(show && !mouselook);
 
-	BOOL sitting = FALSE;
-	if (gAgent.getAvatarObject())
-	{
-		sitting = gAgent.getAvatarObject()->mIsSitting;
-	}
-
-	childSetEnabled("fly_btn", (gAgent.canFly() || gAgent.getFlying()) && !sitting );
-
-	childSetEnabled("build_btn", LLViewerParcelMgr::getInstance()->agentCanBuild() );
-
-	// Check to see if we're in build mode
-	BOOL build_mode = LLToolMgr::getInstance()->inEdit();
-	// And not just clicking on a scripted object
-	if (LLToolGrab::getInstance()->getHideBuildHighlight())
-	{
-		build_mode = FALSE;
-	}
-	gSavedSettings.setBOOL("BuildBtnState", build_mode);
-
 	if (isInVisibleChain())
 	{
 		updateCommunicateList();
@@ -316,36 +263,32 @@ void LLToolBar::updateCommunicateList()
 
 	communicate_button->removeall();
 
-	LLFloater* frontmost_floater = LLFloaterChatterBox::getInstance()->getActiveFloater();
+	//LLFloater* frontmost_floater = LLFloaterChatterBox::getInstance()->getActiveFloater();
 	LLScrollListItem* itemp = NULL;
 
-	itemp = communicate_button->add(LLFloaterMyFriends::getInstance()->getShortTitle(), LLSD("contacts"), ADD_TOP);
+	LLSD contact_sd;
+	contact_sd["value"] = "contacts";
+	/*contact_sd["columns"][0]["value"] = LLFloaterMyFriends::getInstance()->getShortTitle(); 
 	if (LLFloaterMyFriends::getInstance() == frontmost_floater)
 	{
-		((LLScrollListText*)itemp->getColumn(0))->setFontStyle(LLFontGL::BOLD);
+		contact_sd["columns"][0]["font"]["name"] = "SANSSERIF_SMALL"; 
+		contact_sd["columns"][0]["font"]["style"] = "BOLD"; 
 		// make sure current tab is selected in list
 		if (selected.isUndefined())
 		{
-			selected = itemp->getValue();
+			selected = "contacts";
 		}
-	}
-	itemp = communicate_button->add(LLFloaterChat::getInstance()->getShortTitle(), LLSD("local chat"), ADD_TOP);
-	if (LLFloaterChat::getInstance() == frontmost_floater)
-	{
-		((LLScrollListText*)itemp->getColumn(0))->setFontStyle(LLFontGL::BOLD);
-		if (selected.isUndefined())
-		{
-			selected = itemp->getValue();
-		}
-	}
+	}*/
+	itemp = communicate_button->addElement(contact_sd, ADD_TOP);
+
 	communicate_button->addSeparator(ADD_TOP);
 	communicate_button->add(getString("Redock Windows"), LLSD("redock"), ADD_TOP);
 	communicate_button->addSeparator(ADD_TOP);
-	communicate_button->add(LLFloaterMute::getInstance()->getShortTitle(), LLSD("mute list"), ADD_TOP);
-	
+	communicate_button->add(getString("Blocked List"), LLSD("mute list"), ADD_TOP);
+
 	std::set<LLHandle<LLFloater> >::const_iterator floater_handle_it;
 
-	if (gIMMgr->getIMFloaterHandles().size() > 0)
+	/*if (gIMMgr->getIMFloaterHandles().size() > 0)
 	{
 		communicate_button->addSeparator(ADD_TOP);
 	}
@@ -357,165 +300,79 @@ void LLToolBar::updateCommunicateList()
 		{
 			std::string floater_title = im_floaterp->getNumUnreadMessages() > 0 ? "*" : "";
 			floater_title.append(im_floaterp->getShortTitle());
-			itemp = communicate_button->add(floater_title, im_floaterp->getSessionID(), ADD_TOP);
+			LLSD im_sd;
+			im_sd["value"] = im_floaterp->getSessionID();
+			im_sd["columns"][0]["value"] = floater_title;
 			if (im_floaterp  == frontmost_floater)
 			{
-				((LLScrollListText*)itemp->getColumn(0))->setFontStyle(LLFontGL::BOLD);
+				im_sd["columns"][0]["font"]["name"] = "SANSSERIF_SMALL";
+				im_sd["columns"][0]["font"]["style"] = "BOLD";
 				if (selected.isUndefined())
 				{
-					selected = itemp->getValue();
+					selected = im_floaterp->getSessionID();
 				}
 			}
+			itemp = communicate_button->addElement(im_sd, ADD_TOP);
 		}
-	}
+	}*/
 
-	communicate_button->setToggleState(gSavedSettings.getBOOL("ShowCommunicate"));
 	communicate_button->setValue(selected);
 }
 
 
 // static
-void LLToolBar::onClickCommunicate(LLUICtrl* ctrl, void* user_data)
+void LLToolBar::onClickCommunicate(LLUICtrl* ctrl, const LLSD& user_data)
 {
-	LLToolBar* toolbar = (LLToolBar*)user_data;
-	LLFlyoutButton* communicate_button = toolbar->getChild<LLFlyoutButton>("communicate_btn");
+	LLFlyoutButton* communicate_button = dynamic_cast<LLFlyoutButton*>(ctrl);
+	llassert_always(communicate_button);
 	
 	LLSD selected_option = communicate_button->getValue();
     
 	if (selected_option.asString() == "contacts")
 	{
-		LLFloaterMyFriends::showInstance();
+		LLFloaterReg::showInstance("contacts", "friends");
 	}
 	else if (selected_option.asString() == "local chat")
 	{
-		LLFloaterChat::showInstance();
+		LLFloaterReg::showInstance("communicate", "local");
 	}
 	else if (selected_option.asString() == "redock")
 	{
-		LLFloaterChatterBox::getInstance()->addFloater(LLFloaterMyFriends::getInstance(), FALSE);
-		LLFloaterChatterBox::getInstance()->addFloater(LLFloaterChat::getInstance(), FALSE);
-		LLUUID session_to_show;
-		
-		std::set<LLHandle<LLFloater> >::const_iterator floater_handle_it;
-		for(floater_handle_it = gIMMgr->getIMFloaterHandles().begin(); floater_handle_it != gIMMgr->getIMFloaterHandles().end(); ++floater_handle_it)
+		/*LLFloaterChatterBox* chatterbox_instance = LLFloaterChatterBox::getInstance();
+		if(chatterbox_instance)
 		{
-			LLFloater* im_floaterp = floater_handle_it->get();
-			if (im_floaterp)
+			chatterbox_instance->addFloater(LLFloaterMyFriends::getInstance(), FALSE);
+			
+			LLUUID session_to_show;
+		
+			std::set<LLHandle<LLFloater> >::const_iterator floater_handle_it;
+			for(floater_handle_it = gIMMgr->getIMFloaterHandles().begin(); floater_handle_it != gIMMgr->getIMFloaterHandles().end(); ++floater_handle_it)
 			{
-				if (im_floaterp->isFrontmost())
+				LLFloater* im_floaterp = floater_handle_it->get();
+				if (im_floaterp)
 				{
-					session_to_show = ((LLFloaterIMPanel*)im_floaterp)->getSessionID();
+					if (im_floaterp->isFrontmost())
+					{
+						session_to_show = ((LLFloaterIMPanel*)im_floaterp)->getSessionID();
+					}
+					chatterbox_instance->addFloater(im_floaterp, FALSE);
 				}
-				LLFloaterChatterBox::getInstance()->addFloater(im_floaterp, FALSE);
 			}
-		}
-
-		LLFloaterChatterBox::showInstance(session_to_show);
+			LLFloaterReg::showInstance("communicate", session_to_show);
+		}*/
 	}
 	else if (selected_option.asString() == "mute list")
 	{
-		LLFloaterMute::showInstance();
+		LLPanelBlockedList::showPanelAndSelect(LLUUID::null);
 	}
 	else if (selected_option.isUndefined()) // user just clicked the communicate button, treat as toggle
 	{
-		if (LLFloaterChatterBox::getInstance()->getFloaterCount() == 0)
-		{
-			LLFloaterMyFriends::toggleInstance();
+		/*LLFloaterReg::toggleInstance("communicate");*/
 		}
-		else
-		{
-			LLFloaterChatterBox::toggleInstance();
-		}
-	}
-	else // otherwise selection_option is a specific IM session id
+	else // otherwise selection_option is undifined or a specific IM session id
 	{
-		LLFloaterChatterBox::showInstance(selected_option);
+		/*LLFloaterReg::showInstance("communicate", selected_option);*/
 	}
 }
 
-
-// static
-void LLToolBar::onClickChat(void* user_data)
-{
-	handle_chat(NULL);
-}
-
-// static
-void LLToolBar::onClickAppearance(void*)
-{
-	if (gAgent.areWearablesLoaded())
-	{
-		gAgent.changeCameraToCustomizeAvatar();
-	}
-}
-
-
-// static
-void LLToolBar::onClickFly(void*)
-{
-	gAgent.toggleFlying();
-}
-
-
-// static
-void LLToolBar::onClickSit(void*)
-{
-	if (!(gAgent.getControlFlags() & AGENT_CONTROL_SIT_ON_GROUND))
-	{
-		// sit down
-		gAgent.setFlying(FALSE);
-		gAgent.setControlFlags(AGENT_CONTROL_SIT_ON_GROUND);
-
-		// Might be first sit
-		LLFirstUse::useSit();
-	}
-	else
-	{
-		// stand up
-		gAgent.setFlying(FALSE);
-		gAgent.setControlFlags(AGENT_CONTROL_STAND_UP);
-	}
-}
-
-
-// static
-void LLToolBar::onClickSnapshot(void*)
-{
-	LLFloaterSnapshot::show (0);
-}
-
-
-// static
-void LLToolBar::onClickDirectory(void*)
-{
-	handle_find(NULL);
-}
-
-
-// static
-void LLToolBar::onClickBuild(void*)
-{
-	toggle_build_mode();
-}
-
-
-// static
-void LLToolBar::onClickRadar(void*)
-{
-	handle_mini_map(NULL);
-}
-
-
-// static
-void LLToolBar::onClickMap(void*)
-{
-	handle_map(NULL);
-}
-
-
-// static
-void LLToolBar::onClickInventory(void*)
-{
-	handle_inventory(NULL);
-}
 

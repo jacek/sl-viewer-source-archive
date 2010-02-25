@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<floater
+ legacy_header_height="18"
+ can_minimize="false"
+ can_resize="true"
+ height="270"
+ layout="topleft"
+ min_height="150"
+ min_width="425"
+ name="chat floater"
+ help_topic="chat_floater"
+ save_rect="true"
+ save_visibility="true"
+ single_instance="true"
+ title="LOCAL CHAT"
+ width="435">
+    <floater.string
+     name="voice_icon">
+        Unread_IM
+    </floater.string>
+    <layout_stack
+     follows="left|top|right|bottom"
+     height="250"
+     layout="topleft"
+     left="2"
+     name="panels"
+     orientation="horizontal"
+     top="18"
+     width="430">
+        <layout_panel
+         default_tab_group="1"
+         height="130"
+         layout="topleft"
+         left="0"
+         min_width="275"
+         name="im_contents_panel"
+         top="120"
+         width="430">
+            <check_box
+             height="20"
+             label="Show Blocked Text"
+             layout="topleft"
+             left_pad="5"
+             name="show mutes"
+             top_delta="0"
+             width="116" />
+            <button
+             follows="right|top"
+             height="20"
+             label="&lt; &lt;"
+             label_selected="&gt; &gt;"
+             layout="topleft"
+             left_pad="151"
+             name="toggle_active_speakers_btn"
+             tool_tip="Click here to show list of active participants in this IM session"
+             top_delta="0"
+             width="33" />
+            <text_editor
+             bg_readonly_color="ChatHistoryBgColor"
+             bg_writeable_color="ChatHistoryBgColor"
+             follows="left|top|right|bottom"
+             font="SansSerif"
+             height="74"
+             layout="topleft"
+             left="5"
+             max_length="2147483647"
+             name="Chat History Editor"
+             parse_highlights="true"
+             allow_html="true"
+             read_only="true"
+             text_color="ChatHistoryTextColor"
+             text_readonly_color="ChatHistoryTextColor"
+             top="28"
+             track_bottom="true"
+             width="424"
+             word_wrap="true" />
+            <text_editor
+             bg_readonly_color="ChatHistoryBgColor"
+             bg_writeable_color="ChatHistoryBgColor"
+             follows="left|top|right|bottom"
+             font="SansSerif"
+             height="74"
+             layout="topleft"
+             left_delta="0"
+             max_length="2147483647"
+             name="Chat History Editor with mute"
+             parse_highlights="true"
+             allow_html="true" 
+             read_only="true"
+             text_color="ChatHistoryTextColor"
+             text_readonly_color="ChatHistoryTextColor"
+             top_delta="0"
+             track_bottom="true"
+             width="424"
+             word_wrap="true" />
+            <panel
+             bottom="125"
+             follows="left|right|bottom"
+             layout="topleft"
+             left="5"
+             name="chat_panel"
+             right="-5"
+             tab_group="1"
+             top="105">
+                <line_editor
+                 border_style="line"
+                 border_thickness="1"
+                 bottom="20"
+                 follows="left|right|bottom"
+                 font="SansSerif"
+                 height="20"
+                 label="Click here to chat."
+                 layout="topleft"
+                 left="0"
+                 name="Chat Editor"
+                 right="-70"
+                 tab_group="1" />
+                <flyout_button
+                 follows="right|bottom"
+                 height="20"
+                 label="Say"
+                 layout="topleft"
+                 left_pad="5"
+                 list_position="above"
+                 name="Say"
+                 tool_tip="(Enter)"
+                 top_delta="0"
+                 width="70">
+                    <flyout_button.item
+                     label="Shout"
+                     value="shout" />
+                    <flyout_button.item
+                     label="Say"
+                     value="say" />
+                    <flyout_button.item
+                     label="Whisper"
+                     value="whisper" />
+                </flyout_button>
+            </panel>
+        </layout_panel>
+        <layout_panel
+         auto_resize="false"
+         filename="panel_speaker_controls.xml"
+         height="120"
+         layout="topleft"
+         left_delta="0"
+         min_width="140"
+         name="active_speakers_panel"
+         top_delta="10"
+         visible="false"
+         width="140" />
+    </layout_stack>
+</floater>

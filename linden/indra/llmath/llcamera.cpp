@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -45,7 +45,8 @@ LLCamera::LLCamera() :
 	mNearPlane(DEFAULT_NEAR_PLANE),
 	mFarPlane(DEFAULT_FAR_PLANE),
 	mFixedDistance(-1.f),
-	mPlaneCount(6)
+	mPlaneCount(6),
+	mFrustumCornerDist(0.f)
 {
 	calculateFrustumPlanes();
 } 
@@ -55,7 +56,8 @@ LLCamera::LLCamera(F32 vertical_fov_rads, F32 aspect_ratio, S32 view_height_in_p
 	LLCoordFrame(),
 	mViewHeightInPixels(view_height_in_pixels),
 	mFixedDistance(-1.f),
-	mPlaneCount(6)
+	mPlaneCount(6),
+	mFrustumCornerDist(0.f)
 {
 	mAspect = llclamp(aspect_ratio, MIN_ASPECT_RATIO, MAX_ASPECT_RATIO);
 	mNearPlane = llclamp(near_plane, MIN_NEAR_PLANE, MAX_NEAR_PLANE);
@@ -178,7 +180,7 @@ S32 LLCamera::AABBInFrustum(const LLVector3 &center, const LLVector3& radius)
 	U8 mask = 0;
 	S32 result = 2;
 
-	if (radius.magVecSquared() > mFrustumCornerDist * mFrustumCornerDist)
+	/*if (mFrustumCornerDist > 0.f && radius.magVecSquared() > mFrustumCornerDist * mFrustumCornerDist)
 	{ //box is larger than frustum, check frustum quads against box planes
 
 		static const LLVector3 dir[] = 
@@ -241,11 +243,15 @@ S32 LLCamera::AABBInFrustum(const LLVector3 &center, const LLVector3& radius)
 			result = 1;
 		}
 	}
-	else
+	else*/
 	{
 		for (U32 i = 0; i < mPlaneCount; i++)
 		{
 			mask = mAgentPlanes[i].mask;
+			if (mask == 0xff)
+			{
+				continue;
+			}
 			LLPlane p = mAgentPlanes[i].p;
 			LLVector3 n = LLVector3(p);
 			float d = p.mV[3];
@@ -294,6 +300,10 @@ S32 LLCamera::AABBInFrustumNoFarClip(const LLVector3 &center, const LLVector3& r
 		}
 
 		mask = mAgentPlanes[i].mask;
+		if (mask == 0xff)
+		{
+			continue;
+		}
 		LLPlane p = mAgentPlanes[i].p;
 		LLVector3 n = LLVector3(p);
 		float d = p.mV[3];
@@ -437,6 +447,11 @@ int LLCamera::sphereInFrustum(const LLVector3 &sphere_center, const F32 radius) 
 	int res = 2;
 	for (int i = 0; i < 6; i++)
 	{
+		if (mAgentPlanes[i].mask == 0xff)
+		{
+			continue;
+		}
+
 		float d = mAgentPlanes[i].p.dist(sphere_center);
 
 		if (d > radius) 
@@ -622,9 +637,19 @@ U8 LLCamera::calcPlaneMask(const LLPlane& plane)
 	return mask;
 }
 
+void LLCamera::ignoreAgentFrustumPlane(S32 idx)
+{
+	if (idx < 0 || idx > (S32) mPlaneCount)
+	{
+		return;
+	}
+
+	mAgentPlanes[idx].mask = 0xff;
+	mAgentPlanes[idx].p.clearVec();
+}
+
 void LLCamera::calcAgentFrustumPlanes(LLVector3* frust)
 {
-
 	for (int i = 0; i < 8; i++)
 	{
 		mAgentFrustum[i] = frust[i];

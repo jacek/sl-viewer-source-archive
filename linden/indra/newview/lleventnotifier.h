@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2004&license=viewergpl$
  * 
- * Copyright (c) 2004-2009, Linden Research, Inc.
+ * Copyright (c) 2004-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -34,7 +34,6 @@
 #define LL_LLEVENTNOTIFIER_H
 
 #include "llframetimer.h"
-#include "lluserauth.h"
 #include "v3dmath.h"
 
 class LLEventInfo;
@@ -49,7 +48,7 @@ public:
 
 	void update();	// Notify the user of the event if it's coming up
 
-	void load(const LLUserAuth::options_t& event_options);	// In the format that it comes in from LLUserAuth
+	void load(const LLSD& event_options);	// In the format that it comes in from login
 	void add(LLEventInfo &event_info);	// Add a new notification for an event
 	void remove(U32 event_id);
 
@@ -69,7 +68,7 @@ public:
 	LLEventNotification();
 	virtual ~LLEventNotification();
 
-	BOOL load(const LLUserAuth::response_t &en);		// In the format it comes in from LLUserAuth
+	BOOL load(const LLSD& en);		// In the format it comes in from login
 	BOOL load(const LLEventInfo &event_info);		// From existing event_info on the viewer.
 	//void setEventID(const U32 event_id);
 	//void setEventName(std::string &event_name);

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2005&license=viewergpl$
  * 
- * Copyright (c) 2005-2009, Linden Research, Inc.
+ * Copyright (c) 2005-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -40,8 +40,12 @@
 #include "llagent.h"
 #include "llbutton.h"
 #include "llfloatergodtools.h"
+#include "llfloaterreg.h"
+#include "llnotificationsutil.h"
 #include "llparcel.h"
 #include "llscrolllistctrl.h"
+#include "llscrolllistitem.h"
+#include "llscrolllistcell.h"
 #include "lllineeditor.h"
 #include "lltextbox.h"
 #include "lltracker.h"
@@ -51,11 +55,11 @@
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 
-LLFloaterTopObjects* LLFloaterTopObjects::sInstance = NULL;
+//LLFloaterTopObjects* LLFloaterTopObjects::sInstance = NULL;
 
 // Globals
 // const U32 TIME_STR_LENGTH = 30;
-
+/*
 // static
 void LLFloaterTopObjects::show()
 {
@@ -66,64 +70,53 @@ void LLFloaterTopObjects::show()
 	}
 
 	sInstance = new LLFloaterTopObjects();
-	LLUICtrlFactory::getInstance()->buildFloater(sInstance, "floater_top_objects.xml");
+//	LLUICtrlFactory::getInstance()->buildFloater(sInstance, "floater_top_objects.xml");
 	sInstance->center();
 }
-
-LLFloaterTopObjects::LLFloaterTopObjects()
-:	LLFloater(std::string("top_objects")),
+*/
+LLFloaterTopObjects::LLFloaterTopObjects(const LLSD& key)
+:	LLFloater(key),
 	mInitialized(FALSE),
 	mtotalScore(0.f)
 {
-	sInstance = this;
+	mCommitCallbackRegistrar.add("TopObjects.ShowBeacon",		boost::bind(&LLFloaterTopObjects::onClickShowBeacon, this));
+	mCommitCallbackRegistrar.add("TopObjects.ReturnSelected",	boost::bind(&LLFloaterTopObjects::onReturnSelected, this));
+	mCommitCallbackRegistrar.add("TopObjects.ReturnAll",		boost::bind(&LLFloaterTopObjects::onReturnAll, this));
+	mCommitCallbackRegistrar.add("TopObjects.DisableSelected",	boost::bind(&LLFloaterTopObjects::onDisableSelected, this));
+	mCommitCallbackRegistrar.add("TopObjects.DisableAll",		boost::bind(&LLFloaterTopObjects::onDisableAll, this));
+	mCommitCallbackRegistrar.add("TopObjects.Refresh",			boost::bind(&LLFloaterTopObjects::onRefresh, this));
+	mCommitCallbackRegistrar.add("TopObjects.GetByObjectName",	boost::bind(&LLFloaterTopObjects::onGetByObjectName, this));
+	mCommitCallbackRegistrar.add("TopObjects.GetByOwnerName",	boost::bind(&LLFloaterTopObjects::onGetByOwnerName, this));
+	mCommitCallbackRegistrar.add("TopObjects.CommitObjectsList",boost::bind(&LLFloaterTopObjects::onCommitObjectsList, this));
 }
 
 LLFloaterTopObjects::~LLFloaterTopObjects()
 {
-	sInstance = NULL;
 }
 
 // virtual
 BOOL LLFloaterTopObjects::postBuild()
 {
-	childSetCommitCallback("objects_list", onCommitObjectsList, this);
-	childSetDoubleClickCallback("objects_list", onDoubleClickObjectsList);
-	childSetFocus("objects_list");
 	LLScrollListCtrl *objects_list = getChild<LLScrollListCtrl>("objects_list");
-	if (objects_list)
-	{
-		objects_list->setCommitOnSelectionChange(TRUE);
-	}
+	childSetFocus("objects_list");
+	objects_list->setDoubleClickCallback(onDoubleClickObjectsList, this);
+	objects_list->setCommitOnSelectionChange(TRUE);
 
-	childSetAction("show_beacon_btn", onClickShowBeacon, this);
 	setDefaultBtn("show_beacon_btn");
-
-	childSetAction("return_selected_btn", onReturnSelected, this);
-	childSetAction("return_all_btn", onReturnAll, this);
-	childSetAction("disable_selected_btn", onDisableSelected, this);
-	childSetAction("disable_all_btn", onDisableAll, this);
-	childSetAction("refresh_btn", onRefresh, this);	
-
-
-	childSetAction("filter_object_btn", onGetByObjectNameClicked, this);
-	childSetAction("filter_owner_btn", onGetByOwnerNameClicked, this);	
-
 
 	/*
 	LLLineEditor* line_editor = getChild<LLLineEditor>("owner_name_editor");
 	if (line_editor)
 	{
 		line_editor->setCommitOnFocusLost(FALSE);
-		line_editor->setCommitCallback(onGetByOwnerName);
-		line_editor->setCallbackUserData(this);
+		line_editor->setCommitCallback(onGetByOwnerName, this);
 	}
 
 	line_editor = getChild<LLLineEditor>("object_name_editor");
 	if (line_editor)
 	{
 		line_editor->setCommitOnFocusLost(FALSE);
-		line_editor->setCommitCallback(onGetByObjectName);
-		line_editor->setCallbackUserData(this);
+		line_editor->setCommitCallback(onGetByObjectName, this);
 	}*/
 
 	mCurrentMode = STAT_REPORT_TOP_SCRIPTS;
@@ -132,19 +125,29 @@ BOOL LLFloaterTopObjects::postBuild()
 
 	return TRUE;
 }
+// static
+void LLFloaterTopObjects::setMode(U32 mode)
+{
+	LLFloaterTopObjects* instance = LLFloaterReg::getTypedInstance<LLFloaterTopObjects>("top_objects");
+	if(!instance) return;
+	instance->mCurrentMode = mode; 
+}
 
+// static 
 void LLFloaterTopObjects::handle_land_reply(LLMessageSystem* msg, void** data)
 {
+	LLFloaterTopObjects* instance = LLFloaterReg::getTypedInstance<LLFloaterTopObjects>("top_objects");
+	if(!instance) return;
 	// Make sure dialog is on screen
-	show();
-	sInstance->handleReply(msg, data);
+	LLFloaterReg::showInstance("top_objects");
+	instance->handleReply(msg, data);
 
 	//HACK: for some reason sometimes top scripts originally comes back
 	//with no results even though they're there
-	if (!sInstance->mObjectListIDs.size() && !sInstance->mInitialized)
+	if (!instance->mObjectListIDs.size() && !instance->mInitialized)
 	{
-		sInstance->onRefresh(NULL);
-		sInstance->mInitialized = TRUE;
+		instance->onRefresh();
+		instance->mInitialized = TRUE;
 	}
 
 }
@@ -159,7 +162,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
 	msg->getU32Fast(_PREHASH_RequestData, _PREHASH_ReportType, mCurrentMode);
 
 	LLScrollListCtrl *list = getChild<LLScrollListCtrl>("objects_list");
-	
+
 	S32 block_count = msg->getNumberOfBlocks("ReportData");
 	for (S32 block = 0; block < block_count; ++block)
 	{
@@ -234,7 +237,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
 
 	if (total_count == 0 && list->getItemCount() == 0)
 	{
-		list->addCommentText(getString("none_descriptor"));
+		list->setCommentText(getString("none_descriptor"));
 	}
 	else
 	{
@@ -263,12 +266,9 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
 	}
 }
 
-// static
-void LLFloaterTopObjects::onCommitObjectsList(LLUICtrl* ctrl, void* data)
+void LLFloaterTopObjects::onCommitObjectsList()
 {
-	LLFloaterTopObjects* self = (LLFloaterTopObjects*)data;
-
-	self->updateSelectionInfo();
+	updateSelectionInfo();
 }
 
 void LLFloaterTopObjects::updateSelectionInfo()
@@ -283,8 +283,13 @@ void LLFloaterTopObjects::updateSelectionInfo()
 	std::string object_id_string = object_id.asString();
 
 	childSetValue("id_editor", LLSD(object_id_string));
-	childSetValue("object_name_editor", list->getFirstSelected()->getColumn(1)->getValue().asString());
-	childSetValue("owner_name_editor", list->getFirstSelected()->getColumn(2)->getValue().asString());
+	LLScrollListItem* sli = list->getFirstSelected();
+	llassert(sli);
+	if (sli)
+	{
+		childSetValue("object_name_editor", sli->getColumn(1)->getValue().asString());
+		childSetValue("owner_name_editor", sli->getColumn(2)->getValue().asString());
+	}
 }
 
 // static
@@ -295,11 +300,9 @@ void LLFloaterTopObjects::onDoubleClickObjectsList(void* data)
 }
 
 // static
-void LLFloaterTopObjects::onClickShowBeacon(void* data)
+void LLFloaterTopObjects::onClickShowBeacon()
 {
-	LLFloaterTopObjects* self = (LLFloaterTopObjects*)data;
-	if (!self) return;
-	self->showBeacon();
+	showBeacon();
 }
 
 void LLFloaterTopObjects::doToObjects(int action, bool all)
@@ -362,76 +365,77 @@ void LLFloaterTopObjects::doToObjects(int action, bool all)
 //static
 bool LLFloaterTopObjects::callbackReturnAll(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
+	LLFloaterTopObjects* instance = LLFloaterReg::getTypedInstance<LLFloaterTopObjects>("top_objects");
+	if(!instance) return false;
 	if (option == 0)
 	{
-		sInstance->doToObjects(ACTION_RETURN, true);
+		instance->doToObjects(ACTION_RETURN, true);
 	}
 	return false;
 }
 
-void LLFloaterTopObjects::onReturnAll(void* data)
+void LLFloaterTopObjects::onReturnAll()
 {	
-	LLNotifications::instance().add("ReturnAllTopObjects", LLSD(), LLSD(), &callbackReturnAll);
+	LLNotificationsUtil::add("ReturnAllTopObjects", LLSD(), LLSD(), &callbackReturnAll);
 }
 
 
-void LLFloaterTopObjects::onReturnSelected(void* data)
+void LLFloaterTopObjects::onReturnSelected()
 {
-	sInstance->doToObjects(ACTION_RETURN, false);
+	doToObjects(ACTION_RETURN, false);
 }
 
 
 //static
 bool LLFloaterTopObjects::callbackDisableAll(const LLSD& notification, const LLSD& response)
 {
-	S32 option = LLNotification::getSelectedOption(notification, response);
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
+	LLFloaterTopObjects* instance = LLFloaterReg::getTypedInstance<LLFloaterTopObjects>("top_objects");
+	if(!instance) return false;
 	if (option == 0)
 	{
-		sInstance->doToObjects(ACTION_DISABLE, true);
+		instance->doToObjects(ACTION_DISABLE, true);
 	}
 	return false;
 }
 
-void LLFloaterTopObjects::onDisableAll(void* data)
+void LLFloaterTopObjects::onDisableAll()
 {
-	LLNotifications::instance().add("DisableAllTopObjects", LLSD(), LLSD(), callbackDisableAll);
+	LLNotificationsUtil::add("DisableAllTopObjects", LLSD(), LLSD(), callbackDisableAll);
 }
 
-void LLFloaterTopObjects::onDisableSelected(void* data)
+void LLFloaterTopObjects::onDisableSelected()
 {
-	sInstance->doToObjects(ACTION_DISABLE, false);
+	doToObjects(ACTION_DISABLE, false);
 }
 
-//static
+
 void LLFloaterTopObjects::clearList()
 {
-	LLCtrlListInterface *list = sInstance->childGetListInterface("objects_list");
+	LLCtrlListInterface *list = childGetListInterface("objects_list");
 	
 	if (list) 
 	{
 		list->operateOnAll(LLCtrlListInterface::OP_DELETE);
 	}
 
-	sInstance->mObjectListData.clear();
-	sInstance->mObjectListIDs.clear();
-	sInstance->mtotalScore = 0.f;
+	mObjectListData.clear();
+	mObjectListIDs.clear();
+	mtotalScore = 0.f;
 }
 
-//static
-void LLFloaterTopObjects::onRefresh(void* data)
+
+void LLFloaterTopObjects::onRefresh()
 {
 	U32 mode = STAT_REPORT_TOP_SCRIPTS;
 	U32 flags = 0;
 	std::string filter = "";
 
-	if (sInstance)
-	{
-		mode = sInstance->mCurrentMode;
-		flags = sInstance->mFlags;
-		filter = sInstance->mFilter;
-		sInstance->clearList();
-	}
+	mode   = mCurrentMode;
+	flags  = mFlags;
+	filter = mFilter;
+	clearList();
 
 	LLMessageSystem *msg = gMessageSystem;
 	msg->newMessageFast(_PREHASH_LandStatRequest);
@@ -446,35 +450,26 @@ void LLFloaterTopObjects::onRefresh(void* data)
 
 	msg->sendReliable(gAgent.getRegionHost());
 
-	if (sInstance)
-	{
-		sInstance->mFilter.clear();
-		sInstance->mFlags = 0;
-	}
+	mFilter.clear();
+	mFlags = 0;
 }
 
-void LLFloaterTopObjects::onGetByObjectName(LLUICtrl* ctrl, void* data)
+void LLFloaterTopObjects::onGetByObjectName()
 {
-	if (sInstance)
-	{
-		sInstance->mFlags = STAT_FILTER_BY_OBJECT;
-		sInstance->mFilter = sInstance->childGetText("object_name_editor");
-		onRefresh(NULL);
-	}
+	mFlags  = STAT_FILTER_BY_OBJECT;
+	mFilter = childGetText("object_name_editor");
+	onRefresh();
 }
 
-void LLFloaterTopObjects::onGetByOwnerName(LLUICtrl* ctrl, void* data)
+void LLFloaterTopObjects::onGetByOwnerName()
 {
-	if (sInstance)
-	{
-		sInstance->mFlags = STAT_FILTER_BY_OWNER;
-		sInstance->mFilter = sInstance->childGetText("owner_name_editor");
-		onRefresh(NULL);
-	}
+	mFlags  = STAT_FILTER_BY_OWNER;
+	mFilter = childGetText("owner_name_editor");
+	onRefresh();
 }
 
 void LLFloaterTopObjects::showBeacon()
-{	
+{
 	LLScrollListCtrl* list = getChild<LLScrollListCtrl>("objects_list");
 	if (!list) return;
 

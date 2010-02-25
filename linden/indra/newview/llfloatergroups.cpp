@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -41,24 +41,17 @@
 
 #include "llfloatergroups.h"
 
-#include "message.h"
 #include "roles_constants.h"
 
 #include "llagent.h"
 #include "llbutton.h"
-#include "llfloatergroupinfo.h"
-#include "llfloaterdirectory.h"
-#include "llfocusmgr.h"
-#include "llalertdialog.h"
-#include "llselectmgr.h"
+#include "llgroupactions.h"
 #include "llscrolllistctrl.h"
 #include "lltextbox.h"
 #include "lluictrlfactory.h"
-#include "llviewerwindow.h"
-#include "llimview.h"
+#include "lltrans.h"
 
-// static
-std::map<const LLUUID, LLFloaterGroupPicker*> LLFloaterGroupPicker::sInstances;
+using namespace LLOldEvents;
 
 // helper functions
 void init_group_list(LLScrollListCtrl* ctrl, const LLUUID& highlight_id, U64 powers_mask = GP_ALL_POWERS);
@@ -67,56 +60,35 @@ void init_group_list(LLScrollListCtrl* ctrl, const LLUUID& highlight_id, U64 pow
 /// Class LLFloaterGroupPicker
 ///----------------------------------------------------------------------------
 
-// static
-LLFloaterGroupPicker* LLFloaterGroupPicker::findInstance(const LLSD& seed)
+LLFloaterGroupPicker::LLFloaterGroupPicker(const LLSD& seed)
+: 	LLFloater(seed),
+	mPowersMask(GP_ALL_POWERS),
+	mID(seed.asUUID())
 {
-	instance_map_t::iterator found_it = sInstances.find(seed.asUUID());
-	if (found_it != sInstances.end())
-	{
-		return found_it->second;
-	}
-	return NULL;
-}
-
-// static
-LLFloaterGroupPicker* LLFloaterGroupPicker::createInstance(const LLSD &seed)
-{
-	LLFloaterGroupPicker* pickerp = new LLFloaterGroupPicker(seed);
-	LLUICtrlFactory::getInstance()->buildFloater(pickerp, "floater_choose_group.xml");
-	return pickerp;
-}
-
-LLFloaterGroupPicker::LLFloaterGroupPicker(const LLSD& seed) : 
-	mSelectCallback(NULL),
-	mCallbackUserdata(NULL),
-	mPowersMask(GP_ALL_POWERS)
-{
-	mID = seed.asUUID();
-	sInstances.insert(std::make_pair(mID, this));
+// 	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_choose_group.xml");
 }
 
 LLFloaterGroupPicker::~LLFloaterGroupPicker()
 {
-	sInstances.erase(mID);
-}
-
-void LLFloaterGroupPicker::setSelectCallback(void (*callback)(LLUUID, void*), 
-									void* userdata)
-{
-	mSelectCallback = callback;
-	mCallbackUserdata = userdata;
 }
 
 void LLFloaterGroupPicker::setPowersMask(U64 powers_mask)
 {
 	mPowersMask = powers_mask;
-	postBuild();
+	init_group_list(getChild<LLScrollListCtrl>("group list"), gAgent.getGroupID(), mPowersMask);
 }
 
 
 BOOL LLFloaterGroupPicker::postBuild()
 {
-	init_group_list(getChild<LLScrollListCtrl>("group list"), gAgent.getGroupID(), mPowersMask);
+	LLScrollListCtrl* list_ctrl = getChild<LLScrollListCtrl>("group list");
+	if (list_ctrl)
+	{
+		init_group_list(list_ctrl, gAgent.getGroupID(), mPowersMask);
+		list_ctrl->setDoubleClickCallback(onBtnOK, this);
+		list_ctrl->setContextMenu(LLScrollListCtrl::MENU_GROUP);
+	}
+	
 
 	childSetAction("OK", onBtnOK, this);
 
@@ -124,13 +96,24 @@ BOOL LLFloaterGroupPicker::postBuild()
 
 	setDefaultBtn("OK");
 
-	childSetDoubleClickCallback("group list", onBtnOK);
-	childSetUserData("group list", this);
-
 	childEnable("OK");
 
 	return TRUE;
 }
+
+void LLFloaterGroupPicker::removeNoneOption()
+{
+	// Remove group "none" from list. Group "none" is added in init_group_list(). 
+	// Some UI elements use group "none", we need to manually delete it here.
+	// Group "none" ID is LLUUID:null.
+	LLCtrlListInterface* group_list = getChild<LLScrollListCtrl>("group list")->getListInterface();
+	if(group_list)
+	{
+		group_list->selectByValue(LLUUID::null);
+		group_list->operateOnSelection(LLCtrlListInterface::OP_DELETE);
+	}
+}
+
 
 void LLFloaterGroupPicker::onBtnOK(void* userdata)
 {
@@ -141,7 +124,7 @@ void LLFloaterGroupPicker::onBtnOK(void* userdata)
 void LLFloaterGroupPicker::onBtnCancel(void* userdata)
 {
 	LLFloaterGroupPicker* self = (LLFloaterGroupPicker*)userdata;
-	if(self) self->close();
+	if(self) self->closeFloater();
 }
 
 
@@ -153,12 +136,9 @@ void LLFloaterGroupPicker::ok()
 	{
 		group_id = group_list->getCurrentID();
 	}
-	if(mSelectCallback)
-	{
-		mSelectCallback(group_id, mCallbackUserdata);
-	}
+	mGroupSelectSignal(group_id);
 
-	close();
+	closeFloater();
 }
 
 ///----------------------------------------------------------------------------
@@ -211,7 +191,13 @@ BOOL LLPanelGroups::postBuild()
 	childSetTextArg("groupcount", "[COUNT]", llformat("%d",gAgent.mGroups.count()));
 	childSetTextArg("groupcount", "[MAX]", llformat("%d",MAX_AGENT_GROUPS));
 
-	init_group_list(getChild<LLScrollListCtrl>("group list"), gAgent.getGroupID());
+	LLScrollListCtrl *list = getChild<LLScrollListCtrl>("group list");
+	if (list)
+	{
+		init_group_list(list, gAgent.getGroupID());
+		list->setDoubleClickCallback(onBtnIM, this);
+		list->setContextMenu(LLScrollListCtrl::MENU_GROUP);
+	}
 
 	childSetAction("Activate", onBtnActivate, this);
 
@@ -226,9 +212,6 @@ BOOL LLPanelGroups::postBuild()
 	childSetAction("Search...", onBtnSearch, this);
 
 	setDefaultBtn("IM");
-
-	childSetDoubleClickCallback("group list", onBtnIM);
-	childSetUserData("group list", this);
 
 	reset();
 
@@ -264,14 +247,7 @@ void LLPanelGroups::enableButtons()
 		childDisable("IM");
 		childDisable("Leave");
 	}
-	if(gAgent.mGroups.count() < MAX_AGENT_GROUPS)
-	{
-		childEnable("Create");
-	}
-	else
-	{
-		childDisable("Create");
-	}
+	childSetEnabled("Create", gAgent.canJoinGroups());
 }
 
 
@@ -313,113 +289,54 @@ void LLPanelGroups::onBtnSearch(void* userdata)
 
 void LLPanelGroups::create()
 {
-	llinfos << "LLPanelGroups::create" << llendl;
-	LLFloaterGroupInfo::showCreateGroup(NULL);
+	LLGroupActions::createGroup();
 }
 
 void LLPanelGroups::activate()
 {
-	llinfos << "LLPanelGroups::activate" << llendl;
 	LLCtrlListInterface *group_list = childGetListInterface("group list");
 	LLUUID group_id;
 	if (group_list)
 	{
 		group_id = group_list->getCurrentID();
 	}
-	LLMessageSystem* msg = gMessageSystem;
-	msg->newMessageFast(_PREHASH_ActivateGroup);
-	msg->nextBlockFast(_PREHASH_AgentData);
-	msg->addUUIDFast(_PREHASH_AgentID, gAgent.getID());
-	msg->addUUIDFast(_PREHASH_SessionID, gAgent.getSessionID());
-	msg->addUUIDFast(_PREHASH_GroupID, group_id);
-	gAgent.sendReliableMessage();
+	LLGroupActions::activate(group_id);
 }
 
 void LLPanelGroups::info()
 {
-	llinfos << "LLPanelGroups::info" << llendl;
 	LLCtrlListInterface *group_list = childGetListInterface("group list");
 	LLUUID group_id;
 	if (group_list && (group_id = group_list->getCurrentID()).notNull())
 	{
-		LLFloaterGroupInfo::showFromUUID(group_id);
+		LLGroupActions::show(group_id);
 	}
 }
 
 void LLPanelGroups::startIM()
 {
-	//llinfos << "LLPanelFriends::onClickIM()" << llendl;
 	LLCtrlListInterface *group_list = childGetListInterface("group list");
 	LLUUID group_id;
 
 	if (group_list && (group_id = group_list->getCurrentID()).notNull())
 	{
-		LLGroupData group_data;
-		if (gAgent.getGroupData(group_id, group_data))
-		{
-			gIMMgr->setFloaterOpen(TRUE);
-			gIMMgr->addSession(
-				group_data.mName,
-				IM_SESSION_GROUP_START,
-				group_id);
-			make_ui_sound("UISndStartIM");
-		}
-		else
-		{
-			// this should never happen, as starting a group IM session
-			// relies on you belonging to the group and hence having the group data
-			make_ui_sound("UISndInvalidOp");
-		}
+		LLGroupActions::startIM(group_id);
 	}
 }
 
 void LLPanelGroups::leave()
 {
-	llinfos << "LLPanelGroups::leave" << llendl;
 	LLCtrlListInterface *group_list = childGetListInterface("group list");
 	LLUUID group_id;
 	if (group_list && (group_id = group_list->getCurrentID()).notNull())
 	{
-		S32 count = gAgent.mGroups.count();
-		S32 i;
-		for(i = 0; i < count; ++i)
-		{
-			if(gAgent.mGroups.get(i).mID == group_id)
-				break;
-		}
-		if(i < count)
-		{
-			LLSD args;
-			args["GROUP"] = gAgent.mGroups.get(i).mName;
-			LLSD payload;
-			payload["group_id"] = group_id;
-			LLNotifications::instance().add("GroupLeaveConfirmMember", args, payload, callbackLeaveGroup);
-		}
+		LLGroupActions::leave(group_id);
 	}
 }
 
 void LLPanelGroups::search()
 {
-	LLFloaterDirectory::showGroups();
-}
-
-// static
-bool LLPanelGroups::callbackLeaveGroup(const LLSD& notification, const LLSD& response)
-{
-	S32 option = LLNotification::getSelectedOption(notification, response);
-	LLUUID group_id = notification["payload"]["group_id"].asUUID();
-	if(option == 0)
-	{
-		LLMessageSystem* msg = gMessageSystem;
-		msg->newMessageFast(_PREHASH_LeaveGroupRequest);
-		msg->nextBlockFast(_PREHASH_AgentData);
-		msg->addUUIDFast(_PREHASH_AgentID, gAgent.getID());
-		msg->addUUIDFast(_PREHASH_SessionID, gAgent.getSessionID());
-		msg->nextBlockFast(_PREHASH_GroupData);
-		msg->addUUIDFast(_PREHASH_GroupID, group_id);
-		gAgent.sendReliableMessage();
-	}
-	return false;
+	LLGroupActions::search();
 }
 
 void LLPanelGroups::onGroupList(LLUICtrl* ctrl, void* userdata)
@@ -453,8 +370,8 @@ void init_group_list(LLScrollListCtrl* ctrl, const LLUUID& highlight_id, U64 pow
 			element["id"] = id;
 			element["columns"][0]["column"] = "name";
 			element["columns"][0]["value"] = group_datap->mName;
-			element["columns"][0]["font"] = "SANSSERIF";
-			element["columns"][0]["font-style"] = style;
+			element["columns"][0]["font"]["name"] = "SANSSERIF";
+			element["columns"][0]["font"]["style"] = style;
 
 			group_list->addElement(element, ADD_SORTED);
 		}
@@ -470,9 +387,9 @@ void init_group_list(LLScrollListCtrl* ctrl, const LLUUID& highlight_id, U64 pow
 		LLSD element;
 		element["id"] = LLUUID::null;
 		element["columns"][0]["column"] = "name";
-		element["columns"][0]["value"] = "none"; // *TODO: Translate
-		element["columns"][0]["font"] = "SANSSERIF";
-		element["columns"][0]["font-style"] = style;
+		element["columns"][0]["value"] = LLTrans::getString("GroupsNone");
+		element["columns"][0]["font"]["name"] = "SANSSERIF";
+		element["columns"][0]["font"]["style"] = style;
 
 		group_list->addElement(element, ADD_TOP);
 	}
